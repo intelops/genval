@@ -42,7 +42,8 @@ Replace `<path/to/input-json>` with the path to your input JSON file and `<path/
 
 ## Application Flow
 
-![Application Flow Diagram](https://github.com/karanpratapsingh/learn-go/assets/91916466/6a4acc03-f1ae-46c1-88df-5441f958b0b4)
+![Application Flow Diagram](https://github.com/karanpratapsingh/learn-go/assets/91916466/4e6dc68c-0ecf-41c8-aecd-81e46eb0df70)
+
 
 GenVal simplifies Dockerfile management by automating validation and generation while ensuring that your Dockerfiles adhere to best practices. It's a valuable tool for both Docker novices and experts.
 
