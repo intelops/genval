@@ -4,7 +4,9 @@
       "stage": 0,
       "instructions": [
         {
-          "from": "cgr.dev/chainguard/python:latest-dev As builder"
+          "from": [
+            "cgr.dev/chainguard/python:latest-dev As builder"
+          ]
         },
         {
           "env": [
@@ -17,7 +19,9 @@
           ]
         },
         {
-          "workdir": "$APP_HOME"
+          "workdir": [
+            "$APP_HOME"
+          ]
         },
         {
           "copy": [
@@ -40,7 +44,9 @@
       "stage": 1,
       "instructions": [
         {
-          "from": "cgr.dev/chainguard/static:latest"
+          "from": [
+            "cgr.dev/chainguard/static:latest"
+          ]
         },
         {
           "env": [
@@ -54,7 +60,9 @@
           ]
         },
         {
-          "workdir": "$APP_HOME"
+          "workdir": [
+            "$APP_HOME"
+          ]
         },
         {
           "copy": [
@@ -67,7 +75,9 @@
           ]
         },
         {
-          "user": "$APP_USER"
+          "user": [
+            "$APP_USER"
+          ]
         },
         {
           "cmd": [

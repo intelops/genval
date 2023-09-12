@@ -4,21 +4,27 @@
       "stage": 0,
       "instructions": [
         {
-          "from": "cgr.dev/chainguard/clang:latest As builder"
+          "from": [
+            "cgr.dev/chainguard/clang:latest As builder"
+          ]
         },
         {
-          "env": "APP_HOME=/app"
+          "env": [
+            "APP_HOME=/app"
+          ]
         },
         {
           "run": [
-            "apt-get update",
+            "--no-cache apt-get update",
             "apt-get install -y gcc",
             "apt-get clean",
             "useradd -m -s /bin/bash -d $APP_HOME myappuser"
           ]
         },
         {
-          "workdir": "$APP_HOME"
+          "workdir": [
+            "$APP_HOME"
+          ]
         },
         {
           "copy": [
@@ -37,7 +43,9 @@
       "stage": 1,
       "instructions": [
         {
-          "from": "cgr.dev/chainguard/static:latest"
+          "from": [
+            "cgr.dev/chainguard/static:latest"
+          ]
         },
         {
           "env": [
@@ -51,7 +59,9 @@
           ]
         },
         {
-          "workdir": "$APP_HOME"
+          "workdir": [
+            "$APP_HOME"
+          ]
         },
         {
           "copy": [
@@ -59,7 +69,9 @@
           ]
         },
         {
-          "user": "$APP_USER"
+          "user": [
+            "$APP_USER"
+          ]
         },
         {
           "cmd": [

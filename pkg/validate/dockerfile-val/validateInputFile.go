@@ -7,40 +7,19 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/intelops/genval/pkg/parser"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v2"
 )
 
 const (
-	InputPolicy  = "./policies/input-yaml.rego"
+	InputPolicy  = "./policies/dockerFilePolicies/inputFilePolicies.rego"
 	InputPackage = "data.validate_input"
 )
 
-type DockerInstruction map[string][]string
-
-type DockerStage struct {
-	Instructions []DockerInstruction `yaml:"instructions"`
-	Stage        int                 `yaml:"stage"`
-}
-
-type DockerfileYAML struct {
-	Dockerfile []DockerStage `yaml:"dockerfile"`
-}
-
-func ParseYAML(yamlContent string) (*DockerfileYAML, error) {
-
-	var dockerfileYAML DockerfileYAML
-	err := yaml.Unmarshal([]byte(yamlContent), &dockerfileYAML)
-	if err != nil {
-		return nil, err
-	}
-	return &dockerfileYAML, nil
-}
-
-func ValidateYAML(yamlContent string, regoPolicyPath string) error {
+func ValidateJSON(yamlContent string, regoPolicyPath string) error {
 	// Parse the YAML content
-	dockerfileYAML, err := ParseYAML(yamlContent)
+	parsedYAML, err := parser.ParseYAMLContent(yamlContent)
 	if err != nil {
 		log.WithError(err).Error("Error parsing YAML.")
 		return errors.New("error parsing YAML")
@@ -55,7 +34,7 @@ func ValidateYAML(yamlContent string, regoPolicyPath string) error {
 
 	// Convert the dockerfileYAML struct to a map for rego input
 	inputMap := make(map[string]interface{})
-	yamlBytes, err := json.Marshal(dockerfileYAML)
+	yamlBytes, err := json.Marshal(parsedYAML)
 	if err != nil {
 		log.WithError(err).Error("Error converting dockerfileYAML to JSON.")
 		return errors.New("error converting dockerfileYAML to JSON")
@@ -67,8 +46,6 @@ func ValidateYAML(yamlContent string, regoPolicyPath string) error {
 		log.WithError(err).Error(errWithContext.Error())
 		return errWithContext
 	}
-
-	// fmt.Printf("inputMap: %v\n", inputMap)
 
 	// Create Rego for query and evaluation
 	regoQuery := rego.New(
@@ -89,14 +66,14 @@ func ValidateYAML(yamlContent string, regoPolicyPath string) error {
 			keys := result.Expressions[0].Value.(map[string]interface{})
 			for key, value := range keys {
 				if value != true {
-					log.Errorf("Policy: %s failed\n", key)
-					return fmt.Errorf("policy %s failed", key)
+					log.Errorf("Input Yaml policy: %s failed\n", key)
+					return fmt.Errorf("input Yaml policy %s failed", key)
 				} else {
-					log.Infof("Policy: %s passed\n", key)
+					fmt.Printf("Input Yaml policy: %s passed\n", key)
 				}
 			}
 		} else {
-			log.Error("No policies passed or evaluated")
+			log.Error("No input policies passed or evaluated")
 		}
 	}
 
