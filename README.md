@@ -40,10 +40,18 @@ genval <path/to/input-json> <path/to/Dockerfile>
 
 Replace `<path/to/input-json>` with the path to your input JSON file and `<path/to/Dockerfile>` with the desired path for the generated Dockerfile.
 
-## Application Flow
+## Application Flow Diagram: 
+```mermaid
+flowchart
+	2{"Input validation"} -.->|"Yes"| 3(["Generate \nDockerfile"])
+	1["Input JSON file"] --> 2
+	2 -->|"No"| 471222["Update JSON as needed"]
+	793804("Validate \nDockerfile") --> 3
+	3 -->|"No"| 714538["Update JSON as suggested"]
+	3 -->|"Yes"| 4[["Final Dockerfile"]]
+```
 
-![Application Flow Diagram](https://github.com/karanpratapsingh/learn-go/assets/91916466/4e6dc68c-0ecf-41c8-aecd-81e46eb0df70)
-
+#
 
 GenVal simplifies Dockerfile management by automating validation and generation while ensuring that your Dockerfiles adhere to best practices. It's a valuable tool for both Docker novices and experts.
 
