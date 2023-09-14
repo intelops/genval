@@ -16,7 +16,7 @@ builds:
     # trims path
     - -trimpath
   ldflags:
-  #   # CommitDate makes the release, checksums and signatures reproducible
+  #   # CommitDate makes the release reproducible
     - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }}
 
 checksum:
