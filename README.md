@@ -29,7 +29,7 @@ Using GenVal is straight forward:
 
 `genval` is available as a binary executable for all major platforms, the binaries can be downloaded from the official [release page](https://github.com/intelops/genval/releases)
 
-1. **Installation**: To install GenVal on your system. You can downlod the executable binary from the releases page, make it an executible and you are ready to go.
+- **Installation**: To install GenVal on your system. You can downlod the executable binary from the releases page, make it an executible and you are ready to go.
 
 ```shell
 curl https://github.com/intelops/genval/releases/download/v0.0.1/genval_0.0.1_<os/arch>.tar.gz
@@ -39,7 +39,8 @@ chmod +x genval
 mv ./genval /usr/local/bin
 ```
 For quick start, there are some pre-built templates to build Dockerfile for popular languages in `/templates/dockerFile-sample` directory. 
-1. **Build from source**
+
+## Build from source
 
 To build `genval` from source, you can follow the instructions as below:
 
@@ -62,11 +63,11 @@ The generated binary will be available in the current working directory, i.e `ge
 Now, you are ready to generate your Dockerfile with following command:
 
 
-2. **Validation and Generation**: Run GenVal, providing the path to your input JSON or YAML file and the desired path for the generated Dockerfile. GenVal will take care of the rest.
+- **Validation and Generation**: Run GenVal, providing the path to your input JSON or YAML file and the desired path for the generated Dockerfile. GenVal will take care of the rest.
 
 `genval ./templates/dockerfile-samples/go-input.json ./Dockerfile-Golang`
 
-3. **Review Feedback**: GenVal will display feedback based on the best practice validation. If any issues are found, you can use this feedback to refine your Dockerfile.
+- **Review Feedback**: GenVal will display feedback based on the best practice validation. If any issues are found, you can use this feedback to refine your Dockerfile.
 
 Here's a simple command to use GenVal:
 
@@ -87,9 +88,6 @@ flowchart
 	3 -->|"Yes"| 4[["Final Dockerfile"]]
 ```
 
-## Local Developement
-
-If you are interested in building a local Dev env for GenVal, follow [these](CONTRIBUTION.md/#set-up-your-local-development-environment) steps.
 
 GenVal simplifies Dockerfile management by automating validation and generation while ensuring that your Dockerfiles adhere to best practices. It's a valuable tool for both Docker novices and experts.
 
