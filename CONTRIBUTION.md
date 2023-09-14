@@ -34,12 +34,13 @@ cd genval
 # Add a reference (remote) to the original repository
 git remote add upstream https://github.com/intelops/genval.git
 ```
-We would appreciate, if you work in your separate branch and push the changes to the branch. checkout to new branch:
+
+While contributing to `genval`, we would appreciate, if you work in your separate branch and push the changes to the branch. checkout to new branch:
 
 ```shell
 git checkout -b <new branch>
 ```
-`genval` is written in Golang, optionally you can resolve dependencies by running:
+`genval` is written in Golang, you can pull and resolve dependencies by running:
 
 ```shell
 go mod tidy
@@ -49,7 +50,7 @@ And you are ready to roll...
 
 You can track your changes.
 
-```
+```shell
 git add  <file_name>
 ```
 

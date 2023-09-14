@@ -20,22 +20,44 @@ Managing Dockerfiles can be complex. It's crucial to ensure they follow best pra
 
 - **Informative Feedback**: If GenVal detects any issues or discrepancies during the best practice validation, it provides informative feedback. This feedback helps you understand what needs improvement in your Dockerfile.
 
+
+> Note: Currently, `genval` requires a pre-defined structure for the input json to be provided for generating and validating the generated Dockerfile. The sample input `json` files are stored in `/templates/dockerFile-samples` directory of the project.
+
 ## Getting Started
 
 Using GenVal is straight forward:
 
-`genval` is available as a binary executable for all major platforms, the binaries can be downloaded from the [release page]()
+`genval` is available as a binary executable for all major platforms, the binaries can be downloaded from the official [release page](https://github.com/intelops/genval/releases)
 
-1. **Installation**: To install GenVal on your system. You can downlod the executable binary make its executible and you are ready to go.
+1. **Installation**: To install GenVal on your system. You can downlod the executable binary from the releases page, make it an executible and you are ready to go.
 
 ```shell
-curl https://github.com/santoshkal/genval-poc/releases/download/v0.0.2/genval_0.0.2_<os/arch>.tar.gz
+curl https://github.com/intelops/genval/releases/download/v0.0.1/genval_0.0.1_<os/arch>.tar.gz
 tar -xvf genval_0.0.2_<os/arch>.tar.gz
 chmod +x genval
 # move the executable to PATH
 mv ./genval /usr/local/bin
 ```
-For quick start, there are some pre-built templates to build Dockerfile for popular languages in `/templates/dockerfile-sample` directory. 
+For quick start, there are some pre-built templates to build Dockerfile for popular languages in `/templates/dockerFile-sample` directory. 
+1. **Build from source**
+
+To build `genval` from source, you can follow the instructions as below:
+
+> Note: If you are building from source, please ensure you are building the application from the `main` branch to avoid any unstable behaviour of the tool.  
+
+
+```shell
+git clone https://github.com/intelops/genval.git
+```
+Navigate to the project directory
+`cd genval`
+
+Now you can build `genval` using the following command:
+
+```shell
+CGO_ENABLED=0 go build -o genval
+```
+The generated binary will be available in the current working directory, i.e `genval`. You can optionally move the genval executable to your `PATH` or use the relative path `./genval` to use the tool from `pwd`.
 
 Now, you are ready to generate your Dockerfile with following command:
 
