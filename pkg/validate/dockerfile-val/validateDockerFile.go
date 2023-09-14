@@ -2,28 +2,34 @@ package validate
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
 
+//go:embed dockerFilePolicies.rego
+var dockerPolicy []byte
+
 const (
-	DockerfilePolicy  = "./policies/dockerFilePolicies/dockerFilePolicies.rego"
+	// DockerfilePolicy = "./policies/dockerFilePolicies/dockerFilePolicies.rego"
+	DockerfilePolicy = "dockerFilePolicies.rego"
+
 	DockerfilePackage = "data.dockerfile_validation"
 )
 
 // ValidateDockerfileUsingRego validates a Dockerfile using Rego.
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
+
 	// Read Rego policy code from file
-	regoPolicyCode, err := os.ReadFile(regoPolicyPath)
-	if err != nil {
-		return fmt.Errorf("error reading rego policy: %v", err)
-	}
+	// regoPolicyCode, err := os.ReadFile(regoPolicyPath)
+	// if err != nil {
+	// 	return fmt.Errorf("error reading rego policy: %v", err)
+	// }
 
 	// Prepare Rego input data
 	dockerfileInstructions := parser.ParseDockerfileContent(dockerfileContent)
@@ -42,15 +48,17 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 		return errWithContext
 	}
 
+	ctx := context.Background()
+
 	// Create regoQuery for evaluation
 	regoQuery := rego.New(
 		rego.Query(DockerfilePackage),
-		rego.Module(DockerfilePolicy, string(regoPolicyCode)),
+		rego.Module(DockerfilePolicy, string(dockerPolicy)),
 		rego.Input(commands),
 	)
 
 	// Evaluate the Rego query
-	rs, err := regoQuery.Eval(context.Background())
+	rs, err := regoQuery.Eval(ctx)
 	if err != nil {
 		log.Fatal("Error evaluating query:", err)
 	}

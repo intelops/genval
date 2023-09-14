@@ -2,18 +2,22 @@ package validate
 
 import (
 	"context"
+	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
 
+//go:embed inputFilePolicies.rego
+var inputPolicy []byte
+
 const (
-	InputPolicy  = "./policies/dockerFilePolicies/inputFilePolicies.rego"
+	InputPolicy = "./policies/dockerFilePolicies/inputFilePolicies.rego"
+	// InputPolicy  = "inputFilePolicies.rego"
 	InputPackage = "data.validate_input"
 )
 
@@ -26,11 +30,11 @@ func ValidateJSON(yamlContent string, regoPolicyPath string) error {
 	}
 
 	// Read Rego policy code from file
-	regoPolicyCode, err := os.ReadFile(regoPolicyPath)
-	if err != nil {
-		log.WithError(err).Error("Error reading rego policy.")
-		return errors.New("error reading rego policy")
-	}
+	// regoPolicyCode, err := os.ReadFile(regoPolicyPath)
+	// if err != nil {
+	// 	log.WithError(err).Error("Error reading rego policy.")
+	// 	return errors.New("error reading rego policy")
+	// }
 
 	// Convert the dockerfileYAML struct to a map for rego input
 	inputMap := make(map[string]interface{})
@@ -46,16 +50,17 @@ func ValidateJSON(yamlContent string, regoPolicyPath string) error {
 		log.WithError(err).Error(errWithContext.Error())
 		return errWithContext
 	}
+	ctx := context.Background()
 
 	// Create Rego for query and evaluation
 	regoQuery := rego.New(
 		rego.Query(InputPackage),
-		rego.Module(InputPolicy, string(regoPolicyCode)),
+		rego.Module(InputPolicy, string(inputPolicy)),
 		rego.Input(inputMap),
 	)
 
 	// Evaluate the Rego query
-	rs, err := regoQuery.Eval(context.Background())
+	rs, err := regoQuery.Eval(ctx)
 	if err != nil {
 		return fmt.Errorf("error evaluating Rego: %v", err)
 	}

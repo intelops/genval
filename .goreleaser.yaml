@@ -1,0 +1,45 @@
+project_name: genval
+
+# setups builds for linux, windows and darwin on amd64 and arm64
+builds:
+- env:
+  - CGO_ENABLED=0
+  goos:
+  - linux
+  - darwin
+  - windows
+  goarch:
+  - amd64
+  - arm64
+
+  flags:
+    # trims path
+    - -trimpath
+  ldflags:
+  #   # CommitDate makes the release, checksums and signatures reproducible
+    - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }}
+
+checksum:
+  name_template: 'checksums.txt'
+
+source:
+  enabled: true
+
+sboms:
+  - artifacts: archive
+  - id: source # Two different sbom configurations need two different IDs
+    artifacts: source
+
+# signs the checksum file
+signs:
+- cmd: cosign
+  certificate: '${artifact}.pem'
+  args:
+    - sign-blob
+    - '--output-certificate=${certificate}'
+    - '--output-signature=${signature}'
+    - '${artifact}'
+    - "--yes" 
+  artifacts: checksum
+  output: true
+
