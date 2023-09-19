@@ -46,7 +46,7 @@ jobs:
             --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
             --cert "https://github.com/intelops/genval/releases/download/${TAG}/checksums.txt.pem" \
             --signature "https://github.com/intelops/genval/releases/download/${TAG}/checksums.txt.sig" \
-            ./checksums.txt.1
+            ./checksums.txt
           
  
           
