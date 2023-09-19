@@ -1,3 +1,7 @@
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/7843/badge)](https://www.bestpractices.dev/projects/7843)
+or by embedding this in your HTML:
+<a href="https://www.bestpractices.dev/projects/7843"><img src="https://www.bestpractices.dev/projects/7843/badge"></a>
+
 # genval
 Verify, Generate and Validate dockerfile, K8s Manifests, Helm, Timoni, Kustomize, K8s Operators, Tekton, GitOps, K8s Infa YAML files, etc. programmatically.
 
