@@ -48,9 +48,9 @@ Verify the downloaded blob i.e the `checksums.txt` using cosign tool
 cosign verify-blob \
     --certificate-identity "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/v0.0.1" \
     --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-	--cert ./checksums.txt.pem \
-	--signature ./checksums.txt.sig \
-	./checksums.txt
+    --cert ./checksums.txt.pem \
+    --signature ./checksums.txt.sig \
+    ./checksums.txt
 ```
 
 If the verification is successful, we would ge an output `Verified OK`.
