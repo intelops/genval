@@ -29,7 +29,34 @@ Using GenVal is straight forward:
 
 `genval` is available as a binary executable for all major platforms, the binaries can be downloaded from the official [release page](https://github.com/intelops/genval/releases)
 
-- **Installation**: To install GenVal on your system. You can downlod the executable binary from the releases page, make it an executible and you are ready to go.
+## Verifying the binary signatures 
+
+The GenVal release process signs the binaries using Cosign's keyless signing mode. To verify a perticular binary, retrive the release checksum together with its signature and public certificate for the desired `TAG`.
+
+> Note: Cosign 2.0 requires the `--certificate-identity` and `--certificate-oidc-issuer` options.
+For more information please refer to the [Sigstore blog](https://blog.sigstore.dev/cosign-2-0-released/). 
+
+```shell
+wget https://github.com/intelops/genval-poc/releases/download/v0.0.1/checksums.txt
+wget https://github.com/intelops/genval-poc/releases/download/v0.0.1/checksums.txt.pem
+wget https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.sig
+# Remember to update the tag (v0.0.1) in the above url for your desired release
+```
+Verify the downloaded blob i.e the `checksums.txt` using cosign tool
+
+```shell
+cosign verify-blob \
+    --certificate-identity "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/v0.0.1" \
+    --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+	--cert ./checksums.txt.pem \
+	--signature ./checksums.txt.sig \
+	./checksums.txt
+```
+
+If the verification is successful, we would ge an output `Verified OK`.
+
+
+**Installation**: To install GenVal on your system. You can downlod the executable binary from the releases page, make it an executible and you are ready to go.
 
 ```shell
 curl https://github.com/intelops/genval/releases/download/v0.0.1/genval_0.0.1_<os/arch>.tar.gz
