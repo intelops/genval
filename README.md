@@ -37,8 +37,8 @@ The GenVal release process signs the binaries using Cosign's keyless signing mod
 For more information please refer to the [Sigstore blog](https://blog.sigstore.dev/cosign-2-0-released/). 
 
 ```shell
-wget https://github.com/intelops/genval-poc/releases/download/v0.0.1/checksums.txt
-wget https://github.com/intelops/genval-poc/releases/download/v0.0.1/checksums.txt.pem
+wget https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt
+wget https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.pem
 wget https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.sig
 # Remember to update the tag (v0.0.1) in the above url for your desired release
 ```
