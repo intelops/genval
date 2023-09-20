@@ -5,7 +5,7 @@
       "instructions": [
         {
           "from": [
-            "cgr.dev/chainguard/clang:latest As builder"
+            "cgr.dev/chainguard/clang:latest-dev as builder"
           ]
         },
         {
@@ -15,15 +15,19 @@
         },
         {
           "run": [
-            "--no-cache apt-get update",
-            "apt-get install -y gcc",
-            "apt-get clean",
             "useradd -m -s /bin/bash -d $APP_HOME myappuser"
           ]
         },
         {
           "workdir": [
             "$APP_HOME"
+          ]
+        },
+        {
+          "run": [
+            "apk add --no-cache clang clang-dev alpine-sdk dpkg",
+            "apk add --update --no-cache cmake",
+            "apk add --update --no-cache ccache"
           ]
         },
         {
@@ -65,7 +69,7 @@
         },
         {
           "copy": [
-            "--from=builder $APP_HOME/src/myapp $APP_HOME/src/myapp"
+            "--from=builder $APP_HOME/myapp $APP_HOME/myapp"
           ]
         },
         {
@@ -74,8 +78,8 @@
           ]
         },
         {
-          "cmd": [
-            "./src/myapp"
+          "entrypoint": [
+            "./myapp"
           ]
         }
       ]

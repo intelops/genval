@@ -5,20 +5,12 @@
       "instructions": [
         {
           "from": [
-            "cgr.dev/chainguard/clang:latest As builder"
+            "cgr.dev/chainguard/node:latest-dev as builder"
           ]
         },
         {
           "env": [
             "APP_HOME=/app"
-          ]
-        },
-        {
-          "run": [
-            "--no-cache apt-get update",
-            "apt-get install -y gcc",
-            "apt-get clean",
-            "useradd -m -s /bin/bash -d $APP_HOME myappuser"
           ]
         },
         {
@@ -28,13 +20,22 @@
         },
         {
           "copy": [
-            "src/ $APP_HOME/src/",
-            "Makefile $APP_HOME/"
+            "package*.json ./"
           ]
         },
         {
           "run": [
-            "make -C $APP_HOME"
+            "npm install"
+          ]
+        },
+        {
+          "copy": [
+            ". ."
+          ]
+        },
+        {
+          "run": [
+            "npm run build"
           ]
         }
       ]
@@ -44,7 +45,13 @@
       "instructions": [
         {
           "from": [
-            "cgr.dev/chainguard/static:latest"
+            "cgr.dev/chainguard/node:latest"
+          ]
+        },
+        {
+          "label": [
+            "maintainer=\"your-email@example.com\"",
+            "description=\"Secure Multi-stage Node.js Alpine Image\""
           ]
         },
         {
@@ -54,18 +61,19 @@
           ]
         },
         {
-          "run": [
-            "useradd -m -s /bin/bash -d $APP_HOME $APP_USER"
-          ]
-        },
-        {
           "workdir": [
             "$APP_HOME"
           ]
         },
         {
           "copy": [
-            "--from=builder $APP_HOME/src/myapp $APP_HOME/src/myapp"
+            "--from=builder /app/node_modules /$APP_HOME/node_modules",
+            "--from=builder /app/your-built-application /$APP_HOME/"
+          ]
+        },
+        {
+          "run": [
+            "adduser -D $APP_USER"
           ]
         },
         {
@@ -74,8 +82,9 @@
           ]
         },
         {
-          "cmd": [
-            "./src/myapp"
+          "entrypoint": [
+            "npm",
+            "start"
           ]
         }
       ]

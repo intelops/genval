@@ -1,0 +1,48 @@
+{
+  "dockerfile": [
+    {
+      "stage": 0,
+      "instructions": [
+        {
+          "from": [
+            "golang-alpine:latest-dev as builder"
+          ]
+        },
+        {
+          "env": [
+            "APP_HOME=/app"
+          ]
+        },
+        {
+          "run": [
+            "useradd -m -s /bin/bash -d $APP_HOME myappuser"
+          ]
+        },
+        {
+          "workdir": [
+            "$APP_HOME"
+          ]
+        },
+        {
+          "run": [
+            "apk add --no-cache clang clang-dev alpine-sdk dpkg",
+            "apk add --update --no-cache cmake",
+            "apk add --update --no-cache ccache"
+          ]
+        },
+        {
+          "copy": [
+            "src/ $APP_HOME/src/",
+            "Makefile $APP_HOME/"
+          ]
+        },
+        {
+          "run": [
+            "make -C $APP_HOME"
+          ]
+        }
+      ]
+    }
+   
+  ]
+}

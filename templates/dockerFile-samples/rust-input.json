@@ -5,36 +5,43 @@
       "instructions": [
         {
           "from": [
-            "cgr.dev/chainguard/clang:latest"
+            "cgr.dev/chainguard/rust:latest-dev as builder"
           ]
         },
         {
           "env": [
-            "APP_HOME=/app"
+            "APP_HOME=/usr/src"
           ]
         },
         {
           "run": [
-            "--no-cache apt-get update",
-            "apt-get install -y gcc",
-            "apt-get clean",
-            "useradd -m -s /bin/bash -d $APP_HOME myappuser"
+            "USER=root cargo new myapp"
           ]
         },
         {
           "workdir": [
-            "$APP_HOME"
+            "$APP_HOME/myapp"
           ]
         },
         {
           "copy": [
-            "src/ $APP_HOME/src/",
-            "Makefile $APP_HOME/"
+            "Cargo.toml Cargo.lock ./"
           ]
         },
         {
           "run": [
-            "make -C $APP_HOME"
+            "cargo build --release",
+            "rm src/*.rs"
+          ]
+        },
+        {
+          "copy": [
+            "src ./src"
+          ]
+        },
+        {
+          "run": [
+            "cargo build --release"
           ]
         }
       ]
@@ -48,14 +55,15 @@
           ]
         },
         {
-          "env": [
-            "APP_USER=myappuser",
-            "APP_HOME=/app"
+          "label": [
+            "maintainer=\"your-email@example.com\"",
+            "description=\"Secure Multi-stage RUST Alpine Image\""
           ]
         },
         {
-          "run": [
-            "useradd -m -s /bin/bash -d $APP_HOME $APP_USER"
+          "env": [
+            "APP_USER=myappuser",
+            "APP_HOME=/app"
           ]
         },
         {
@@ -64,8 +72,18 @@
           ]
         },
         {
+          "run": [
+            "apk --no-cache add ca-certificates"
+          ]
+        },
+        {
           "copy": [
-            "$APP_HOME/src/myapp $APP_HOME/src/myapp"
+            "--from=builder /usr/src/myapp/target/release/myapp /usr/local/bin/"
+          ]
+        },
+        {
+          "run": [
+            "adduser -D $APP_USER"
           ]
         },
         {
@@ -74,8 +92,8 @@
           ]
         },
         {
-          "cmd": [
-            "./src/myapp"
+          "entrypoint": [
+            "myapp"
           ]
         }
       ]

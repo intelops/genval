@@ -2,51 +2,42 @@ dockerfile:
 - stage: 0
   instructions:
   - from: 
-    - "cgr.dev/chainguard/go:latest as builder"
+    - "cgr.dev/chainguard/python:latest-dev as builder"
   - env:
     - "APP_HOME=/app"
-  - run:
-    - "useradd -m -s /bin/bash -d $APP_HOME myappuser"
   - workdir:
     - "$APP_HOME"
   - run:
-    - --no-cache apt-get update
-    - apt-get clean
-    - go mod download
+    - apk add --no-cache build-base
+    - pip install --upgrade pip wheel
   - copy:
-    - "go.mod go.sum $APP_HOME/"
-  - copy:
-    - src/ $APP_HOME/src/
-  - run:
-    - "CGO_ENABLED=0 go build -o myapp $APP_HOME/src/main.go"
-  
-
+    - requirements.txt .
+  - run:  
+    - pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
 
 - stage: 1
   instructions:
   - from:
-    - "cgr.dev/chainguard/static:latest"
+    - "cgr.dev/chainguard/python:latest"
+  - label:
+    - maintainer="your-email@example.com"
+    - description="Secure Multi-stage RUST Alpine Image" 
   - env:
     - "APP_USER=myappuser"
     - "APP_HOME=/app"
-  - run:
-    - "useradd -m -s /bin/bash -d $APP_HOME $APP_USER"
   - workdir:
     - "$APP_HOME"
   - copy:
-    - --from=builder $APP_HOME/myapp $APP_HOME/myapp
+    - --from=builder /usr/src/myapp/target/release/myapp /usr/local/bin/
+  - run: 
+    - adduser -D $APP_USER
   - user:
     - "$APP_USER"
+  - copy:
+    - main.py .
   - entrypoint:
-    - "./myapp"
+    - "python"
+    - "/$APP_HOME/main.py"
 
 
-
-# Check for entrypoint in last stage
-
-# Check multiple FROM in yaml
-
-# Length of STAGE > 1
-
-# replace ADD to COPY 
 

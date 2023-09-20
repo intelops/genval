@@ -16,20 +16,15 @@ import (
 var dockerPolicy []byte
 
 const (
-	// DockerfilePolicy = "./policies/dockerFilePolicies/dockerFilePolicies.rego"
+	// DockerfilePolicy is the name of the Rego policy file used to validate Dockerfiles.
 	DockerfilePolicy = "dockerFilePolicies.rego"
 
+	// DockerfilePackage is the name of the Rego package containing Dockerfile validation policies.
 	DockerfilePackage = "data.dockerfile_validation"
 )
 
 // ValidateDockerfileUsingRego validates a Dockerfile using Rego.
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
-
-	// Read Rego policy code from file
-	// regoPolicyCode, err := os.ReadFile(regoPolicyPath)
-	// if err != nil {
-	// 	return fmt.Errorf("error reading rego policy: %v", err)
-	// }
 
 	// Prepare Rego input data
 	dockerfileInstructions := parser.ParseDockerfileContent(dockerfileContent)
@@ -63,13 +58,15 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 		log.Fatal("Error evaluating query:", err)
 	}
 
-	// Iterate over the resultSet and print the result metadata
+	var policyError error
+
 	for _, result := range rs {
 		if len(result.Expressions) > 0 {
 			keys := result.Expressions[0].Value.(map[string]interface{})
 			for key, value := range keys {
 				if value != true {
 					log.Errorf("Dockerfile validation policy: %s failed\n", key)
+					policyError = fmt.Errorf("dockerfile validation policy: %s failed", key)
 				} else {
 					fmt.Printf("Dockerfile validation policy: %s passed\n", key)
 				}
@@ -83,5 +80,6 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 		log.WithError(err).Error("Error evaluating Rego.")
 		return errors.New("error evaluating Rego")
 	}
-	return nil
+
+	return policyError
 }

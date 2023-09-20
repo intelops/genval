@@ -5,7 +5,7 @@
       "instructions": [
         {
           "from": [
-            "cgr.dev/chainguard/python:latest-dev As builder"
+            "cgr.dev/chainguard/python:latest-dev as builder"
           ]
         },
         {
@@ -14,28 +14,24 @@
           ]
         },
         {
-          "run": [
-            "useradd -m -s /bin/bash -d $APP_HOME myappuser"
-          ]
-        },
-        {
           "workdir": [
             "$APP_HOME"
           ]
         },
         {
+          "run": [
+            "apk add --no-cache build-base",
+            "pip install --upgrade pip wheel"
+          ]
+        },
+        {
           "copy": [
-            "requirements.txt $APP_HOME/"
+            "requirements.txt ."
           ]
         },
         {
           "run": [
-            "pip install --no-cache-dir -r requirements.txt"
-          ]
-        },
-        {
-          "copy": [
-            "src/ $APP_HOME/src/"
+            "pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt"
           ]
         }
       ]
@@ -45,7 +41,13 @@
       "instructions": [
         {
           "from": [
-            "cgr.dev/chainguard/static:latest"
+            "cgr.dev/chainguard/python:latest"
+          ]
+        },
+        {
+          "label": [
+            "maintainer=\"your-email@example.com\"",
+            "description=\"Secure Multi-stage RUST Alpine Image\""
           ]
         },
         {
@@ -55,23 +57,18 @@
           ]
         },
         {
-          "run": [
-            "useradd -m -s /bin/bash -d $APP_HOME $APP_USER"
-          ]
-        },
-        {
           "workdir": [
             "$APP_HOME"
           ]
         },
         {
           "copy": [
-            "--from=builder $APP_HOME /usr/local/lib/python3.9/site-packages/"
+            "--from=builder /usr/src/myapp/target/release/myapp /usr/local/bin/"
           ]
         },
         {
-          "copy": [
-            "src/ $APP_HOME/src/"
+          "run": [
+            "adduser -D $APP_USER"
           ]
         },
         {
@@ -80,9 +77,14 @@
           ]
         },
         {
-          "cmd": [
+          "copy": [
+            "main.py ."
+          ]
+        },
+        {
+          "entrypoint": [
             "python",
-            "src/app.py"
+            "/$APP_HOME/main.py"
           ]
         }
       ]

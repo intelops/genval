@@ -16,25 +16,21 @@ import (
 var inputPolicy []byte
 
 const (
-	InputPolicy = "./policies/dockerFilePolicies/inputFilePolicies.rego"
-	// InputPolicy  = "inputFilePolicies.rego"
+	// InputPolicy is the name of the Rego policy file used to validate input JSON file.
+	InputPolicy = "inputFilePolicies.rego"
+
+	// InputPackage is the name of the Rego package containing input JSON policies.
 	InputPackage = "data.validate_input"
 )
 
-func ValidateJSON(yamlContent string, regoPolicyPath string) error {
+// ValidateJSON validates input JSON against pre-defined Rego policies
+func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	// Parse the YAML content
 	parsedYAML, err := parser.ParseYAMLContent(yamlContent)
 	if err != nil {
 		log.WithError(err).Error("Error parsing YAML.")
 		return errors.New("error parsing YAML")
 	}
-
-	// Read Rego policy code from file
-	// regoPolicyCode, err := os.ReadFile(regoPolicyPath)
-	// if err != nil {
-	// 	log.WithError(err).Error("Error reading rego policy.")
-	// 	return errors.New("error reading rego policy")
-	// }
 
 	// Convert the dockerfileYAML struct to a map for rego input
 	inputMap := make(map[string]interface{})
