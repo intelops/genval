@@ -12,8 +12,8 @@ import (
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		log.Debug("Usage: go run main.go input.json output.Dockerfile")
+	if len(os.Args) < 3 {
+		log.Error("Usage: go run main.go input.json output.Dockerfile")
 		return
 	}
 
