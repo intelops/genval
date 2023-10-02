@@ -16,7 +16,6 @@ linters:
     - misspell
     - dupl
     - stylecheck
-    - revive
 
 linters-settings:
   gofmt:

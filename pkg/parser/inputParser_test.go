@@ -38,7 +38,7 @@ dockerfile
 func TestReadAndParseFile(t *testing.T) {
 	// Create temp yaml file
 	yamlFile, _ := os.CreateTemp("", "test*.yaml")
-	yamlFile.WriteString(`
+	_, err := yamlFile.WriteString(`
 dockerfile:
 - stage: 1
   instructions:
@@ -49,17 +49,19 @@ dockerfile:
   - run:
     - "echo world"
 `)
+	assert.NoError(t, err)
 	defer os.Remove(yamlFile.Name())
 
 	// Read and parse YAML file
 	var yamlData InputYAML
-	err := ReadAndParseFile(yamlFile.Name(), &yamlData)
+	err = ReadAndParseFile(yamlFile.Name(), &yamlData)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(yamlData.Dockerfile))
 
 	// Create temp json file
 	jsonFile, _ := os.CreateTemp("", "test*.json")
-	jsonFile.WriteString(`{"dockerfile":[{"stage":1,"instructions":[{"run":["echo hello"]}]},{"stage":2,"instructions":[{"run":["echo world"]}]}]}`)
+	_, err = jsonFile.WriteString(`{"dockerfile":[{"stage":1,"instructions":[{"run":["echo hello"]}]},{"stage":2,"instructions":[{"run":["echo world"]}]}]}`)
+	assert.NoError(t, err)
 	defer os.Remove(jsonFile.Name())
 
 	// Read and parse JSON file
