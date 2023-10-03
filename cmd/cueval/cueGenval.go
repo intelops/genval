@@ -2,9 +2,8 @@ package cueval
 
 import (
 	"embed"
-	"io/fs"
+	"fmt"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"cuelang.org/go/cue"
@@ -14,9 +13,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Embed the def.cue file and the entire cue.mod directory.
+// Embed the .cue file and the entire cue.mod directory.
 //
-//go:embed *.cue
+//go:embed definitions/*/*.cue
 var cueDef embed.FS
 
 func init() {
@@ -34,7 +33,7 @@ func Execute(args []string) {
 	ctx := cuecontext.New()
 
 	if len(args) != 2 {
-		log.Errorf("Usage: [binary_name] -mode=k8s <Resource> <Input JSON>")
+		log.Errorf("Usage: [binary_name] -mode=cueval <Resource> <Input JSON>")
 		return
 	}
 
@@ -43,20 +42,20 @@ func Execute(args []string) {
 
 	overlay := make(map[string]load.Source)
 
-	fs.WalkDir(cueDef, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			log.Errorf("Error reading embedded files: %v", err)
-		}
-		if !d.Type().IsRegular() {
-			return nil
-		}
-		contents, err := cueDef.ReadFile(path)
-		if err != nil {
-			log.Errorf("Error reading cueDef: %v", err)
-		}
-		overlay[filepath.Join("/", path)] = load.FromBytes(contents)
-		return nil
-	})
+	directory, err := findDirectoryForDefinition(cueDef, defName)
+	if err != nil {
+		log.Fatalf("Error determining directory for definition: %v", err)
+	}
+
+	// Modify this part according to where the CUE files are located.
+	cueFilePath := "definitions/" + directory + "/" + directory + ".cue"
+
+	cueContent, err := cueDef.ReadFile(cueFilePath)
+	if err != nil {
+		log.Fatalf("Failed to read .cue file for %s: %v", directory, err)
+	}
+
+	overlay[cueFilePath] = load.FromBytes(cueContent)
 
 	conf := &load.Config{
 		Dir:     ".",
@@ -78,13 +77,16 @@ func Execute(args []string) {
 		return
 	}
 
-	bi := load.Instances([]string{"."}, conf)
+	bi := load.Instances([]string{"definitions"}, conf)
+	if len(bi) > 0 && bi[0].Err != nil {
+		log.Errorf("Error in build instance: %v", bi[0].Err)
+	}
 
 	v := ctx.BuildInstance(bi[0])
 
 	def := v.LookupPath(cue.ParsePath(defPath))
 	if def.Err() != nil {
-		log.Errorf("Error parsing Path: %v", def)
+		log.Errorf("Error parsing Path: %v", def.Err())
 		return
 	}
 
@@ -96,7 +98,7 @@ func Execute(args []string) {
 	}
 
 	err = value.Validate(cue.Concrete(true), cue.Final())
-	if value.Err() != nil {
+	if err != nil {
 		log.Errorf("Error validating: %v", value.Err())
 		return
 	}
@@ -127,4 +129,24 @@ func Execute(args []string) {
 	}
 
 	log.Println("Validation Succeeded!")
+}
+
+func findDirectoryForDefinition(cueFS embed.FS, defName string) (string, error) {
+	// Try reading the root directory (this would list all the first-level directories)
+	entries, err := cueFS.ReadDir("definitions")
+	if err != nil {
+		return "", fmt.Errorf("error reading 'definitions' directory from embedded FS: %w", err)
+	}
+
+	for _, entry := range entries {
+		if entry.IsDir() {
+			dirName := entry.Name()
+			// Check if this directory has a .cue file named after the definition
+			if _, err := cueFS.ReadFile("definitions/" + dirName + "/" + dirName + ".cue"); err == nil {
+				return dirName, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("could not find directory for definition %s", defName)
 }
