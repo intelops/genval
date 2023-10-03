@@ -58,12 +58,15 @@ import (
 			}
 			spec: core.#PodSpec & {
 				containers: [{
-					name: string
-					image: =~"^((?!:latest).)*$"
-					// further detail out the container spec like securityContext...
+					image: =~"^.*[^:latest]$"
+					// ... [other fields]
+
+					securityContext: {
+						privileged:   bool | *false | !true // Containers should not be privileged
+						runAsNonRoot: bool | *true | !false // Containers should run as non-root user
+					}
 				}]
 			}
 		}
 	}
 }
-
