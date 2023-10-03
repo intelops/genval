@@ -22,7 +22,6 @@ var cueDef embed.FS
 func init() {
 	log.SetFormatter(&log.TextFormatter{
 		FullTimestamp: false,
-		PadLevelText:  true,
 		FieldMap: log.FieldMap{
 			log.FieldKeyTime:  "@timestamp",
 			log.FieldKeyLevel: "@level",
@@ -92,13 +91,13 @@ func Execute(args []string) {
 	// Unify data the CUE Value and Definition, and Check for err
 	value := def.Unify(data)
 	if value.Err() != nil {
-		log.Errorf("Validation failed: %v", err)
+		log.Errorf("Validation failed: %v", value.Err())
 		return
 	}
 
 	err = value.Validate(cue.Concrete(true), cue.Final())
 	if value.Err() != nil {
-		log.Errorf("Error validating: %v", err)
+		log.Errorf("Error validating: %v", value.Err())
 		return
 	}
 

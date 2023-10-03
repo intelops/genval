@@ -1,5 +1,6 @@
 /example
 input.*
 output.*
+*.json
 /bin
 coverage.out
