@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    labels:
+        app: cueTest
+        version: main
+    namespace: websites
+spec:
+    minReadySeconds: 5
+    revisionHistoryLimit: 5
+    selector:
+        matchLabels:
+            app: cueTest
+    strategy:
+        rollingUpdate:
+            maxSurge: 50%
+            maxUnavailable: 0%
+        type: RollingUpdate
+    template:
+        metadata:
+            labels:
+                app: cueTest
+        spec:
+            containers:
+                - image: us.gcr.io/hof-io--develop/cuetorials.com:manual
+                  imagePullPolicy: Always
+                  livenessProbe:
+                    failureThreshold: 3
+                    httpGet:
+                        port: 80
+                    initialDelaySeconds: 6
+                    periodSeconds: 10
+                  name: website
+                  ports:
+                    - containerPort: 80
+                      protocol: TCP
+                  readinessProbe:
+                    failureThreshold: 3
+                    httpGet:
+                        port: 80
+                    initialDelaySeconds: 6
+                    periodSeconds: 10
