@@ -1,66 +1,46 @@
+// main.go root main package
+
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
-	generate "github.com/intelops/genval/pkg/generate/dockerfile-gen"
-	"github.com/intelops/genval/pkg/parser"
-	validate "github.com/intelops/genval/pkg/validate/dockerfile-val"
-
-	log "github.com/sirupsen/logrus"
+	"github.com/intelops/genval/cmd/cueval"
+	"github.com/intelops/genval/cmd/docker"
 )
 
+var mode string
+
+func init() {
+	flag.StringVar(&mode, "mode", "", "Specify mode: 'docker' for Dockerfile validation/generation or 'cueval' for K8s resource validation/generation.")
+
+	// Customize flag.Usage to show detailed help topics
+	flag.Usage = func() {
+		fmt.Printf("Usage of %s:\n", os.Args[0])
+		fmt.Println()
+		fmt.Println("Modes:")
+		fmt.Println("  docker: Dockerfile validation and generation. Arguments: <input.json> <output.Dockerfile>")
+		fmt.Println("  cueval: K8s resource validation and generation. Arguments: <Resource> <Input JSON>")
+		fmt.Println()
+		flag.PrintDefaults()
+	}
+}
+
 func main() {
-	if len(os.Args) != 3 {
-		log.Debug("Usage: go run main.go input.json output.Dockerfile")
-		return
-	}
+	flag.Parse()
 
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
-	})
+	// Pass arguments after the mode flag
+	args := flag.Args()
 
-	inputPath := os.Args[1]
-	outputPath := os.Args[2]
-
-	// Use ParseInputFile to read and unmarshal the input file
-	var data generate.DockerfileContent
-
-	err := parser.ReadAndParseFile(inputPath, &data)
-	if err != nil {
-		log.Error("Error:", err)
-		return
-	}
-
-	yamlContent, err := os.ReadFile(inputPath)
-	if err != nil {
-		log.Fatalf("Error reading YAML file: %v", err)
-	}
-
-	// Validate the YAML using OPA
-	err = validate.ValidateInput(string(yamlContent), validate.InputPolicy)
-	if err != nil {
-		log.Fatalf("Validation error: %v", err)
-		return
-	}
-
-	dockerfileContent := generate.GenerateDockerfileContent(&data)
-
-	outputData := []byte(dockerfileContent)
-	err = os.WriteFile(outputPath, outputData, 0644)
-	if err != nil {
-		log.Error("Error writing Dockerfile:", err)
-		return
-	}
-	fmt.Printf("Generated Dockerfile saved to: %s\n", outputPath)
-
-	err = validate.ValidateDockerfile(string(outputData), validate.DockerfilePolicy)
-	// fmt.Printf("Dockerfile JSON: %s\n", generatedDockerfileContent)
-	if err != nil {
-		log.Error("Dockerfile validation failed:", err)
-		return
-	} else {
-		fmt.Printf("Dockerfile validation succeeded!\n")
+	switch mode {
+	case "docker":
+		docker.Execute(args) // Call the Docker mode's execution function
+	case "cueval":
+		cueval.Execute(args) // Call the K8s mode's execution function
+	default:
+		fmt.Println("Invalid mode. Choose 'docker' or 'cueval'.")
+		flag.Usage()
 	}
 }

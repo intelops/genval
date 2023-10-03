@@ -11,19 +11,19 @@ import (
 	kind:       "Deployment"
 
 	metadata: labels: {
-		// Reserved labels.
+		// Mandatory labels.
 		version: "main"
 	}
 
 	spec: apps.#DeploymentSpec & {
-		revisionHistoryLimit: int | *5
+		revisionHistoryLimit: int | *5 // Defaults to 5
 
 		strategy: {
-			type: string | *"RollingUpdate"
+			type: string | *"RollingUpdate" // Defaults to RollingUpdate
 			if type == "RollingUpdate" {
 				rollingUpdate: {
-					maxSurge:       int | string | *"50%"
-					maxUnavailable: int | string | *"0%"
+					maxSurge:       int | string | *"50%" // Defaults to 50%
+					maxUnavailable: int | string | *"0%" // Defaults to 0%
 				}
 			}
 		}
