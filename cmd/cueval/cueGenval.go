@@ -1,11 +1,8 @@
 package cueval
 
 import (
-	"embed"
 	"fmt"
-	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 
 	"cuelang.org/go/cue"
@@ -14,11 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
-
-// Embed the def.cue file and the entire cue.mod directory.
-//
-//go:embed *.cue
-var cueDef embed.FS
 
 func init() {
 	log.SetFormatter(&log.TextFormatter{
@@ -31,37 +23,25 @@ func init() {
 	})
 }
 
+var Entrypoint map[string]load.Source
+
+func FromBytes(data []byte) load.Source {
+	return load.FromBytes(data)
+}
+
 func Execute(args []string) {
-	ctx := cuecontext.New()
 
 	if len(args) != 2 {
 		log.Errorf("Usage: [binary_name] -mode=cueval <Resource> <Input JSON>")
 		return
 	}
-
 	defPath := args[0]
 	dataFile := args[1]
 
-	overlay := make(map[string]load.Source)
-
-	fs.WalkDir(cueDef, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			log.Errorf("Error reading embedded files: %v", err)
-		}
-		if !d.Type().IsRegular() {
-			return nil
-		}
-		contents, err := cueDef.ReadFile(path)
-		if err != nil {
-			log.Errorf("Error reading cueDef: %v", err)
-		}
-		overlay[filepath.Join("/", path)] = load.FromBytes(contents)
-		return nil
-	})
-
+	ctx := cuecontext.New()
 	conf := &load.Config{
 		Dir:     ".",
-		Overlay: overlay,
+		Overlay: Entrypoint,
 		Package: "_",
 	}
 
