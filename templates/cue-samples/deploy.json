@@ -24,7 +24,7 @@
           "containers": [
             {
               "name": "website",
-              "image": "us.gcr.io/hof-io--develop/cuetorials.com:manual",
+              "image": "nginx:1.20",
               "imagePullPolicy": "Always",
               "ports": [
                 {
