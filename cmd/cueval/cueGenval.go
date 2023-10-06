@@ -1,15 +1,15 @@
 package cueval
 
 import (
-	"fmt"
+	"io"
+	"io/fs"
 	"os"
-	"strings"
+	"path/filepath"
 
-	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
+	embeder "github.com/intelops/genval"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -23,106 +23,53 @@ func init() {
 	})
 }
 
-var Entrypoint map[string]load.Source
-
-func FromBytes(data []byte) load.Source {
-	return load.FromBytes(data)
-}
-
 func Execute(args []string) {
 
-	if len(args) != 2 {
-		log.Errorf("Usage: [binary_name] -mode=cueval <Resource> <Input JSON>")
-		return
-	}
-	defPath := args[0]
-	dataFile := args[1]
+	staticFS := embeder.CueDef
 
-	ctx := cuecontext.New()
-	conf := &load.Config{
-		Dir:     ".",
-		Overlay: Entrypoint,
-		Package: "_",
-	}
-
-	d := strings.ToLower(defPath)
-	defName := "#" + strings.Title(d)
-	// Read the input Json from args and encode the json in CUE value for processing
-	ds, err := os.ReadFile(dataFile)
-	if err != nil {
-		log.Fatalf("Error reading data: %v", err)
-		return
-	}
-
-	data := ctx.CompileBytes(ds)
-	if data.Err() != nil {
-		log.Errorf("Error compiling data: %v", data.Err())
-		return
-	}
-
-	bi := load.Instances([]string{}, conf)
-	if len(bi) == 0 {
-		log.Errorf("no instances found")
-	}
-
-	v, err := ctx.BuildInstances(bi)
+	td, err := os.MkdirTemp("", "")
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i, value := range v {
-		bi := bi[i]
-		fmt.Printf("%v: %.2v\n", bi.PkgName, value)
+	defer os.RemoveAll(td)
 
-		lookUp := cue.ParsePath(defName)
-		if lookUp.Err() != nil {
-			log.Errorf("ParsePath fail: %v", lookUp.Err())
-		}
-
-		def := value.LookupPath(lookUp)
-		// fmt.Printf("Value from Path: %v", def)
-		if def.Err() != nil {
-			log.Errorf("Error parsing Path: %v", def.Err())
-			return
-		}
-
-		// Unify data the CUE Value and Definition, and Check for err
-		value := def.Unify(data)
-		if value.Err() != nil {
-			log.Errorf("Validation failed: %v", value.Err())
-			return
-		}
-
-		err = value.Validate(cue.Concrete(true), cue.Final())
+	overlay := make(map[string]load.Source)
+	err = fs.WalkDir(staticFS, ".", func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
-			log.Errorf("Error validating: %v", value.Err())
-			return
+			return err
 		}
-
-		o, err := value.MarshalJSON()
+		if !d.Type().IsRegular() {
+			return nil
+		}
+		f, err := staticFS.Open(p)
 		if err != nil {
-			log.Errorf("Invalid JSON: %v", err)
-			return
+			return err
 		}
-
-		var output map[string]interface{}
-		err = yaml.Unmarshal(o, &output)
+		byts, err := io.ReadAll(f)
 		if err != nil {
-			log.Errorf("Error writing YAML: %v", output)
-			return
+			return err
 		}
-
-		yamlData, err := yaml.Marshal(output)
-		if err != nil {
-			log.Errorf("Error Marshaling: %v", err)
-			return
-		}
-
-		err = os.WriteFile("output.yaml", yamlData, 0644)
-		if err != nil {
-			log.Errorf("Writing YAML: %v", err)
-			return
-		}
+		op := filepath.Join(td, p)
+		overlay[op] = load.FromBytes(byts)
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	log.Println("Validation Succeeded!")
+	config := &load.Config{
+		Overlay: overlay,
+		Dir:     td,
+	}
+	inst := load.Instances([]string{"github.com/intelops/genval/schema:kubernetes"}, config)
+	if err != nil {
+		log.Fatal(err)
+	}
+	ctx := cuecontext.New()
+	v, err := ctx.BuildInstances(inst)
+	if err != nil {
+		log.Errorf("Could not build Instances from %v: %v", v, err)
+	}
+	log.Printf("%v\n", v)
+
 }
