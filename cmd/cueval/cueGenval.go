@@ -13,6 +13,8 @@ import (
 	"cuelang.org/go/cue/load"
 	embeder "github.com/intelops/genval"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"gopkg.in/yaml.v3"
 )
 
@@ -75,12 +77,12 @@ func Execute(args []string) {
 	conf := &load.Config{
 		Dir:     td,
 		Overlay: overlay,
-		Package: "kubernetes",
 		Module:  modPath,
 	}
 
 	d := strings.ToLower(defPath)
-	defName := "#" + strings.Title(d)
+	res := (cases.Title(language.Und).String(d))
+	defName := "#" + res
 	// Read the input Json from args and encode the json in CUE value for processing
 	ds, err := os.ReadFile(dataFile)
 	if err != nil {
@@ -94,7 +96,7 @@ func Execute(args []string) {
 		return
 	}
 
-	bi := load.Instances([]string{modPath + "/schema:kubernetes"}, conf)
+	bi := load.Instances([]string{modPath + "/schema:_"}, conf)
 	if len(bi) == 0 {
 		log.Errorf("no instances found")
 	}
@@ -151,12 +153,12 @@ func Execute(args []string) {
 			return
 		}
 
-		err = os.WriteFile("output.yaml", yamlData, 0644)
+		err = os.WriteFile(defPath+".yaml", yamlData, 0644)
 		if err != nil {
 			log.Errorf("Writing YAML: %v", err)
 			return
 		}
 	}
 
-	log.Println("Validation Succeeded!")
+	fmt.Printf("%v Validation succeeded, generated manifest: %v.yaml\n", res, defPath)
 }
