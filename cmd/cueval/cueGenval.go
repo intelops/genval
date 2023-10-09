@@ -2,20 +2,16 @@ package cueval
 
 import (
 	"fmt"
-	"io"
-	"io/fs"
 	"os"
-	"path/filepath"
-	"strings"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
 	embeder "github.com/intelops/genval"
+	"github.com/intelops/genval/pkg/cuecore"
+	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
-	"gopkg.in/yaml.v3"
 )
 
 func init() {
@@ -33,11 +29,11 @@ func Execute(args []string) {
 	const modPath = "github.com/intelops/genval"
 	staticFS := embeder.CueDef
 
-	td, err := os.MkdirTemp("", "")
+	td, cleanup, err := utils.TempDirWithCleanup()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer os.RemoveAll(td)
+	defer cleanup()
 
 	ctx := cuecontext.New()
 
@@ -49,27 +45,7 @@ func Execute(args []string) {
 	defPath := args[0]
 	dataFile := args[1]
 
-	overlay := make(map[string]load.Source)
-
-	err = fs.WalkDir(staticFS, ".", func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.Type().IsRegular() {
-			return nil
-		}
-		f, err := staticFS.Open(p)
-		if err != nil {
-			return err
-		}
-		byts, err := io.ReadAll(f)
-		if err != nil {
-			return err
-		}
-		op := filepath.Join(td, p)
-		overlay[op] = load.FromBytes(byts)
-		return nil
-	})
+	overlay, err := utils.GenerateOverlay(staticFS, td)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -80,74 +56,34 @@ func Execute(args []string) {
 		Module:  modPath,
 	}
 
-	d := strings.ToLower(defPath)
-	res := (cases.Title(language.Und).String(d))
-	defName := "#" + res
-	// Read the input Json from args and encode the json in CUE value for processing
-	ds, err := os.ReadFile(dataFile)
+	res, data, err := utils.ReadAndCompileData(defPath, dataFile)
 	if err != nil {
-		log.Fatalf("Error reading data: %v", err)
+		log.Fatalf("Error processing data: %v", err)
 		return
 	}
 
-	data := ctx.CompileBytes(ds)
-	if data.Err() != nil {
-		log.Errorf("Error compiling data: %v", data.Err())
-		return
-	}
+	defName := "#" + res
 
-	bi := load.Instances([]string{modPath + "/schema:_"}, conf)
-	if len(bi) == 0 {
-		log.Errorf("no instances found")
-	}
-
-	v, err := ctx.BuildInstances(bi)
+	v, err := cuecore.BuildInstance(ctx, modPath, conf)
 	if err != nil {
 		log.Fatal(err)
 	}
-	for i, value := range v {
-		bi := bi[i]
-		fmt.Printf("%v: %.2v\n", bi.PkgName, value)
 
+	for _, value := range v {
 		lookUp := cue.ParsePath(defName)
-		if lookUp.Err() != nil {
-			log.Errorf("ParsePath fail: %v", lookUp.Err())
-		}
-
 		def := value.LookupPath(lookUp)
-		// fmt.Printf("Value from Path: %v", def)
 		if def.Err() != nil {
 			log.Errorf("Error parsing Path: %v", def.Err())
 			return
 		}
 
-		// Unify data the CUE Value and Definition, and Check for err
-		value := def.Unify(data)
-		if value.Err() != nil {
-			log.Errorf("Validation failed: %v", value.Err())
-			return
-		}
-
-		err = value.Validate(cue.Concrete(true), cue.Final())
+		unifiedValue, err := cuecore.UnifyAndValidate(def, data)
 		if err != nil {
-			log.Errorf("Error validating: %v", value.Err())
+			log.Errorf("Validation failed: %v", err)
 			return
 		}
 
-		o, err := value.MarshalJSON()
-		if err != nil {
-			log.Errorf("Invalid JSON: %v", err)
-			return
-		}
-
-		var output map[string]interface{}
-		err = yaml.Unmarshal(o, &output)
-		if err != nil {
-			log.Errorf("Error writing YAML: %v", output)
-			return
-		}
-
-		yamlData, err := yaml.Marshal(output)
+		yamlData, err := parser.CueToYAML(unifiedValue)
 		if err != nil {
 			log.Errorf("Error Marshaling: %v", err)
 			return
@@ -160,5 +96,5 @@ func Execute(args []string) {
 		}
 	}
 
-	fmt.Printf("%v Validation succeeded, generated manifest: %v.yaml\n", res, defPath)
+	fmt.Printf("%v validation succeeded, generated manifest: %v.yaml\n", res, defPath)
 }
