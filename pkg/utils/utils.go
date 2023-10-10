@@ -11,8 +11,6 @@ import (
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
 	log "github.com/sirupsen/logrus"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // TempDirWithCleanup creates a temporary directory and returns its path along with a cleanup function.
@@ -56,9 +54,8 @@ func GenerateOverlay(staticFS fs.FS, td string) (map[string]load.Source, error) 
 	return overlay, nil
 }
 
-func ToTitleCase(str string) string {
-	d := strings.ToLower(str)
-	return cases.Title(language.Und).String(d)
+func toCamelCase(s string) string {
+	return strings.ToLower(s[:1]) + s[1:]
 }
 
 // ReadAndCompileData reads the content from the given file path and compiles it using CUE.
@@ -74,6 +71,6 @@ func ReadAndCompileData(defPath string, dataFile string) (titleCaseDefPath strin
 		return "", cue.Value{}, compiledData.Err()
 	}
 
-	titleCaseDefPath = ToTitleCase(defPath)
+	titleCaseDefPath = toCamelCase(defPath)
 	return titleCaseDefPath, compiledData, nil
 }

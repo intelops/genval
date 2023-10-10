@@ -62,7 +62,7 @@ func Execute(args []string) {
 		return
 	}
 
-	defName := "#" + res
+	defName := "#" + defPath
 
 	v, err := cuecore.BuildInstance(ctx, modPath, conf)
 	if err != nil {
@@ -89,12 +89,12 @@ func Execute(args []string) {
 			return
 		}
 
-		err = os.WriteFile(defPath+".yaml", yamlData, 0644)
+		err = os.WriteFile(res+".yaml", yamlData, 0644)
 		if err != nil {
 			log.Errorf("Writing YAML: %v", err)
 			return
 		}
 	}
 
-	fmt.Printf("%v validation succeeded, generated manifest: %v.yaml\n", res, defPath)
+	fmt.Printf("%v validation succeeded, generated manifest: %v.yaml\n", defPath, res)
 }
