@@ -8,12 +8,13 @@ import (
 	"github.com/intelops/genval/cmd/docker"
 )
 
-var mode, resource, value string
+var mode, resource, value, output string
 
 func init() {
 	flag.StringVar(&mode, "mode", "", "Specify mode: 'docker' for Dockerfile validation/generation or 'cueval' for K8s resource validation/generation.")
 	flag.StringVar(&resource, "resource", "", "Resource for K8s mode (cueval).")
 	flag.StringVar(&value, "value", "", "Input value (JSON) for K8s mode (cueval).")
+	flag.StringVar(&output, "output", "", "Output file for Docker mode (docker).")
 
 	// Customize flag.Usage to show detailed help topics
 	flag.Usage = func() {
@@ -39,13 +40,14 @@ func main() {
 	flag.Parse()
 
 	// Pass arguments after the mode flag
-	args := flag.Args()
 
 	switch mode {
 	case "docker":
-		docker.Execute(args) // Call the Docker mode's execution function
+		// Call the Docker mode's execution function
+		docker.Execute(value, output)
 	case "cueval":
-		cueval.Execute(resource, value) // Call the K8s mode's execution function // Call the K8s mode's execution function
+		// Call the K8s mode's execution function
+		cueval.Execute(resource, value)
 	default:
 		fmt.Println("Invalid mode. Choose 'docker' or 'cueval'.")
 		flag.Usage()

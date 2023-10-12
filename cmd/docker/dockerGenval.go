@@ -17,14 +17,16 @@ func init() {
 	})
 }
 
-func Execute(args []string) {
-	if len(args) != 2 {
-		log.Debug("Usage: [binary_name] -mode=docker input.json output.Dockerfile")
+func Execute(value, output string) {
+	if value == "" || output == "" {
+		log.Errorf("Usage: [binary_name] -mode=cueval --resource=<Resource> --value=<Input JSON>")
 		return
 	}
 
-	inputPath := args[0]
-	outputPath := args[1]
+	// inputPath := args[0]
+	// outputPath := args[1]
+	inputPath := value
+	outputPath := output
 
 	// Use ParseInputFile to read and unmarshal the input file
 	var data generate.DockerfileContent
