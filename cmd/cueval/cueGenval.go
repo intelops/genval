@@ -25,7 +25,7 @@ func init() {
 	})
 }
 
-func Execute(args []string) {
+func Execute(resource string, value string) {
 	const modPath = "github.com/intelops/genval"
 	staticFS := embeder.CueDef
 
@@ -37,13 +37,15 @@ func Execute(args []string) {
 
 	ctx := cuecontext.New()
 
-	if len(args) != 2 {
-		log.Errorf("Usage: [binary_name] -mode=cueval <Resource> <Input JSON>")
+	// defPath := args[0]
+	// dataFile := args[1]
+	if resource == "" || value == "" {
+		log.Errorf("Usage: [binary_name] -mode=cueval --resource=<Resource> --value=<Input JSON>")
 		return
 	}
 
-	defPath := args[0]
-	dataFile := args[1]
+	defPath := resource
+	dataFile := value
 
 	overlay, err := utils.GenerateOverlay(staticFS, td)
 	if err != nil {
