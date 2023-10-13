@@ -2,40 +2,27 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     labels:
-        app: cueTest
         version: main
-    namespace: websites
+    name: nginx-deployment
 spec:
-    minReadySeconds: 5
+    replicas: 3
     revisionHistoryLimit: 5
     selector:
         matchLabels:
-            app: cueTest
+            app: nginx
     template:
         metadata:
             labels:
-                app: cueTest
                 version: cuetest
         spec:
             containers:
-                - image: nginx:1.20
-                  imagePullPolicy: Always
-                  livenessProbe:
-                    failureThreshold: 3
-                    httpGet:
-                        port: 80
-                    initialDelaySeconds: 6
-                    periodSeconds: 10
-                  name: website
+                - image: nginx:1.14.2
+                  name: nginx
                   ports:
                     - containerPort: 80
-                      protocol: TCP
-                  readinessProbe:
-                    failureThreshold: 3
-                    httpGet:
-                        port: 80
-                    initialDelaySeconds: 6
-                    periodSeconds: 10
                   securityContext:
                     privileged: false
                     runAsNonRoot: true
+            securityContext:
+                fsGroup: 2000
+                runAsUser: 1000

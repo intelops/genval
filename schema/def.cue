@@ -44,15 +44,16 @@ import (
 
 	metadata: labels: {
 		// Mandatory labels.
-		version: "main"
+		version: "changeMe"
 	}
 
 	spec: apps.#DeploymentSpec & {
+		replicas:             int | *3
 		revisionHistoryLimit: int | *5 // Defaults to 5
 
 		template: {
 			metadata: labels: {
-				version: "cuetest"
+				version: "changeMe"
 			}
 			spec: core.#PodSpec & {
 				containers: [{
@@ -60,8 +61,22 @@ import (
 					// ... [other fields]
 
 					securityContext: {
-						privileged:   bool | *false | !true // Containers should not be privileged
-						runAsNonRoot: bool | *true | !false // Containers should run as non-root user
+						privileged:               bool | *false | !true // Containers should not be privileged
+						allowPrivilegeEscalation: bool | *false         // Containers should not allow privilege escalation
+						runAsNonRoot:             bool | *true | !false // Containers should run as non-root user
+						runAsUser:                int | *1001
+						runAsGroup:               int | *1001
+					}
+					resources: core.#ResourceRequirements & {
+						limits: {
+							cpu:    string | "100m"
+							memory: string | "256Mi"
+						}
+						requests: {
+							cpu:    string | "100m"
+							memory: string | "256Mi"
+						}
+
 					}
 				}]
 			}
