@@ -69,12 +69,12 @@ import (
 					}
 					resources: core.#ResourceRequirements & {
 						limits: {
-							cpu:    string | "100m"
-							memory: string | "256Mi"
+							cpu:    string | *"100m"
+							memory: string | *"256Mi"
 						}
 						requests: {
-							cpu:    string | "100m"
-							memory: string | "256Mi"
+							cpu:    string | *"100m"
+							memory: string | *"256Mi"
 						}
 
 					}

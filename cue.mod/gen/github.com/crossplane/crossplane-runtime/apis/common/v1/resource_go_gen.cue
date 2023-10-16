@@ -151,14 +151,8 @@ import (
 	// +kubebuilder:default={"name": "default"}
 	providerConfigRef?: null | #Reference @go(ProviderConfigReference,*Reference)
 
-	// ProviderReference specifies the provider that will be used to create,
-	// observe, update, and delete this managed resource.
-	// Deprecated: Please use ProviderConfigReference, i.e. `providerConfigRef`
-	providerRef?: null | #Reference @go(ProviderReference,*Reference)
-
-	// THIS IS AN ALPHA FIELD. Do not use it in production. It is not honored
-	// unless the relevant Crossplane feature flag is enabled, and may be
-	// changed or removed without notice.
+	// THIS IS A BETA FIELD. It is on by default but can be opted out
+	// through a Crossplane feature flag.
 	// ManagementPolicies specify the array of actions Crossplane is allowed to
 	// take on the managed and external resources.
 	// This field is planned to replace the DeletionPolicy field in a future

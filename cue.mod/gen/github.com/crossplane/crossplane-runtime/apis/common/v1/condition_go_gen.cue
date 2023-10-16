@@ -70,6 +70,8 @@ import (
 // one condition of each type may exist.
 #ConditionedStatus: {
 	// Conditions of the resource.
+	// +listType=map
+	// +listMapKey=type
 	// +optional
 	conditions?: [...#Condition] @go(Conditions,[]Condition)
 }

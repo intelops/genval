@@ -58,16 +58,12 @@ import corev1 "k8s.io/api/core/v1"
 
 #enumSecretStoreType:
 	#SecretStoreKubernetes |
-	#SecretStoreVault |
 	#SecretStorePlugin
 
 // SecretStoreKubernetes indicates that secret store type is
 // Kubernetes. In other words, connection secrets will be stored as K8s
 // Secrets.
 #SecretStoreKubernetes: #SecretStoreType & "Kubernetes"
-
-// SecretStoreVault indicates that secret store type is Vault.
-#SecretStoreVault: #SecretStoreType & "Vault"
 
 // SecretStorePlugin indicates that secret store type is Plugin and will be used with external secret stores.
 #SecretStorePlugin: #SecretStoreType & "Plugin"
@@ -93,13 +89,6 @@ import corev1 "k8s.io/api/core/v1"
 	// will be used.
 	// +optional
 	kubernetes?: null | #KubernetesSecretStoreConfig @go(Kubernetes,*KubernetesSecretStoreConfig)
-
-	// Vault configures a Vault secret store.
-	// Deprecated: This API is scheduled to be removed in a future release.
-	// Vault should be used as a plugin going forward. See
-	// https://github.com/crossplane-contrib/ess-plugin-vault for more information.
-	// +optional
-	vault?: null | #VaultSecretStoreConfig @go(Vault,*VaultSecretStoreConfig)
 
 	// Plugin configures External secret store as a plugin.
 	// +optional
@@ -142,84 +131,4 @@ import corev1 "k8s.io/api/core/v1"
 #KubernetesSecretStoreConfig: {
 	// Credentials used to connect to the Kubernetes API.
 	auth: #KubernetesAuthConfig @go(Auth)
-}
-
-// VaultAuthMethod represent a Vault authentication method.
-// https://www.vaultproject.io/docs/auth
-#VaultAuthMethod: string // #enumVaultAuthMethod
-
-#enumVaultAuthMethod:
-	#VaultAuthToken
-
-// VaultAuthToken indicates that "Token Auth" will be used to
-// authenticate to Vault.
-// https://www.vaultproject.io/docs/auth/token
-#VaultAuthToken: #VaultAuthMethod & "Token"
-
-// VaultAuthTokenConfig represents configuration for Vault Token Auth Method.
-// https://www.vaultproject.io/docs/auth/token
-#VaultAuthTokenConfig: {
-	// Source of the credentials.
-	// +kubebuilder:validation:Enum=None;Secret;Environment;Filesystem
-	source: #CredentialsSource @go(Source)
-
-	#CommonCredentialSelectors
-}
-
-// VaultAuthConfig required to authenticate to a Vault API.
-#VaultAuthConfig: {
-	// Method configures which auth method will be used.
-	method: #VaultAuthMethod @go(Method)
-
-	// Token configures Token Auth for Vault.
-	// +optional
-	token?: null | #VaultAuthTokenConfig @go(Token,*VaultAuthTokenConfig)
-}
-
-// VaultCABundleConfig represents configuration for configuring a CA bundle.
-#VaultCABundleConfig: {
-	// Source of the credentials.
-	// +kubebuilder:validation:Enum=None;Secret;Environment;Filesystem
-	source: #CredentialsSource @go(Source)
-
-	#CommonCredentialSelectors
-}
-
-// VaultKVVersion represent API version of the Vault KV engine
-// https://www.vaultproject.io/docs/secrets/kv
-#VaultKVVersion: string // #enumVaultKVVersion
-
-#enumVaultKVVersion:
-	#VaultKVVersionV1 |
-	#VaultKVVersionV2
-
-// VaultKVVersionV1 indicates that Secret API is KV Secrets Engine Version 1
-// https://www.vaultproject.io/docs/secrets/kv/kv-v1
-#VaultKVVersionV1: #VaultKVVersion & "v1"
-
-// VaultKVVersionV2 indicates that Secret API is KV Secrets Engine Version 2
-// https://www.vaultproject.io/docs/secrets/kv/kv-v2
-#VaultKVVersionV2: #VaultKVVersion & "v2"
-
-// VaultSecretStoreConfig represents the required configuration for a Vault
-// secret store.
-#VaultSecretStoreConfig: {
-	// Server is the url of the Vault server, e.g. "https://vault.acme.org"
-	server: string @go(Server)
-
-	// MountPath is the mount path of the KV secrets engine.
-	mountPath: string @go(MountPath)
-
-	// Version of the KV Secrets engine of Vault.
-	// https://www.vaultproject.io/docs/secrets/kv
-	// +optional
-	// +kubebuilder:default=v2
-	version?: null | #VaultKVVersion @go(Version,*VaultKVVersion)
-
-	// CABundle configures CA bundle for Vault Server.
-	// +optional
-	caBundle?: null | #VaultCABundleConfig @go(CABundle,*VaultCABundleConfig)
-
-	// Auth configures an authentication method for Vault.
-	auth: #VaultAuthConfig @go(Auth)
 }
