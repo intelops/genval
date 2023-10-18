@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//go:embed inputFilePolicies.rego
+//go:embed inputfile-policies.rego
 var inputPolicy []byte
 
 const (

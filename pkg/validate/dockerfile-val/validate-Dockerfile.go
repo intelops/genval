@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-//go:embed dockerFilePolicies.rego
+//go:embed dockerfile-policies.rego
 var dockerPolicy []byte
 
 const (
