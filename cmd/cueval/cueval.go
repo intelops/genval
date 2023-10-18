@@ -39,15 +39,16 @@ func Execute(resource string, value, policy string) {
 
 	// defPath := args[0]
 	// dataFile := args[1]
-	if resource == "" || value == "" {
+	if resource == "" || value == "" || policy == "" {
 		log.Errorf("Usage: [binary_name] -mode=cueval --resource=<Resource> --value=<Input JSON>")
 		return
 	}
 
 	defPath := resource
 	dataFile := value
+	schemaFile := []string{policy}
 
-	overlay, err := utils.GenerateOverlay(staticFS, td)
+	overlay, err := utils.GenerateOverlay(staticFS, td, schemaFile)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,6 +57,7 @@ func Execute(resource string, value, policy string) {
 		Dir:     td,
 		Overlay: overlay,
 		Module:  modPath,
+		Package: "_",
 	}
 
 	res, data, err := utils.ReadAndCompileData(defPath, dataFile)

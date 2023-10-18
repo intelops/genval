@@ -11,7 +11,7 @@ import (
 
 func BuildInstance(ctx *cue.Context, modPath string, conf *load.Config) ([]cue.Value, error) {
 	var err error
-	bi := load.Instances([]string{modPath + "/schema:_"}, conf)
+	bi := load.Instances([]string{}, conf)
 	if len(bi) == 0 {
 		return nil, fmt.Errorf("no instances found")
 	}
