@@ -9,7 +9,7 @@ import (
 
 func TestValidateInput(t *testing.T) {
 	// Load the test policy
-	regoPolicy, err := os.ReadFile("inputFilePolicies.rego")
+	regoPolicy, err := os.ReadFile("inputfile-policies.rego")
 	if err != nil {
 		t.Fatalf("Failed to read rego policy: %v", err)
 	}
