@@ -40,7 +40,7 @@ func Execute(resource string, value, policy string) {
 	// defPath := args[0]
 	// dataFile := args[1]
 	if resource == "" || value == "" || policy == "" {
-		log.Errorf("Usage: [binary_name] -mode=cueval --resource=<Resource> --value=<Input JSON>")
+		fmt.Println("[Usage]: genval --mode=cueval --resource=<Resource> --value=<Input JSON>")
 		return
 	}
 
@@ -57,7 +57,7 @@ func Execute(resource string, value, policy string) {
 		Dir:     td,
 		Overlay: overlay,
 		Module:  modPath,
-		Package: "_",
+		Package: "*",
 	}
 
 	res, data, err := utils.ReadAndCompileData(defPath, dataFile)

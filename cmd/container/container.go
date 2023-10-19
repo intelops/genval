@@ -19,7 +19,7 @@ func init() {
 
 func Execute(value, output, inputpolicy, outputpolicy string) {
 	if value == "" || output == "" || inputpolicy == "" || outputpolicy == "" {
-		log.Errorf("./genval -mode=container --reqinput=input.json --output=output.Dockerfile --inputpolicy=<path/to/input.rego policy> --outputpolicy <path/tp/output.rego file>")
+		fmt.Println("[USAGE]: ./genval --mode=container --reqinput=input.json --output=output.Dockerfile --inputpolicy=<path/to/input.rego policy> --outputpolicy <path/tp/output.rego file>")
 		return
 	}
 
