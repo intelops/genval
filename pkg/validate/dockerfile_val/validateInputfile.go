@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/utils"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
@@ -38,7 +38,7 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	ctx := context.Background()
 
 	// Read the Rego policy from the given path
-	regoContent, err := os.ReadFile(regoPolicyPath)
+	regoContent, err := utils.ReadRegoFile(regoPolicyPath)
 	if err != nil {
 		return fmt.Errorf("error reading Rego policy: %v", err)
 	}

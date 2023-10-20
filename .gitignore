@@ -1,6 +1,4 @@
-/example
-input.*
-output.*
-*.json
+input.yaml
+input.json
 /bin
 coverage.out

@@ -2,6 +2,7 @@ package cueval
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 
 	"cuelang.org/go/cue"
@@ -47,6 +48,15 @@ func Execute(resource string, value, policy string) {
 	defPath := resource
 	dataFile := value
 	schemaFile := []string{policy}
+
+	for _, schema := range schemaFile {
+		schemaIsURL, err := url.ParseRequestURI(schema)
+		if err == nil && schemaIsURL != nil {
+			fmt.Printf("Using policy %v from a remote URL", schema)
+		} else {
+			fmt.Printf("Using policy %v from a local file", schema)
+		}
+	}
 
 	overlay, err := utils.GenerateOverlay(staticFS, td, schemaFile)
 	if err != nil {

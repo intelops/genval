@@ -3,6 +3,8 @@ package utils
 import (
 	"io"
 	"io/fs"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -92,4 +94,40 @@ func ReadSchemaFile(schema string) []byte {
 	}
 	return schemaData
 
+}
+
+func ReadRegoFile(policyFile string) ([]byte, error) {
+	// Attempt to parse the policyFile as a URL
+	u, err := url.ParseRequestURI(policyFile)
+	if err == nil && u.Scheme != "" && u.Host != "" {
+		// It's a URL, fetch content
+		resp, err := http.Get(u.String())
+		if err != nil {
+			log.Errorf("error fetching Rego policy from URL: %v", err)
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			log.Errorf("error fetching Rego policy from URL: status code %d", resp.StatusCode)
+			return nil, err
+		}
+
+		regoContent, err := io.ReadAll(resp.Body)
+		if err != nil {
+			log.Errorf("error reading Rego policy from URL: %v", err)
+			return nil, err
+		}
+
+		return regoContent, nil
+	} else {
+		// If not a URL, treat it as a local file path
+		regoContent, err := os.ReadFile(policyFile)
+		if err != nil {
+			log.Errorf("error reading Rego policy from file: %v", err)
+			return nil, err
+		}
+
+		return regoContent, nil
+	}
 }

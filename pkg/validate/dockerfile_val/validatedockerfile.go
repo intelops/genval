@@ -5,16 +5,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/utils"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
 
 // ValidateDockerfileUsingRego validates a Dockerfile using Rego.
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
-	dockerPolicy, err := os.ReadFile(regoPolicyPath)
+	dockerPolicy, err := utils.ReadRegoFile(regoPolicyPath)
 	if err != nil {
 		log.WithError(err).Error("Error reading the policy file.")
 		return errors.New("error reading the policy file")
