@@ -1,6 +1,11 @@
 package utils
 
 import (
+	"io"
+	"net/http"
+	"os"
+	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -70,4 +75,81 @@ func TestTempDirWithCleanup_TempDirPathNoSpaces(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotContains(t, dirPath, " ")
+}
+
+// Mock for ReadRegoFile()
+
+type MockHTTPResponse struct {
+	StatusCode int
+	Body       io.Reader
+	Err        error
+}
+
+type MockHTTPClient struct {
+	Response MockHTTPResponse
+}
+
+func (c *MockHTTPClient) RoundTrip(req *http.Request) (*http.Response, error) {
+	return &http.Response{
+		StatusCode: c.Response.StatusCode,
+		Body:       io.NopCloser(c.Response.Body),
+		Header:     make(http.Header),
+	}, nil
+}
+
+// Test for ReadRegoFile using above mock
+
+func TestReadRegoFile(t *testing.T) {
+	// Mock HTTP client
+	mockClient := &MockHTTPClient{
+		Response: MockHTTPResponse{
+			StatusCode: 200,
+			Body:       strings.NewReader("test content from URL"),
+		},
+	}
+	http.DefaultClient.Transport = mockClient
+
+	tests := []struct {
+		name       string
+		policyFile string
+		want       []byte
+		wantErr    bool
+	}{
+		{
+			name:       "Read from valid URL",
+			policyFile: "http://valid-url.com",
+			want:       []byte("test content from URL"),
+			wantErr:    false,
+		},
+		{
+			name:       "Read from invalid URL",
+			policyFile: "invalid-url",
+			want:       nil,
+			wantErr:    true,
+		},
+		{
+			name:       "Read from local file",
+			policyFile: "test.rego",
+			want:       []byte("test content from file"),
+			wantErr:    false,
+		},
+		// Add more test cases as needed...
+	}
+
+	// Create a sample file for testing
+	os.WriteFile("test.rego", []byte("test content from file"), 0644)
+	defer os.Remove("test.rego")
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ReadPolicyFile(tt.policyFile)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ReadRegoFile() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ReadRegoFile() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

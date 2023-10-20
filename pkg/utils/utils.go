@@ -56,8 +56,9 @@ func GenerateOverlay(staticFS fs.FS, td string, additionalFiles []string) (map[s
 
 	// Add files from additionalFiles
 	for _, filePath := range additionalFiles {
-		fileBytes, err := os.ReadFile(filePath)
+		fileBytes, err := ReadPolicyFile(filePath)
 		if err != nil {
+			log.Errorf("Error reading schema:%v", err)
 			return nil, err
 		}
 		overlay[filepath.Join(td, filepath.Base(filePath))] = load.FromBytes(fileBytes)
@@ -96,7 +97,7 @@ func ReadSchemaFile(schema string) []byte {
 
 }
 
-func ReadRegoFile(policyFile string) ([]byte, error) {
+func ReadPolicyFile(policyFile string) ([]byte, error) {
 	// Attempt to parse the policyFile as a URL
 	u, err := url.ParseRequestURI(policyFile)
 	if err == nil && u.Scheme != "" && u.Host != "" {

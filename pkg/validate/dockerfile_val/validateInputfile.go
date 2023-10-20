@@ -38,7 +38,7 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	ctx := context.Background()
 
 	// Read the Rego policy from the given path
-	regoContent, err := utils.ReadRegoFile(regoPolicyPath)
+	regoContent, err := utils.ReadPolicyFile(regoPolicyPath)
 	if err != nil {
 		return fmt.Errorf("error reading Rego policy: %v", err)
 	}

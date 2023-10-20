@@ -14,7 +14,7 @@ import (
 
 // ValidateDockerfileUsingRego validates a Dockerfile using Rego.
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
-	dockerPolicy, err := utils.ReadRegoFile(regoPolicyPath)
+	dockerPolicy, err := utils.ReadPolicyFile(regoPolicyPath)
 	if err != nil {
 		log.WithError(err).Error("Error reading the policy file.")
 		return errors.New("error reading the policy file")
