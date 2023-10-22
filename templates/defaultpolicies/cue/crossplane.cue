@@ -1,3 +1,5 @@
+package crossplane
+
 import (
 	ext "github.com/crossplane/crossplane/apis/apiextensions/v1"
 	v1 "github.com/crossplane/crossplane/apis/pkg/v1"

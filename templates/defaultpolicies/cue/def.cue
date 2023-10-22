@@ -1,3 +1,4 @@
+package kubernetes
 import (
 	apps "k8s.io/api/apps/v1"
 	autoscaling "k8s.io/api/autoscaling/v1"
