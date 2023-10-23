@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 
-	generate "github.com/intelops/genval/pkg/generate/dockerfile-gen"
+	generate "github.com/intelops/genval/pkg/generate/dockerfile_gen"
 	"github.com/intelops/genval/pkg/parser"
-	validate "github.com/intelops/genval/pkg/validate/dockerfile-val"
+	validate "github.com/intelops/genval/pkg/validate/dockerfile_val"
 
 	log "github.com/sirupsen/logrus"
 )
 
 func main() {
-	if len(os.Args) != 3 {
-		log.Debug("Usage: go run main.go input.json output.Dockerfile")
+	if len(os.Args) < 3 {
+		log.Error("Usage: go run main.go input.json output.Dockerfile")
 		return
 	}
 
@@ -39,7 +39,7 @@ func main() {
 	}
 
 	// Validate the YAML using OPA
-	err = validate.ValidateJSON(string(yamlContent), validate.InputPolicy)
+	err = validate.ValidateInput(string(yamlContent), validate.InputPolicy)
 	if err != nil {
 		log.Fatalf("Validation error: %v", err)
 		return
