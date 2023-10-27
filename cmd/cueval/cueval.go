@@ -25,7 +25,8 @@ func init() {
 	})
 }
 
-func Execute(resource string, value, policy string) {
+func Execute(resource, reqinput string, policies ...string) {
+
 	const modPath = "github.com/intelops/genval"
 	staticFS := embeder.CueDef
 
@@ -37,16 +38,14 @@ func Execute(resource string, value, policy string) {
 
 	ctx := cuecontext.New()
 
-	// defPath := args[0]
-	// dataFile := args[1]
-	if resource == "" || value == "" || policy == "" {
+	if resource == "" || reqinput == "" || len(policies) == 0 {
 		fmt.Println("[Usage]: genval --mode=cue --resource=<Resource> --reqinput=<Input JSON> --policy <path/to/.cue schema file")
 		return
 	}
 
 	defPath := resource
-	dataFile := value
-	schemaFile := []string{policy}
+	dataFile := reqinput
+	schemaFile := policies
 
 	overlay, err := utils.GenerateOverlay(staticFS, td, schemaFile)
 	if err != nil {
@@ -54,7 +53,6 @@ func Execute(resource string, value, policy string) {
 	}
 
 	conf := &load.Config{
-		Dir:     td,
 		Overlay: overlay,
 		Module:  modPath,
 		Package: "*",
@@ -68,7 +66,7 @@ func Execute(resource string, value, policy string) {
 
 	defName := "#" + defPath
 
-	v, err := cuecore.BuildInstance(ctx, modPath, conf)
+	v, err := cuecore.BuildInstance(ctx, policies, conf)
 	if err != nil {
 		log.Fatal(err)
 	}

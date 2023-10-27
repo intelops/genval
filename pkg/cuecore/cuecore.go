@@ -9,9 +9,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func BuildInstance(ctx *cue.Context, modPath string, conf *load.Config) ([]cue.Value, error) {
+func BuildInstance(ctx *cue.Context, policies []string, conf *load.Config) ([]cue.Value, error) {
 	var err error
-	bi := load.Instances([]string{}, conf)
+	bi := load.Instances(policies, conf)
 	if len(bi) == 0 {
 		return nil, fmt.Errorf("no instances found")
 	}

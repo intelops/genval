@@ -3,19 +3,22 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/intelops/genval/cmd/container"
 	"github.com/intelops/genval/cmd/cueval"
 )
 
-var mode, resource, reqinput, output, inputpolicy, outputpolicy, policy string
+var mode, resource, reqinput, output, inputpolicy, outputpolicy string
+
+var policies multiValueFlag
 
 func init() {
 	flag.StringVar(&mode, "mode", "", "Specify mode: 'container' for Dockerfile validation/generation or 'cue' for K8s resource validation/generation.")
 	flag.StringVar(&resource, "resource", "", "Resource for K8s mode (cueval).")
 	flag.StringVar(&reqinput, "reqinput", "", "Input value (JSON) for K8s mode (cueval).")
 	flag.StringVar(&output, "output", "", "Output path for Dockerfile for in container mode.")
-	flag.StringVar(&policy, "policy", "", "Validation policies, .cue files to be used in cue mode.")
+	flag.Var(&policies, "policy", "Validation policies, .cue files to be used in cue mode.")
 	flag.StringVar(&inputpolicy, "inputpolicy", "", "Rego policy to validate JSON input in container mode.")
 	flag.StringVar(&outputpolicy, "outputpolicy", "", "Rego policy to validate generated Dockerfile in container mode.")
 
@@ -57,9 +60,21 @@ func main() {
 		container.Execute(reqinput, output, inputpolicy, outputpolicy)
 	case "cue":
 		// Call the K8s mode's execution function
-		cueval.Execute(resource, reqinput, policy)
+		cueval.Execute(resource, reqinput, policies...)
 	default:
 		fmt.Println("Invalid mode. Choose 'container' or 'cue'.")
 		flag.Usage()
 	}
+}
+
+// Implement flag.Value for a slice of strings
+type multiValueFlag []string
+
+func (m *multiValueFlag) String() string {
+	return strings.Join(*m, ", ")
+}
+
+func (m *multiValueFlag) Set(value string) error {
+	*m = append(*m, value)
+	return nil
 }
