@@ -99,4 +99,5 @@ func Execute(resource, reqinput string, policies ...string) {
 	}
 
 	fmt.Printf("%v validation succeeded, generated manifest: %v.yaml\n", defPath, res)
+
 }

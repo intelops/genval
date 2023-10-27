@@ -38,7 +38,7 @@ field: "Hello, World!"
 	ctx := cuecontext.New()
 
 	// 2. Use BuildInstance function to build the instances
-	values, err := BuildInstance(ctx, "test", conf)
+	values, err := BuildInstance(ctx, []string{"test"}, conf)
 	if err != nil {
 		t.Fatalf("Failed to build instance: %v", err)
 	}

@@ -1,93 +1,112 @@
 package cuecore
 
 import (
-	"os"
-	"strings"
+	"reflect"
 	"testing"
 
-	embeder "github.com/intelops/genval"
-	"github.com/intelops/genval/pkg/utils"
-
+	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
 )
 
 func TestBuildInstance(t *testing.T) {
+	ctx := cuecontext.New()
+
 	tests := []struct {
-		name           string
-		schemaContent  string
-		expectError    bool
-		expectedErrMsg string
+		name     string
+		policies []string
+		conf     *load.Config
+		wantErr  bool
 	}{
 		{
-			name: "ValidSchema",
-			schemaContent: `package schema
-
-                            field: "value"`,
-			expectError: false,
+			name:     "valid policies",
+			policies: []string{"./testdata/test.cue"},
+			conf:     &load.Config{},
+			wantErr:  false,
 		},
-		// {
-		// 	name: "InvalidSchema",
-		// 	schemaContent: `package schema
-
-		// 					name 123`,
-		// 	expectError: true,
-		// },
-		// Further tests can be added as needed...
+		{
+			name:     "no policies",
+			policies: []string{},
+			conf:     &load.Config{},
+			wantErr:  true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup a temporary directory
-			td, err := os.MkdirTemp("", "testdata")
-			if err != nil {
-				t.Fatal(err)
+			_, err := BuildInstance(ctx, tt.policies, tt.conf)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("BuildInstance() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			defer os.RemoveAll(td)
+		})
+	}
+}
 
-			schemaFilePath := td + "/schema.cue"
-			os.WriteFile(schemaFilePath, []byte(tt.schemaContent), 0644)
+func TestUnifyAndValidate(t *testing.T) {
+	ctx := cuecontext.New()
 
-			staticFS := embeder.CueDef
-			modPath := "github.com/intelops/genval"
+	def := ctx.CompileString(`{name: string, age: int}`)
+	validData := ctx.CompileString(`{name: "John", age: 25}`)
+	invalidData := ctx.CompileString(`{name: 123, age: "25"}`)
 
-			overlay, err := utils.GenerateOverlay(staticFS, td, []string{schemaFilePath})
-			if err != nil {
-				t.Fatal(err)
+	tests := []struct {
+		name    string
+		def     cue.Value
+		data    cue.Value
+		wantErr bool
+	}{
+		{
+			name:    "valid data",
+			def:     def.Value(),
+			data:    validData.Value(),
+			wantErr: false,
+		},
+		{
+			name:    "invalid data",
+			def:     def.Value(),
+			data:    invalidData.Value(),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := UnifyAndValidate(tt.def, tt.data)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("UnifyAndValidate() error = %v, wantErr %v", err, tt.wantErr)
 			}
+		})
+	}
+}
 
-			conf := &load.Config{
-				Dir:     td,
-				Overlay: overlay,
-				Module:  modPath,
+func TestMarshalToYAML(t *testing.T) {
+	ctx := cuecontext.New()
+
+	value := ctx.CompileString(`{name: "John", age: 25}`)
+
+	tests := []struct {
+		name    string
+		value   cue.Value
+		want    []byte
+		wantErr bool
+	}{
+		{
+			name:    "valid value",
+			value:   value.Value(),
+			want:    []byte("age: 25\nname: John\n"),
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := MarshalToYAML(tt.value)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("MarshalToYAML() error = %v, wantErr %v", err, tt.wantErr)
+				return
 			}
-
-			ctx := cuecontext.New()
-
-			// Call the BuildInstance function
-			v, err := BuildInstance(ctx, modPath, conf)
-			if err != nil {
-				t.Fatalf("Unexpected error: %v", err)
-			}
-
-			if len(v) > 0 {
-				for _, value := range v {
-					if value.Err() != nil {
-						err = value.Err()
-						break
-					}
-				}
-			}
-
-			if tt.expectError {
-				if err == nil {
-					t.Fatal("Expected an error, but got none")
-				}
-				if tt.expectedErrMsg != "" && !strings.Contains(err.Error(), tt.expectedErrMsg) {
-					t.Fatalf("Expected error to contain '%s', but got: %v", tt.expectedErrMsg, err)
-				}
-			} else if err != nil {
-				t.Fatalf("Expected no error, but got: %v", err)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("MarshalToYAML() = %v, want %v", got, tt.want)
 			}
 		})
 	}

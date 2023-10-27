@@ -27,6 +27,7 @@ func TempDirWithCleanup() (dirPath string, cleanupFunc func(), err error) {
 	}, nil
 }
 
+// GenerateOverlay creates an overlay to store cue schemas
 func GenerateOverlay(staticFS fs.FS, td string, additionalFiles []string) (map[string]load.Source, error) {
 	overlay := make(map[string]load.Source)
 
@@ -71,7 +72,7 @@ func toCamelCase(s string) string {
 	return strings.ToLower(s[:1]) + s[1:]
 }
 
-// ReadAndCompileData reads the content from the given file path and compiles it using CUE.
+// ReadAndCompileData reads the content from the given file path to cue Value, returns an error if compiling fails.
 func ReadAndCompileData(defPath string, dataFile string) (titleCaseDefPath string, data cue.Value, err error) {
 	ds, err := os.ReadFile(dataFile)
 	if err != nil {
@@ -97,6 +98,7 @@ func ReadSchemaFile(schema string) []byte {
 
 }
 
+// ReadPolicyFile read the policy provided from cli args, accepts polices from a remote URL or local file
 func ReadPolicyFile(policyFile string) ([]byte, error) {
 	// Attempt to parse the policyFile as a URL
 	u, err := url.ParseRequestURI(policyFile)
@@ -110,25 +112,25 @@ func ReadPolicyFile(policyFile string) ([]byte, error) {
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
-			log.Errorf("error fetching Rego policy from URL: status code %d", resp.StatusCode)
+			log.Errorf("error fetching policy from URL: status code %d", resp.StatusCode)
 			return nil, err
 		}
 
-		regoContent, err := io.ReadAll(resp.Body)
+		policyContent, err := io.ReadAll(resp.Body)
 		if err != nil {
-			log.Errorf("error reading Rego policy from URL: %v", err)
+			log.Errorf("error reading policy from URL: %v", err)
 			return nil, err
 		}
 
-		return regoContent, nil
+		return policyContent, nil
 	} else {
 		// If not a URL, treat it as a local file path
-		regoContent, err := os.ReadFile(policyFile)
+		policyContent, err := os.ReadFile(policyFile)
 		if err != nil {
-			log.Errorf("error reading Rego policy from file: %v", err)
+			log.Errorf("error reading policy from file: %v", err)
 			return nil, err
 		}
 
-		return regoContent, nil
+		return policyContent, nil
 	}
 }

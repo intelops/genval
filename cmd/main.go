@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/intelops/genval/cmd/container"
 	"github.com/intelops/genval/cmd/cueval"
@@ -50,6 +51,7 @@ func init() {
 }
 
 func main() {
+	startTime := time.Now()
 	flag.Parse()
 
 	// Pass arguments after the mode flag
@@ -65,6 +67,9 @@ func main() {
 		fmt.Println("Invalid mode. Choose 'container' or 'cue'.")
 		flag.Usage()
 	}
+	endTime := time.Now() // Stop the timer
+	elapsed := endTime.Sub(startTime)
+	fmt.Printf("Time taken: %v\n", elapsed)
 }
 
 // Implement flag.Value for a slice of strings
