@@ -39,7 +39,7 @@ func Execute(resource, reqinput string, policies ...string) {
 	ctx := cuecontext.New()
 
 	if resource == "" || reqinput == "" || len(policies) == 0 {
-		fmt.Println("[Usage]: genval --mode=cue --resource=<Resource> --reqinput=<Input JSON> --policy <path/to/.cue schema file")
+		fmt.Println("[Usage]: genval --mode=cue --resource=<Resource> --reqinput=<Input JSON> --policy <path/to/.cue schema file>")
 		return
 	}
 

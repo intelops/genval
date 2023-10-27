@@ -3,8 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
-	"time"
 
 	"github.com/intelops/genval/cmd/container"
 	"github.com/intelops/genval/cmd/cueval"
@@ -24,34 +24,33 @@ func init() {
 	flag.StringVar(&outputpolicy, "outputpolicy", "", "Rego policy to validate generated Dockerfile in container mode.")
 
 	flag.Usage = func() {
-		usageText := `
-		Usage of genval:
+		fmt.Fprintf(os.Stderr, `Usage of genval:
 
-		Modes:
-	        container: Dockerfile validation and generation. Arguments: <reqinput.json> <output.Dockerfile> <input.rego policy file> <output.rego policy file>
-		Example usage:
+	Modes:
+	container: Dockerfile validation and generation. Arguments: <reqinput.json> <output.Dockerfile> <input.rego policy file> <output.rego policy file>
 
-		./genval --mode=container --reqinput=input.json \
-		--output=output.Dockerfile \
-		--inputpolicy=<path/to/input.rego policy> \
-		--outputpolicy <path/tp/output.rego file>
+	Example usage:
+	./genval --mode=container --reqinput=input.json \
+	  --output=output.Dockerfile \
+	  --inputpolicy=<path/to/input.rego policy> \
+	  --outputpolicy <path/tp/output.rego file>
 		
-		    cue: K8s resource validation and generation. Use --resource and --value flags.
-		Example usage:
+	cue: K8s resource validation and generation. Use --resource and --value flags.
 
-		./genval --mode=cue --resource=Deployment \
-		--reqinput=deployment.json \
-		--policy=<path/to/.cue schema>
-			
-		The "resource" arg in --cue mode needs a valid Kind, like in above example "Deployment" or StatefulSet, DaemonSet etc.
-		`
-		fmt.Println(usageText)
+	Example usage:
+	./genval --mode=cue --resource=Deployment \
+	  --reqinput=deployment.json \
+	  --policy=<path/to/.cue schema>
+		
+	The "resource" arg in --cue mode needs a valid Kind, like in above example "Deployment" or StatefulSet, DaemonSet etc.
+
+`)
+
 		flag.PrintDefaults()
 	}
 }
 
 func main() {
-	startTime := time.Now()
 	flag.Parse()
 
 	// Pass arguments after the mode flag
@@ -67,9 +66,6 @@ func main() {
 		fmt.Println("Invalid mode. Choose 'container' or 'cue'.")
 		flag.Usage()
 	}
-	endTime := time.Now() // Stop the timer
-	elapsed := endTime.Sub(startTime)
-	fmt.Printf("Time taken: %v\n", elapsed)
 }
 
 // Implement flag.Value for a slice of strings
