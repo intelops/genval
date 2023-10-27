@@ -53,6 +53,7 @@ func Execute(resource, reqinput string, policies ...string) {
 	}
 
 	conf := &load.Config{
+		Dir:     td,
 		Overlay: overlay,
 		Module:  modPath,
 		Package: "*",

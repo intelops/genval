@@ -1,16 +1,15 @@
-package kubernetes
+package foo
 
 import (
     apps "k8s.io/api/apps/v1"
     core "k8s.io/api/core/v1"
-	"github.com/intelops/genval/pkg/metadata"
 )
 
 #Deployment: apps.#Deployment & {
 	apiVersion: "apps/v1"
 	kind:       "Deployment"
 
-	metadata: metadata.#Metadata
+	metadata: #Metadata
 
 	spec: apps.#DeploymentSpec & {
 		replicas:             int | *3
