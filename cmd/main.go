@@ -35,14 +35,14 @@ func init() {
 	  --inputpolicy=<path/to/input.rego policy> \
 	  --outputpolicy <path/tp/output.rego file>
 		
-	cue: K8s resource validation and generation. Use --resource and --value flags.
+	cue: K8s resource validation and generation. Arguments: <reqinput.json> <resource> <CUE schema policy> .
 
 	Example usage:
 	./genval --mode=cue --resource=Deployment \
 	  --reqinput=deployment.json \
 	  --policy=<path/to/.cue schema>
 		
-	The "resource" arg in --cue mode needs a valid Kind, like in above example "Deployment" or StatefulSet, DaemonSet etc.
+	The "resource" arg in "cue" mode needs a valid Kind, like in above example "Deployment" or StatefulSet, DaemonSet etc.
 
 `)
 

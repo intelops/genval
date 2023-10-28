@@ -1,85 +1,55 @@
 package validate
 
-// import (
-// 	"testing"
+import (
+	"testing"
 
-// 	"github.com/stretchr/testify/assert"
-// )
+	"github.com/stretchr/testify/assert"
+)
 
-// // func TestBaseImageTrustworthiness(t *testing.T) {
-// // 	tests := []struct {
-// // 		name      string
-// // 		content   string
-// // 		expectErr bool
-// // 	}{
-// // 		{
-// // 			name:      "Trusted base image from cgr.dev",
-// // 			content:   `FROM cgr.dev/chainguard/clang:latest`,
-// // 			expectErr: false,
-// // 		},
-// // 		{
-// // 			name:      "Untrusted base image",
-// // 			content:   `FROM golang-alpine:latest`,
-// // 			expectErr: true,
-// // 		},
-// // 	}
+func TestBaseImage(t *testing.T) {
+	content := `
+FROM golang-alpine:latest`
 
-// // 	for _, tt := range tests {
-// // 		t.Run(tt.name, func(t *testing.T) {
-// // 			err := ValidateDockerfile(tt.content, DockerfilePolicy)
-// // 			if tt.expectErr {
-// // 				assert.Nil(t, err, "Expected no error for: %s", tt.name)
-// // 			} else {
-// // 				assert.NotNil(t, err, "Expected an error for: %s", tt.name)
-// // 			}
-// // 		})
-// // 	}
-// // }
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for using untrusted base image")
+}
 
-// func TestBaseImage(t *testing.T) {
-// 	content := `
-// FROM golang-alpine:latest`
+func TestRootUser(t *testing.T) {
+	content := `
+FROM ubuntu:latest
+USER root
+`
 
-// 	err := ValidateDockerfile(content, DockerfilePolicy)
-// 	assert.NotNil(t, err, "Expected error for using untrusted base image")
-// }
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for using root user")
+}
 
-// func TestRootUser(t *testing.T) {
-// 	content := `
-// FROM ubuntu:latest
-// USER root
-// `
+func TestSudoUsage(t *testing.T) {
+	content := `
+FROM ubuntu:latest
+RUN apt-get update && sudo apt-get install -y curl
+`
 
-// 	err := ValidateDockerfile(content, DockerfilePolicy)
-// 	assert.NotNil(t, err, "Expected error for using root user")
-// }
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for sudo usage")
+}
 
-// func TestSudoUsage(t *testing.T) {
-// 	content := `
-// FROM ubuntu:latest
-// RUN apt-get update && sudo apt-get install -y curl
-// `
+func TestCachedLayers(t *testing.T) {
+	content := `
+FROM ubuntu:latest
+RUN apt-get update && apt-get install -y curl
+`
 
-// 	err := ValidateDockerfile(content, DockerfilePolicy)
-// 	assert.NotNil(t, err, "Expected error for sudo usage")
-// }
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for not using --no-cache")
+}
 
-// func TestCachedLayers(t *testing.T) {
-// 	content := `
-// FROM ubuntu:latest
-// RUN apt-get update && apt-get install -y curl
-// `
+func TestAddUsage(t *testing.T) {
+	content := `
+FROM ubuntu:latest
+ADD source.txt /destination.txt
+`
 
-// 	err := ValidateDockerfile(content, DockerfilePolicy)
-// 	assert.NotNil(t, err, "Expected error for not using --no-cache")
-// }
-
-// func TestAddUsage(t *testing.T) {
-// 	content := `
-// FROM ubuntu:latest
-// ADD source.txt /destination.txt
-// `
-
-// 	err := ValidateDockerfile(content, DockerfilePolicy)
-// 	assert.NotNil(t, err, "Expected error for using ADD instead of COPY")
-// }
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for using ADD instead of COPY")
+}

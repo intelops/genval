@@ -1,0 +1,17 @@
+dockerfile:
+- stage: 0
+  instructions:
+  - from: 
+    - "golang-alpine:1.20 as builder"
+  - env:
+    - "APP_HOME=/app"
+  - workdir:
+    - "$APP_HOME"
+  - run:
+    - apk add --no-cache build-base
+    - pip install --upgrade pip wheel
+  - copy:
+    - requirements.txt .
+  - run:  
+    - pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+

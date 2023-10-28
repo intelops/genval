@@ -8,13 +8,8 @@ import (
 )
 
 func TestValidateInput(t *testing.T) {
-	// Load the test policy
-	regoPolicy, err := os.ReadFile("inputFilePolicies.rego")
-	if err != nil {
-		t.Fatalf("Failed to read rego policy: %v", err)
-	}
-	regoPolicyContent := string(regoPolicy)
 
+	regoPolicyContent := "./testdata/rego/inputfile_policies.rego"
 	tests := []struct {
 		name       string
 		inputFile  string
@@ -24,53 +19,52 @@ func TestValidateInput(t *testing.T) {
 	}{
 		{
 			name:       "Valid YAML input",
-			inputFile:  "testData/multiStage.yaml",
+			inputFile:  "./testdata/multistage.yaml",
 			regoPolicy: regoPolicyContent,
 			wantError:  false,
 		},
 		{
-			name:       "Valid YAML input",
-			inputFile:  "testData/multiStage.json",
+			name:       "Valid JSON input",
+			inputFile:  "./testdata/multistage.json",
 			regoPolicy: regoPolicyContent,
 			wantError:  false,
 		},
 		{
-			name:       "Valid YAML input",
-			inputFile:  "testData/singleStage.yaml",
+			name:       "Invalid YAML input",
+			inputFile:  "./testdata/singlestage.yaml",
+			regoPolicy: regoPolicyContent,
+			wantError:  true,
+		},
+		{
+			name:       "Invalid JSON input",
+			inputFile:  "./testdata/singlestage.json",
 			regoPolicy: regoPolicyContent,
 			wantError:  true,
 		},
 		{
 			name:       "Valid YAML input",
-			inputFile:  "testData/singleStage.json",
-			regoPolicy: regoPolicyContent,
-			wantError:  true,
-		},
-		{
-			name:       "Valid YAML input",
-			inputFile:  "testData/trustedImage.yaml",
+			inputFile:  "./testdata/trustedimage.yaml",
 			regoPolicy: regoPolicyContent,
 			wantError:  false,
 		},
 		{
 			name:       "Valid YAML input",
-			inputFile:  "testData/trustedImage.json",
+			inputFile:  "./testdata/trustedimage.json",
 			regoPolicy: regoPolicyContent,
 			wantError:  false,
 		},
 		{
-			name:       "Valid YAML input",
-			inputFile:  "testData/unTrustedImage.yaml",
+			name:       "Invalid YAML input",
+			inputFile:  "./testdata/untrustedimage.yaml",
 			regoPolicy: regoPolicyContent,
 			wantError:  true,
 		},
 		{
-			name:       "Valid YAML input",
-			inputFile:  "testData/unTrustedImage.json",
+			name:       "Invalid JSON input",
+			inputFile:  "./testdata/untrustedimage.json",
 			regoPolicy: regoPolicyContent,
 			wantError:  true,
 		},
-		// Add more test scenarios
 	}
 
 	for _, tt := range tests {
