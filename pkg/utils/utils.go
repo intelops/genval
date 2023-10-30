@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"io"
 	"io/fs"
 	"net/http"
@@ -98,22 +99,22 @@ func ReadSchemaFile(schema string) []byte {
 
 }
 
-// ReadPolicyFile read the policy provided from cli args, accepts polices from a remote URL or local file
+// ReadPolicyFile reads the policy provided from cli args, accepts polices from a remote URL or local file
 func ReadPolicyFile(policyFile string) ([]byte, error) {
 	// Attempt to parse the policyFile as a URL
 	u, err := url.ParseRequestURI(policyFile)
-	if err == nil && u.Scheme != "" && u.Host != "" {
+	if err == nil && (u.Scheme == "http" || u.Scheme == "https") {
 		// It's a URL, fetch content
 		resp, err := http.Get(u.String())
 		if err != nil {
-			log.Errorf("error fetching Rego policy from URL: %v", err)
+			log.Errorf("error fetching policy from URL: %v", err)
 			return nil, err
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			log.Errorf("error fetching policy from URL: status code %d", resp.StatusCode)
-			return nil, err
+			return nil, errors.New("non-200 status code")
 		}
 
 		policyContent, err := io.ReadAll(resp.Body)
@@ -124,7 +125,7 @@ func ReadPolicyFile(policyFile string) ([]byte, error) {
 
 		return policyContent, nil
 	} else {
-		// If not a URL, treat it as a local file path
+		// If it's not a URL, treat it as a local file path
 		policyContent, err := os.ReadFile(policyFile)
 		if err != nil {
 			log.Errorf("error reading policy from file: %v", err)
