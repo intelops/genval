@@ -1,12 +1,15 @@
 package utils
 
 import (
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"cuelang.org/go/cue"
@@ -133,4 +136,69 @@ func ReadPolicyFile(policyFile string) ([]byte, error) {
 
 		return policyContent, nil
 	}
+}
+
+// isURL checks if the given string is a valid URL.
+func isURL(s string) bool {
+	u, err := url.Parse(s)
+	return err == nil && u.Scheme != "" && u.Host != ""
+}
+
+// fetchFileWithCURL fetches the content of a given URL using curl and saves it to a temporary file.
+// It returns the name of the temporary file.
+func fetchFileWithCURL(urlStr string) (string, error) {
+	// Parse the URL to extract the filename
+	u, err := url.Parse(urlStr)
+	if err != nil {
+		return "", fmt.Errorf("cannot parse URL '%s': %v", urlStr, err)
+	}
+
+	// Extract the filename from the URL path
+	filename := filepath.Base(u.Path)
+	if filename == "" || filename == "/" {
+		// Generate a random filename if we couldn't extract one from the URL
+		filename = "cue-" + strconv.Itoa(10000)
+	}
+
+	// Create a specific directory in /tmp to store the file
+	dir := filepath.Join(os.TempDir(), "cue_downloads")
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		os.Mkdir(dir, 0700)
+	}
+
+	cmd := exec.Command("curl", "-s", "-o", filepath.Join(dir, filename), urlStr)
+	if err := cmd.Run(); err != nil {
+		return "", fmt.Errorf("failed fetching content using curl: %v", err)
+	}
+
+	return filepath.Join(dir, filename), nil
+}
+
+// ProcessInputs processes the CLI args, fetches content from URLs if needed, and returns a slice of filenames.
+func ProcessInputs(inputs []string) ([]string, error) {
+	var filenames []string
+	for _, input := range inputs {
+		if isURL(input) {
+			filename, err := fetchFileWithCURL(input)
+			if err != nil {
+				return nil, err
+			}
+			filenames = append(filenames, filename)
+		} else if _, err := os.Stat(input); os.IsNotExist(err) {
+			return nil, fmt.Errorf("local file '%s' does not exist", input)
+		} else {
+			// local file exists, so simply append its absolute path
+			absPath, err := filepath.Abs(input)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get absolute path for '%s': %v", input, err)
+			}
+			filenames = append(filenames, absPath)
+		}
+	}
+	return filenames, nil
+}
+
+func CleanupDownloadedDir() error {
+	dir := filepath.Join(os.TempDir(), "cue_downloads")
+	return os.RemoveAll(dir)
 }

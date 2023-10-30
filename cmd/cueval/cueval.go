@@ -47,7 +47,11 @@ func Execute(resource, reqinput string, policies ...string) {
 	dataFile := reqinput
 	schemaFile := policies
 
-	overlay, err := utils.GenerateOverlay(staticFS, td, schemaFile)
+	definitions, err := utils.ProcessInputs(schemaFile)
+	if err != nil {
+		log.Errorf("Error reading URL: %v", err)
+	}
+	overlay, err := utils.GenerateOverlay(staticFS, td, definitions)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -67,7 +71,7 @@ func Execute(resource, reqinput string, policies ...string) {
 
 	defName := "#" + defPath
 
-	v, err := cuecore.BuildInstance(ctx, policies, conf)
+	v, err := cuecore.BuildInstance(ctx, definitions, conf)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -99,6 +103,10 @@ func Execute(resource, reqinput string, policies ...string) {
 		}
 	}
 
-	fmt.Printf("%v validation succeeded, generated manifest: %v.yaml\n", defPath, res)
+	if err := utils.CleanupDownloadedDir(); err != nil {
+		log.Printf("Error removing cue_downloads directory: %v", err)
+	}
+
+	log.Infof("\n%v validation succeeded, generated manifest: %v.yaml\n\n", defPath, res)
 
 }
