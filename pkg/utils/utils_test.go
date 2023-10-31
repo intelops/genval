@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -139,7 +140,9 @@ func TestReadRegoFile(t *testing.T) {
 	}
 
 	// Create a sample file for testing
-	os.WriteFile("test.rego", []byte("test content from file"), 0644)
+	if err := os.WriteFile("test.rego", []byte("test content from file"), 0644); err != nil {
+		log.Println("Failed to write to file:", err)
+	}
 	defer os.Remove("test.rego")
 
 	for _, tt := range tests {
@@ -190,7 +193,9 @@ func TestProcessInputs(t *testing.T) {
 	}
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/test.cue" {
-			w.Write([]byte("package test"))
+			if _, err := w.Write([]byte("package test")); err != nil {
+				log.Println("Failed to write response:", err)
+			}
 		} else {
 			http.NotFound(w, r)
 		}

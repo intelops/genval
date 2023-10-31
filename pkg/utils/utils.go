@@ -163,7 +163,13 @@ func fetchFileWithCURL(urlStr string) (string, error) {
 	// Create a cue_downloads directory in /tmp to store the files
 	dir := filepath.Join(os.TempDir(), "cue_downloads")
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		os.Mkdir(dir, 0700)
+		if err := os.Mkdir(dir, 0700); err != nil {
+			// Handle error here
+			log.Println("Failed to create directory:", err)
+		}
+	} else if err != nil {
+		// Handle other potential errors from os.Stat
+		log.Println("Error checking directory:", err)
 	}
 
 	cmd := exec.Command("curl", "-s", "-o", filepath.Join(dir, filename), urlStr)
