@@ -1,0 +1,93 @@
+{
+  "dockerfile": [
+    {
+      "stage": 0,
+      "instructions": [
+        {
+          "from": [
+            "cgr.dev/chainguard/python:latest-dev as builder"
+          ]
+        },
+        {
+          "env": [
+            "APP_HOME=/app"
+          ]
+        },
+        {
+          "workdir": [
+            "$APP_HOME"
+          ]
+        },
+        {
+          "run": [
+            "apk add --no-cache build-base",
+            "pip install --upgrade pip wheel"
+          ]
+        },
+        {
+          "copy": [
+            "requirements.txt ."
+          ]
+        },
+        {
+          "run": [
+            "pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt"
+          ]
+        }
+      ]
+    },
+    {
+      "stage": 1,
+      "instructions": [
+        {
+          "from": [
+            "cgr.dev/chainguard/python:latest"
+          ]
+        },
+        {
+          "label": [
+            "maintainer=\"your-email@example.com\"",
+            "description=\"Secure Multi-stage RUST Alpine Image\""
+          ]
+        },
+        {
+          "env": [
+            "APP_USER=myappuser",
+            "APP_HOME=/app"
+          ]
+        },
+        {
+          "workdir": [
+            "$APP_HOME"
+          ]
+        },
+        {
+          "copy": [
+            "--from=builder /usr/src/myapp/target/release/myapp /usr/local/bin/"
+          ]
+        },
+        {
+          "run": [
+            "adduser -D $APP_USER"
+          ]
+        },
+        {
+          "user": [
+            "$APP_USER"
+          ]
+        },
+        {
+          "copy": [
+            "main.py ."
+          ]
+        },
+        {
+          "entrypoint": [
+            "python",
+            "/$APP_HOME/main.py"
+          ]
+        }
+      ]
+    }
+  ]
+}

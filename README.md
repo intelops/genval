@@ -6,7 +6,7 @@ Genval is a versatile Go utility that simplifies configuration management for a 
 
   
 
-## Streamlining Dockerfile Validation and Generation
+## Streamlining validation and Generation of Configurations
 
   
 
