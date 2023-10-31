@@ -14,17 +14,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func init() {
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: false,
-		FieldMap: log.FieldMap{
-			log.FieldKeyTime:  "@timestamp",
-			log.FieldKeyLevel: "@level",
-			log.FieldKeyMsg:   "@message",
-		},
-	})
-}
-
 func Execute(resource, reqinput string, policies ...string) {
 
 	const modPath = "github.com/intelops/genval"
@@ -63,7 +52,11 @@ func Execute(resource, reqinput string, policies ...string) {
 		Package: "*",
 	}
 
-	res, data, err := utils.ReadAndCompileData(defPath, dataFile)
+	input, err := utils.ProcessInputs([]string{dataFile})
+	if err != nil {
+		log.Errorf("Error reading URL: %v", err)
+	}
+	res, data, err := utils.ReadAndCompileData(defPath, input[0])
 	if err != nil {
 		log.Fatalf("Error processing data: %v", err)
 		return
@@ -104,9 +97,8 @@ func Execute(resource, reqinput string, policies ...string) {
 	}
 
 	if err := utils.CleanupDownloadedDir(); err != nil {
-		log.Printf("Error removing cue_downloads directory: %v", err)
+		log.Errorf("Error removing cue_downloads directory: %v", err)
 	}
 
-	log.Infof("\n%v validation succeeded, generated manifest: %v.yaml\n\n", defPath, res)
-
+	log.Infof("validation for %v succeeded, generated manifest: %v.yaml\n\n", defPath, res)
 }

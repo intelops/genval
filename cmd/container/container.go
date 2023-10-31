@@ -6,6 +6,7 @@ import (
 
 	generate "github.com/intelops/genval/pkg/generate/dockerfile_gen"
 	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/utils"
 	validate "github.com/intelops/genval/pkg/validate/dockerfile_val"
 	log "github.com/sirupsen/logrus"
 )
@@ -33,13 +34,18 @@ func Execute(value, output, inputpolicy, outputpolicy string) {
 	// Use ParseInputFile to read and unmarshal the input file
 	var data generate.DockerfileContent
 
-	err := parser.ReadAndParseFile(inputPath, &data)
+	input, err := utils.ProcessInputs([]string{inputPath})
+	if err != nil {
+		log.Errorf("Error reading URL: %v", err)
+	}
+
+	err = parser.ReadAndParseFile(input[0], &data)
 	if err != nil {
 		log.Error("Error:", err)
 		return
 	}
 
-	yamlContent, err := os.ReadFile(inputPath)
+	yamlContent, err := os.ReadFile(input[0])
 	if err != nil {
 		log.Fatalf("Error reading YAML file: %v", err)
 	}

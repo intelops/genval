@@ -2,7 +2,7 @@
 
   
 
-Gencval is a versatile Go utility that simplifies configuration management for a wide range of tools, including Dockerfile, Kubernetes manifests, Helm, Timoni, Kustomize, Kubernetes Operators, Tekton, GitOps, Kubernetes Infrastructure YAML files, and more.
+Genval is a versatile Go utility that simplifies configuration management for a wide range of tools, including Dockerfile, Kubernetes manifests, Helm, Timoni, Kustomize, Kubernetes Operators, Tekton, GitOps, Kubernetes Infrastructure YAML files, and more.
 
   
 
@@ -122,8 +122,6 @@ If verification is successful, you'll see "**Verified OK.**"
 
 - Download the genval binary from the official [release page](https://github.com/intelops/genval/releases)
 
-- Make the binary executable: `chmod +x genval`
-
 - Move the executable to your `PATH` for convenience.
 
   
@@ -137,6 +135,10 @@ For a quick start, pre-built templates for Dockerfile generation for popular lan
   
 
 ## Building from Source
+
+The easieast way to build the `genval` executable is using the `build` Makefile target.
+`make build`. 
+This will build the binary from source and place the `genval` binary in the `./bin` folder. 
 
   
 
@@ -162,6 +164,8 @@ Genval offers two modes:
 
 -  `cue` for Kubernetes and CRD validation and generation
 
+
+> Both modes accept inputs that include local files and files obtained from a remote URL, such as those from a Git repository. 
   
 
 ### Dockerfile Validation and Generation:

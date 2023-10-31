@@ -1,5 +1,5 @@
 package tekton
 
-import "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1"
+import v1betad1"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 
-#Pipeline: v1.#Pipeline
+v1beta1.#Pipeline
