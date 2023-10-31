@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    labels:
+        app: cueTest
+        env: mytest
+    name: genval
+    namespace: websites
+spec:
+    minReadySeconds: 5
+    replicas: 3
+    revisionHistoryLimit: 5
+    selector:
+        matchLabels:
+            app: cueTest
+    template:
+        metadata:
+            labels:
+                app: cueTest
+                version: changeMe
+        spec:
+            containers:
+                - image: nginx:1.20
+                  imagePullPolicy: Always
+                  livenessProbe:
+                    failureThreshold: 3
+                    httpGet:
+                        port: 80
+                    initialDelaySeconds: 6
+                    periodSeconds: 10
+                  name: website
+                  ports:
+                    - containerPort: 80
+                      protocol: TCP
+                  readinessProbe:
+                    failureThreshold: 3
+                    httpGet:
+                        port: 80
+                    initialDelaySeconds: 6
+                    periodSeconds: 10
+                  resources:
+                    limits:
+                        cpu: 100m
+                        memory: 256Mi
+                    requests:
+                        cpu: 100m
+                        memory: 256Mi
+                  securityContext:
+                    allowPrivilegeEscalation: false
+                    privileged: false
+                    runAsGroup: 1001
+                    runAsNonRoot: true
+                    runAsUser: 1001
