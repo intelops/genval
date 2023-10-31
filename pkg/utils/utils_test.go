@@ -209,14 +209,14 @@ func TestProcessInputs(t *testing.T) {
 			expected: []string{"/tmp/cue_downloads/test.cue"},
 			wantErr:  false,
 		},
-		// {
-		// 	name:    "Download URL failure",
-		// 	inputs:  []string{ts.URL + "/nonexistent.cue"},
-		// 	wantErr: true,
-		// },
+		{
+			name:    "Download URL failure",
+			inputs:  []string{ts.URL + "./testdata/nonexistent.cue"},
+			wantErr: true,
+		},
 		{
 			name:    "Local file does not exist",
-			inputs:  []string{"/path/to/nonexistent/file.cue"},
+			inputs:  []string{"./testdata/nonexistent.cue"},
 			wantErr: true,
 		},
 		{
