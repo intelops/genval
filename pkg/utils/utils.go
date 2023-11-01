@@ -172,7 +172,7 @@ func fetchFileWithCURL(urlStr string) (string, error) {
 		log.Println("Error checking directory:", err)
 	}
 
-	cmd := exec.Command("curl", "-s", "-o", filepath.Join(dir, filename), urlStr)
+	cmd := exec.Command("curl", "-s", "-O", filepath.Join(dir, filename), urlStr)
 	if err := cmd.Run(); err != nil {
 		log.Errorf("failed fetching content using curl: %v", err)
 		return "", err

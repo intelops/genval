@@ -90,28 +90,19 @@ Genval's release process signs binaries using Cosign's keyless signing mode. To 
 
 # Example commands to verify a binary
 
-wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt
-
-wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.pem
-
-wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.sig
+$ wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt
+$ wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.pem
+$ wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.sig
 
   
 
 cosign  verify-blob  \
-
 --certificate-identity  "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/v0.0.1"  \
-
 --certificate-oidc-issuer  "https://token.actions.githubusercontent.com"  \
-
 --cert  ./checksums.txt.pem  \
-
 --signature  ./checksums.txt.sig  \
-
 ./checksums.txt
-
 ```
-
 If verification is successful, you'll see "**Verified OK.**"
 
   
@@ -127,11 +118,9 @@ If verification is successful, you'll see "**Verified OK.**"
   
 
 ## Quick Start
+ 
 
-  
-
-For a quick start, pre-built templates for Dockerfile generation for popular languages can be found in the /templates/dockerFile-sample directory
-
+For a quick start, pre-built templates for Dockerfile generation for popular languages can be found in the `./templates/inputs/dockerfile_input` folder.
   
 
 ## Building from Source
@@ -154,11 +143,8 @@ To build genval from source:
 
 The generated binary, genval, will be available in the current working directory. You can move it to your PATH or use it from the current directory.
 
-  
-
 Genval offers two modes:
 
-  
 
 -  `container` for Dockerfile validation and generation
 
@@ -169,7 +155,6 @@ Genval offers two modes:
   
 
 ### Dockerfile Validation and Generation:
-
   
 
 Run Genval with the --mode container flag, providing the path to your input JSON or YAML file using the `--reqinput` flag and specifying the desired output path for the generated Dockerfile along with `--inputpolicy` and `--outputpolicy` for validating the input JSON and the generated Dockerfile respectively. Genval will take care of the rest. 
@@ -188,25 +173,23 @@ $ genval --mode container --reqinput ./templates/inputs/dockerfile_input/golang_
 
   
 
-**Review Feedback**: Genal provides feedback based on best practice validation. Use this feedback to refine your Dockerfile.
+**Review Feedback**: Genval provides feedback based on best practice validation. Use this feedback to refine your Dockerfile.
 
 
 ### Validation and Generation of Kubernetes configurations
 
   
 
-The validation and generation of Kubernetes and CRD manifests are facilitated through the use of [cuelang](https://cuelang.org/docs/). When using Genval for validating and generating Kubernetes and related manifests, make use of the Genval tool in `cue` mode. This mode necessitates JSON input provided via the `--reqinput` flag. Furthermore, you should specify a `resource` flag, indicating the Kubernetes or CRD `Kind` that requires validation. Additionally, attach the `.cue schema definitions` to the `--policy` flag. These policy files can be provided wither store in the users local file system or from a remote URL, like a Git repository.
+The validation and generation of Kubernetes and CRD manifests are facilitated through the use of [cuelang](https://cuelang.org/docs/). When using Genval for validating and generating Kubernetes and related manifests, make use of the Genval tool in `cue` mode. This mode necessitates JSON input provided via the `--reqinput` flag. Furthermore, you should specify a `resource` flag, indicating the Kubernetes or CRD `Kind` that requires validation. Additionally, attach the `.cue schema definitions` to the `--policy` flag. These policy files can be provided from the users local file system or from a remote URL, like a Git repository.
 
-You have the flexibility to employ multiple `--policy` flags, allowing you to supply distinct `.cue` definitions as needed. For instance, your DevSecOps team can furnish a schema that enforces security best practices for a specific environment, encompassing all the pertinent mandatory fields. This approach leaves room for custom fields like `metadata`, `image`, `replicas`, specific to a **Deployment**, to be provided by the development teams. In the `cue` mode, development teams can then contribute their customized policies for validation and generation, tailoring the configurations to suit their particular environments.
+You have the flexibility to employ multiple `--policy` flags, allowing you to supply distinct `.cue` definitions as needed. For instance, your DevSecOps/Platform engineering team can furnish a schema that enforces security best practices for a specific environment, encompassing all the pertinent mandatory fields. This approach leaves room for custom fields like `metadata`, `image`, `replicas`, specific to a **Deployment**, to be provided by the development teams. In the `cue` mode, development teams can then contribute their customized policies for validation and generation, tailoring the configurations to suit their particular environments.
 
   
 
 Example:
 
-  
 
 ```shell
-
 $ genval  --mode  cue  --reqinput  ./templates/inputs/cue/deploy,json  \
   --resource  Deployment  \
   --policy  ./templates/defaultpolicies/cue/deployment.cue  \
@@ -218,6 +201,8 @@ The above command will validate a Deployment manifests using the provided `.cue`
 > The `--resource` flag in `cue` mode needs a valid Kind, like in above example "Deployment" or StatefulSet, DaemonSet etc.
 
 
+For a detailed workflow illustrating the capabilities of Cue and Genval for validating and generating Kubernetes configurations, you can refer to [this document](./cmd/cueval/example.md).
+
 ### Templates
 
-The `./templates` folder holds some sample files to be used in Genval. the `./templates/inputs` holds JSON input templates for both generating Dockerfiles in container mode and Kubernetes manifests in cue mode. Similarly, all the default policies for both the modes are stored in `./templates/defaultpolices` directory. User can use these template files to start with and as they go along they can customize these files to suite their specific use cases.  
+The `./templates` folder holds some sample files to be used in Genval. the `./templates/inputs` holds JSON input templates for both generating Dockerfiles in `container` mode and Kubernetes manifests in `cue` mode. Similarly, all the default policies for both the modes are stored in `./templates/defaultpolices` directory. User can use these template files to start with and as they go along they can customize these files to suite their specific use cases.  
