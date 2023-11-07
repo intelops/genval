@@ -1,0 +1,90 @@
+{
+    "dockerfile": [
+      {
+        "stage": 0,
+        "instructions": [
+          {
+            "from": [
+              "cgr.dev/chainguard/dotnet-sdk:latest-dev as builder"
+            ]
+          },
+          {
+            "env": [
+              "APP_HOME=/source"
+            ]
+          },
+          {
+            "run": [
+              "useradd -m -s /bin/bash -d $APP_HOME myappuser"
+            ]
+          },
+          {
+            "workdir": [
+              "$APP_HOME"
+            ]
+          },
+          {
+            "copy": [
+              "*.csproj ."
+            ]
+          },
+          {
+            "run": [
+              "dotnet restore"
+             ]
+          },
+          {
+            "copy": [
+              ". ."
+            ]
+          },
+          {
+            "run": [
+              "dotnet publish --no-restore -c Release -o /app/out"
+            ]
+          }
+        ]
+      },
+      {
+        "stage": 1,
+        "instructions": [
+          {
+            "from": [
+              "mcr.microsoft.com/dotnet/aspnet:6.0"
+            ]
+          },
+          {
+            "env": [
+              "APP_USER=myappuser",
+              "APP_HOME=/app"
+            ]
+          },
+          {
+            "run": [
+              "useradd -m -s /bin/bash -d $APP_HOME $APP_USER"
+            ]
+          },
+          {
+            "workdir": [
+              "$APP_HOME"
+            ]
+          },
+          {
+            "copy": [
+              "--from=builder $APP_HOME/out $APP_HOME/out"
+            ]
+          },
+          {
+            "user": [
+              "$APP_USER"
+            ]
+          },
+          {
+            "entrypoint": [
+              "dotnet","YourAppName.dll"
+            ]
+          }
+        ]
+      }
+    ]
+  }
