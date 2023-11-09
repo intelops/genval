@@ -1,0 +1,21 @@
+# STAGE 0
+  FROM cgr.dev/chainguard/clang:latest-dev as builder
+  ENV APP_HOME=/app
+  RUN useradd -m -s /bin/bash -d $APP_HOME myappuser
+  WORKDIR $APP_HOME
+  RUN apk add --no-cache clang clang-dev alpine-sdk dpkg \
+      && apk add --update --no-cache cmake \
+      && apk add --update --no-cache ccache
+  COPY src/ $APP_HOME/src/ \
+      && Makefile $APP_HOME/
+  RUN make -C $APP_HOME
+
+# STAGE 1
+  FROM cgr.dev/chainguard/static:latest
+  ENV APP_USER=myappuser
+  ENV APP_HOME=/app
+  RUN useradd -m -s /bin/bash -d $APP_HOME $APP_USER
+  WORKDIR $APP_HOME
+  COPY --from=builder $APP_HOME/myapp $APP_HOME/myapp
+  USER $APP_USER
+  ENTRYPOINT ["./myapp"]
