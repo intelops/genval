@@ -14,7 +14,7 @@ One of Cue's standout features is its robust [type system](https://cuelang.org/d
 ## Flow diagram fo Cue mode
 
 <p align="center">
-  <img src="../cueval.svg" />
+  <img src="https://github.com/intelops/genval/assets/141515226/57fad737-2fa0-436e-92c9-0d336731d993" />
 </p>
 
 
