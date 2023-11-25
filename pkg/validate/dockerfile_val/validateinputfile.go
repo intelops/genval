@@ -8,22 +8,11 @@ import (
 	"fmt"
 
 	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/utils"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
 
-//go:embed inputfile-policies.rego
-var inputPolicy []byte
-
-const (
-	// InputPolicy is the name of the Rego policy file used to validate input JSON file.
-	InputPolicy = "inputFilePolicies.rego"
-
-	// InputPackage is the name of the Rego package containing input JSON policies.
-	InputPackage = "data.validate_input"
-)
-
-// ValidateJSON validates input JSON against pre-defined Rego policies
 func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	// Parse the YAML content
 	parsedYAML, err := parser.ParseYAMLContent(yamlContent)
@@ -48,10 +37,16 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	}
 	ctx := context.Background()
 
+	// Read the Rego policy from the given path
+	regoContent, err := utils.ReadPolicyFile(regoPolicyPath)
+	if err != nil {
+		return fmt.Errorf("error reading Rego policy: %v", err)
+	}
+
 	// Create Rego for query and evaluation
 	regoQuery := rego.New(
-		rego.Query(InputPackage),
-		rego.Module(InputPolicy, string(inputPolicy)),
+		rego.Query("data.validate_input"), // Using hardcoded query as before
+		rego.Module(regoPolicyPath, string(regoContent)),
 		rego.Input(inputMap),
 	)
 

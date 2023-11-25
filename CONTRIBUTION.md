@@ -92,4 +92,37 @@ git checkout <your_branch_name>
 git merge main
 ```
 
+## Contributing by adding a Cue schema to the project
+
+Genval leverages upstream Kubernetes and CRD APIs for validation and configuration generation. For technologies not currently supported, users can extend Genval's capabilities by adding Cue schemas.
+
+The workflow for adding a Cue schema is as follows:
+
+- Clone the repository by following the steps outlined [above](#set-up-your-local-development-environment) and navigate to the `genval` directory.
+- Identify the technology and the package URL that exposes the APIs you want to add schemas for. In the following example, we'll import schemas for [TektonCD](https://tekton.dev/docs/):
+
+```shell
+$ go get github.com/tektoncd/pipeline/pkg/apis/...
+# This downloads the Go types for the API.
+$ cue get go github.com/tektoncd/pipeline/pkg/apis/...
+# This imports the Go types into Cue schemas for TektonCD within the 'cue.mod' directory.
+```
+Once the APIs are imported into Cue, you can reference them in your definitions for TektonCD, similar to import statements in Golang:
+
+```shell
+package tekton
+
+import "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
+
+#Pipeline: v1beta1.#Pipeline & { 
+	apiVersion: string | *"tekton.dev/v1beta1"
+	kind:       string | *"Pipeline"
+    ...
+
+```
+
+Now, you can easily reference the Cue schemas for #Pipeline by utilizing the imported schemas as v1beta1.#Pipeline.
+
+
+
 ## All the best! 🥇
