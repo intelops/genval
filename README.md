@@ -137,7 +137,7 @@ To build genval from source:
 
 - Navigate to the project directory: `cd genval`
 
-- Build Genval: `CGO_ENABLED=0 go build -o ./cmd/genval`
+- Build Genval: `CGO_ENABLED=0 go build -o ./genval ./cmd`
 
   
 
@@ -236,6 +236,7 @@ genval --mode tf --reqinput ../templates/inputs/terraform/sec-group.tf \
           "egress": [
             {
               ...
+             <REDACTED>
 ```
 
 ### Templates

@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ExecuteTf(reqinput string, json bool, policies ...string) {
+func ExecuteTf(reqinput string, showjson bool, policies ...string) {
 	if reqinput == "" || len(policies) == 0 {
 		fmt.Println("[USAGE]: ./genval --mode=tf --reqinput=input.json/yaml --policy=<path/to/rego policy>.")
 		return
@@ -21,7 +21,7 @@ func ExecuteTf(reqinput string, json bool, policies ...string) {
 	if err != nil {
 		log.Errorf("Error converting tf file: %v", err)
 	}
-	if json {
+	if showjson {
 		fmt.Println(inputJSON)
 		return
 	}
