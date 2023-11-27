@@ -118,6 +118,7 @@ import "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	apiVersion: string | *"tekton.dev/v1beta1"
 	kind:       string | *"Pipeline"
     ...
+}
 
 ```
 
