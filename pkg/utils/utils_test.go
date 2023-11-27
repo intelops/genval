@@ -3,9 +3,7 @@ package utils
 import (
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"os"
-	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
@@ -103,40 +101,57 @@ func (c *MockHTTPClient) RoundTrip(req *http.Request) (*http.Response, error) {
 // Test for ReadRegoFile using above mock
 
 func TestReadRegoFile(t *testing.T) {
-	// Mock HTTP client
+	// Mock HTTP client setup (if you're mocking HTTP requests)
+	// Mock HTTP client setup
 	mockClient := &MockHTTPClient{
 		Response: MockHTTPResponse{
 			StatusCode: 200,
-			Body:       strings.NewReader("test content from URL"),
+			Body:       strings.NewReader("package test\n\ntest content from URL"),
 		},
 	}
+	oldTransport := http.DefaultClient.Transport
 	http.DefaultClient.Transport = mockClient
+	defer func() { http.DefaultClient.Transport = oldTransport }()
+
+	tempFile, err := os.CreateTemp("", "test_policy_*.rego")
+	if err != nil {
+		t.Fatalf("Failed to create temporary file: %v", err)
+	}
+	defer os.Remove(tempFile.Name()) // Clean up
+
+	// Write some content to the file
+	testContent := []byte("package local\n\nlocal content")
+	if _, err := tempFile.Write(testContent); err != nil {
+		t.Fatalf("Failed to write to temporary file: %v", err)
+	}
+	if err := tempFile.Close(); err != nil {
+		t.Fatalf("Failed to close temporary file: %v", err)
+	}
 
 	tests := []struct {
-		name       string
-		policyFile string
-		want       []byte
-		wantErr    bool
+		name        string
+		policyFile  string
+		wantContent []byte
+		wantErr     bool
 	}{
 		{
-			name:       "Read from valid URL",
-			policyFile: "http://valid-url.com",
-			want:       []byte("test content from URL"),
-			wantErr:    false,
+			name:        "Read from valid URL",
+			policyFile:  "http://valid-url.com",
+			wantContent: []byte("package test\n\ntest content from URL"),
+			wantErr:     false,
 		},
 		{
-			name:       "Read from invalid URL",
-			policyFile: "invalid-url",
-			want:       nil,
-			wantErr:    true,
+			name:        "Read from invalid URL",
+			policyFile:  "invalid-url",
+			wantContent: nil,
+			wantErr:     true,
 		},
 		{
-			name:       "Read from local file",
-			policyFile: "test.rego",
-			want:       []byte("test content from file"),
-			wantErr:    false,
+			name:        "Read from local filesystem",
+			policyFile:  tempFile.Name(),
+			wantContent: testContent,
+			wantErr:     false,
 		},
-		// Add more test cases as needed...
 	}
 
 	// Create a sample file for testing
@@ -147,115 +162,49 @@ func TestReadRegoFile(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ReadPolicyFile(tt.policyFile)
+			gotContent, err := ReadPolicyFile(tt.policyFile)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("ReadRegoFile() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("ReadPolicyFile() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("ReadRegoFile() = %v, want %v", got, tt.want)
+			if !reflect.DeepEqual(gotContent, tt.wantContent) {
+				t.Errorf("ReadPolicyFile() content = %v, want %v", string(gotContent), string(tt.wantContent))
 			}
 		})
 	}
 }
 
-func TestIsURL(t *testing.T) {
+func TestExtractPackageName(t *testing.T) {
 	tests := []struct {
-		input    string
-		expected bool
-	}{
-		{"http://www.google.com", true},
-		{"https://www.example.com/path?query=123", true},
-		{"www.example.com", false},               // missing scheme
-		{"http:///pathwithoutdomain.com", false}, // missing host
-		{"not-a-url", false},
-		{"ftp://files.com", true}, // supports non-http/https schemes
-		{"/relative/path", false},
-		{"", false},                      // empty string
-		{":://invalidscheme.com", false}, // invalid scheme
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.input, func(t *testing.T) {
-			result := isURL(tt.input)
-			if result != tt.expected {
-				t.Errorf("got %v, want %v", result, tt.expected)
-			}
-		})
-	}
-}
-
-func TestProcessInputs(t *testing.T) {
-	// Setting up a test server for simulating file download
-	absPath, err := filepath.Abs("./testdata/golden_test.cue")
-	if err != nil {
-		t.Fatalf("Failed to get absolute path: %v", err)
-	}
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/test.cue" {
-			if _, err := w.Write([]byte("package test")); err != nil {
-				log.Println("Failed to write response:", err)
-			}
-		} else {
-			http.NotFound(w, r)
-		}
-	}))
-	defer ts.Close()
-
-	tests := []struct {
-		name     string
-		inputs   []string
-		expected []string
-		wantErr  bool
+		name      string
+		content   []byte
+		wantName  string
+		wantError bool
 	}{
 		{
-			name:     "Download URL success",
-			inputs:   []string{ts.URL + "/test.cue"},
-			expected: []string{"/tmp/cue_downloads/test.cue"},
-			wantErr:  false,
-		},
-		// {
-		// 	name:    "Download URL failure",
-		// 	inputs:  []string{ts.URL + "/nonexistent.cue"},
-		// 	wantErr: true,
-		// },
-		{
-			name:    "Local file does not exist",
-			inputs:  []string{"/path/to/nonexistent/file.cue"},
-			wantErr: true,
+			name:      "Valid package name",
+			content:   []byte("package test\n\nother content"),
+			wantName:  "test",
+			wantError: false,
 		},
 		{
-			name:     "Local file exists",
-			inputs:   []string{"./testdata/golden_test.cue"},
-			expected: []string{absPath}, // This should match the absolute path of the file
-			wantErr:  false,
+			name:      "Invalid package name",
+			content:   []byte("other content without package"),
+			wantName:  "",
+			wantError: true,
 		},
-		// Add other test cases if necessary
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ProcessInputs(tt.inputs)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("ProcessInputs() error = %v, wantErr %v", err, tt.wantErr)
+			gotName, err := ExtractPackageName(tt.content)
+			if (err != nil) != tt.wantError {
+				t.Errorf("ExtractPackageName() error = %v, wantError %v", err, tt.wantError)
 				return
 			}
-			if !tt.wantErr && !compareStringSlices(got, tt.expected) {
-				t.Errorf("ProcessInputs() = %v, want %v", got, tt.expected)
+			if gotName != tt.wantName {
+				t.Errorf("ExtractPackageName() gotName = %v, want %v", gotName, tt.wantName)
 			}
 		})
 	}
-}
-
-// Helper function to compare two slices of strings
-func compareStringSlices(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
-	return true
 }

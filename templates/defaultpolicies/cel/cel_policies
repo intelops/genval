@@ -1,0 +1,6 @@
+Name: Check image with latest tag
+!input.spec.template.spec.containers[0].image.endsWith('latest')
+
+//This is a comment
+Name: Check replicas in a Deployment
+input.kind == 'Deployment' ? input.spec.replicas <= 3 : true
