@@ -1,0 +1,1 @@
+test content from file
