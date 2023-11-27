@@ -42,7 +42,7 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 
 	// Create Rego for query and evaluation
 	regoQuery := rego.New(
-		rego.Query("data."+pkg), // Using hardcoded query as before
+		rego.Query("data."+pkg),
 		rego.Module(regoPolicyPath, string(regoContent)),
 		rego.Input(inputMap),
 	)
