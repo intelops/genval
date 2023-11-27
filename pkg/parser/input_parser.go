@@ -30,7 +30,7 @@ func ParseYAMLContent(yamlContent string) (*InputYAML, error) {
 	return &inputfileYAML, nil
 }
 
-func ReadAndParseFile(filename string, data interface{}) error {
+func ParseDockerfileInput(filename string, data interface{}) error {
 	fileExtension := filepath.Ext(filename)
 	fileExtension = strings.TrimPrefix(fileExtension, ".")
 

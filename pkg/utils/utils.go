@@ -75,29 +75,55 @@ func toCamelCase(s string) string {
 }
 
 // ReadAndCompileData reads the content from the given file path to cue Value, returns an error if compiling fails.
-func ReadAndCompileData(defPath string, dataFile string) (titleCaseDefPath string, data cue.Value, err error) {
-	ds, err := os.ReadFile(dataFile)
+func ReadAndCompileData(defPath string, dataPath string) (titleCaseDefPath string, dataMap map[string]cue.Value, err error) {
+	// Initialize the context and dataMap
+	ctx := cuecontext.New()
+	dataMap = make(map[string]cue.Value)
+
+	// Check if the path is a directory or a single file
+	info, err := os.Stat(dataPath)
 	if err != nil {
-		return "", cue.Value{}, err
+		return "", nil, err
 	}
 
-	ctx := cuecontext.New()
-	compiledData := ctx.CompileBytes(ds)
-	if compiledData.Err() != nil {
-		return "", cue.Value{}, compiledData.Err()
+	if info.IsDir() {
+		// Handle directory
+		err = filepath.Walk(dataPath, func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				ds, err := os.ReadFile(path)
+				if err != nil {
+					return err
+				}
+				compiledData := ctx.CompileBytes(ds)
+				if compiledData.Err() != nil {
+					return compiledData.Err()
+				}
+				// Use the base file name as the map key
+				dataMap[path] = compiledData
+			}
+			return nil
+		})
+		if err != nil {
+			return "", nil, err
+		}
+	} else {
+		// Handle single file
+		ds, err := os.ReadFile(dataPath)
+		if err != nil {
+			return "", nil, err
+		}
+		compiledData := ctx.CompileBytes(ds)
+		if compiledData.Err() != nil {
+			return "", nil, compiledData.Err()
+		}
+		dataMap[strings.TrimSuffix(filepath.Base(dataPath), filepath.Ext(dataPath))] = compiledData
 	}
 
 	titleCaseDefPath = toCamelCase(defPath)
-	return titleCaseDefPath, compiledData, nil
-}
-
-func ReadSchemaFile(schema string) []byte {
-	schemaData, err := os.ReadFile(schema)
-	if err != nil {
-		log.Fatalf("Error reading schema:%v", err)
-	}
-	return schemaData
-
+	return titleCaseDefPath, dataMap, nil
 }
 
 // ReadPolicyFile read the policy provided from cli args, accepts polices from a remote URL or local file

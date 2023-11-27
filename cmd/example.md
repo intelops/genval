@@ -6,7 +6,7 @@ In this guide, we'll explore the usage of the Genval tool in Cue mode for valida
 
 ## What is Cue
 
-Cue aka [Cuelang](https://cuelang.org/docs) is a versatile configuration language and runtime environment designed to fulfill various tasks, including defining and validating data schemas, configuring files, and generating configuration artifacts. It presents a succinct and expressive syntax tailored for efficient configuration management while providing advanced features like type checking, constraints, and code generation.
+Cue is a versatile configuration language and runtime environment designed to fulfill various tasks, including defining and validating data schemas, configuring files, and generating configuration artifacts. It presents a succinct and expressive syntax tailored for efficient configuration management while providing advanced features like type checking, constraints, and code generation.
 
 
 One of Cue's standout features is its robust [type system](https://cuelang.org/docs/tutorials/tour/types/types/), which empowers developers to specify and enforce data types within their configuration files. This type checking capability greatly enhances the reliability and stability of configurations. Additionally, Cue allows developers to establish [constraints](https://cuelang.org/docs/tutorials/tour/intro/constraints/) or rules that configuration data must follow. Enforcing these constraints ensures that configurations align with specific business requirements or predefined rules, elevating the overall quality and correctness of configurations.
@@ -14,7 +14,7 @@ One of Cue's standout features is its robust [type system](https://cuelang.org/d
 ## Flow diagram fo Cue mode
 
 <p align="center">
-  <img src="https://github.com/intelops/genval/assets/141515226/57fad737-2fa0-436e-92c9-0d336731d993" />
+  <img src="../cueval.svg" />
 </p>
 
 
@@ -64,7 +64,7 @@ $ genval --mode cue --reqinput ./templates/inputs/cue/deploy.json \ # input to b
     --policy ./templates/defaultpolicies/cue/deployment.cue # Our Cue schema/policy for Deployment
     --policy ./templates/defaultpolicies/cue/metadata.cue  # We can pass multiple policies/schemas referring them in   the main policy `deployment.cue`.  
 ```
-  - `--reqinput`: Specifies the input to be validated.
+  - `--reqinput`: Specifies the input to be validated. The `reqinput` accepts a single Cue Definition or a directory containing multiple Definitions.
   - `--resource`: Defines the Kubernetes resource kind to validate and generate. It must correspond to a valid Kind.
   - `--policy`: Points to the Cue schema/policy for Deployment. Multiple policies/schemas can be used by referencing them in the main policy `deployment.cue`.
 
