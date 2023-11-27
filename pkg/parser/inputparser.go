@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/intelops/genval/pkg/utils"
 	"gopkg.in/yaml.v3"
 )
 

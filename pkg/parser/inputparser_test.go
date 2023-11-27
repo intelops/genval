@@ -54,7 +54,7 @@ dockerfile:
 
 	// Read and parse YAML file
 	var yamlData InputYAML
-	err = ReadAndParseFile(yamlFile.Name(), &yamlData)
+	err = ParseDockerfileInput(yamlFile.Name(), &yamlData)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(yamlData.Dockerfile))
 
@@ -66,18 +66,18 @@ dockerfile:
 
 	// Read and parse JSON file
 	var jsonData InputYAML
-	err = ReadAndParseFile(jsonFile.Name(), &jsonData)
+	err = ParseDockerfileInput(jsonFile.Name(), &jsonData)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(jsonData.Dockerfile))
 
 	// Test unsupported file format
 	unsupportedFile, _ := os.CreateTemp("", "test*.txt")
 	defer os.Remove(unsupportedFile.Name())
-	err = ReadAndParseFile(unsupportedFile.Name(), &jsonData)
+	err = ParseDockerfileInput(unsupportedFile.Name(), &jsonData)
 	assert.Error(t, err)
 	assert.Equal(t, "unsupported file format: txt", err.Error())
 
 	// Test file read error
-	err = ReadAndParseFile("nonexistentfile.yaml", &jsonData)
+	err = ParseDockerfileInput("nonexistentfile.yaml", &jsonData)
 	assert.Error(t, err)
 }
