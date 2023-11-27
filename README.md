@@ -143,21 +143,22 @@ To build genval from source:
 
 The generated binary, genval, will be available in the current working directory. You can move it to your PATH or use it from the current directory.
 
-Genval offers two modes:
+Genval offers four modes:
 
 
--  `container` for Dockerfile validation and generation
-
+-  `container` for Dockerfile validation with rego policies and generation of validated Dockerfile
 -  `cue` for Kubernetes and CRD validation and generation
+-  `k8s` for validating Kubernetes manifests with Rego policies
+-  `tf`  for validating Terraform resource files with Rego policies
 
 
-> Both modes accept inputs that include local files and files obtained from a remote URL, such as those from a Git repository. 
+> All the modes accept inputs that include local files and files obtained from a remote URL, such as those from a Git repository. 
   
 
 ### Dockerfile Validation and Generation:
   
 
-Run Genval with the --mode container flag, providing the path to your input JSON or YAML file using the `--reqinput` flag and specifying the desired output path for the generated Dockerfile along with `--inputpolicy` and `--outputpolicy` for validating the input JSON and the generated Dockerfile respectively. Genval will take care of the rest. 
+Run Genval with the `--mode container` flag, providing the path to your input JSON or YAML file using the `--reqinput` flag and specifying the desired output path for the generated Dockerfile along with `--inputpolicy` and `--outputpolicy` for validating the input JSON and the generated Dockerfile respectively. Genval will take care of the rest. 
 
 Example:
 
@@ -178,7 +179,6 @@ $ genval --mode container --reqinput ./templates/inputs/dockerfile_input/golang_
 
 ### Validation and Generation of Kubernetes configurations
 
-  
 
 The validation and generation of Kubernetes and CRD manifests are facilitated through the use of [cuelang](https://cuelang.org/docs/). When using Genval for validating and generating Kubernetes and related manifests, make use of the Genval tool in `cue` mode. This mode necessitates JSON input provided via the `--reqinput` flag. Furthermore, you should specify a `resource` flag, indicating the Kubernetes or CRD `Kind` that requires validation. Additionally, attach the `.cue schema definitions` to the `--policy` flag. These policy files can be provided from the users local file system or from a remote URL, like a Git repository.
 
@@ -203,6 +203,40 @@ The above command will validate a Deployment manifests using the provided `.cue`
 
 For a detailed workflow illustrating the capabilities of Cue and Genval for validating and generating Kubernetes configurations, you can refer to [this document](./cmd/cueval/example.md).
 The workflow for adding a Cue schema for Kubernetes CRDs is failry easy, and demostrated in the [CONTRIBUTION.md document](./CONTRIBUTION.md/#contributing-by-adding-a-cue-schema-to-the-project).  
+
+### Validation of Kubernetes resources with Repgo policies
+
+To validate Kubernetes manifests with Rego policies, users can use `--mode k8s` with `--reqinput` for providing the required input in JSON or YAML format, and `--policy` flag to pass in the Rego policies.
+
+Example:
+
+```shell
+genval --mode k8s --reqinput <Path/to/input/yaml/json file> \
+    --policy <Path/to/.rego policy>
+```
+
+### Validate Terraform resource files with Rego policies
+
+To validate the Terraform resource file in `.tf` format. Use `--mode tf` with two flags as above `--reqinput` and `--policy`. The Genval tool internally will transform the input `.tf` file in JSON and validate the resource file with Rego policies.
+
+To write custom policies, users might require to know the `JSON` representation of the input `.tf` file. In order to get the `JSON` representation of the `.tf` users can use `--json` flag after passing the `--reqinput` and `--policy` flags. This will print the JSON doc for the input. Now, users can pipe it to tools lie [jq](https://jqlang.github.io/jq/) to get a prettified JSOn representation that could help user write rego policies.
+
+Example:
+
+```shell
+genval --mode tf --reqinput ../templates/inputs/terraform/sec-group.tf \
+    --policy ./templates/defaultpolicies/rego/terraform.rego \
+    --json true jq .
+{
+  "resource": [
+    {
+      "aws_security_group": {
+        "allow_tls": {
+          "description": "Allow TLS inbound traffic",
+          "egress": [
+            {
+              ...
+```
 
 ### Templates
 
