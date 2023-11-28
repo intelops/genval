@@ -8,8 +8,8 @@ import (
 
 func TestBaseImage(t *testing.T) {
 	content := `
-FROM golang-alpine:latest`
-
+FROM golang-alpine:latest
+`
 	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
 	assert.NotNil(t, err, "Expected error for using untrusted base image")
 }
@@ -19,7 +19,6 @@ func TestRootUser(t *testing.T) {
 FROM ubuntu:latest
 USER root
 `
-
 	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
 	assert.NotNil(t, err, "Expected error for using root user")
 }
