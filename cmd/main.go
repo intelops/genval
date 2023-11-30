@@ -88,6 +88,9 @@ func main() {
 	case "tf":
 		// Call the Tf with rego mode's execution function
 		modes.ExecuteTf(reqinput, showjson, policies...)
+	case "printjson":
+		// Call the printjson mode for prining the JSON representation of reqinput files
+		modes.ExecutePrintJSON(reqinput)
 	default:
 		fmt.Println("Invalid mode. Choose 'container', 'cue', 'k8s' or 'tf'.")
 		flag.Usage()
