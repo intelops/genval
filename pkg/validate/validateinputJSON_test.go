@@ -7,19 +7,6 @@ import (
 )
 
 // Successfully parse valid YAML input
-func test_valid_yaml_input(t *testing.T) {
-	yamlContent := `
-		key1: value1
-		key2: value2
-		`
-	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
-
-	err := ValidateInput(yamlContent, regoPolicyPath)
-
-	assert.NoError(t, err)
-}
-
-// Successfully parse valid YAML input
 func TestValidYAMLInput(t *testing.T) {
 	// Mock input
 	yamlContent := "./testdata/multistage.yaml"

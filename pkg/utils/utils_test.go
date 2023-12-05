@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -144,7 +145,9 @@ func TestReadRegoFile(t *testing.T) {
 	}
 
 	// Create a sample file for testing
-	os.WriteFile("test.rego", []byte("package test\n\ntest content from file"), 0644)
+	if err := os.WriteFile("test.rego", []byte("package test\n\ntest content from file"), 0644); err != nil {
+		log.Println("Failed to write to file:", err)
+	}
 	defer os.Remove("test.rego")
 
 	for _, tt := range tests {

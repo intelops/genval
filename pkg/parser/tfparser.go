@@ -78,7 +78,7 @@ func (c *converter) convertBody(body *hclsyntax.Body) (jsonObj, lineObj, error) 
 }
 
 func (c *converter) convertBlock(block *hclsyntax.Block, cfg jsonObj, lcfg lineObj) error {
-	var key string = block.Type
+	key := block.Type
 
 	value, blcfg, err := c.convertBody(block.Body)
 	if err != nil {
