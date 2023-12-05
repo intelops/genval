@@ -78,6 +78,8 @@ dockerfile:
 	assert.Equal(t, "unsupported file format: txt", err.Error())
 
 	// Test file read error
-	err = ParseDockerfileInput("nonexistentfile.yaml", &jsonData)
+	unsupportedFile1, _ := os.CreateTemp("", "test*.txt")
+	defer os.Remove(unsupportedFile1.Name())
+	err = ParseDockerfileInput(unsupportedFile1.Name(), &jsonData)
 	assert.Error(t, err)
 }

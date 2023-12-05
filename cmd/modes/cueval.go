@@ -27,7 +27,7 @@ func init() {
 	})
 }
 
-func ExecuteCue(resource, reqinput string, verify bool, policies ...string) {
+func ExecuteCue(reqinput, resource string, verify bool, policies ...string) {
 
 	const modPath = "github.com/intelops/genval"
 	staticFS := embeder.CueDef
@@ -58,6 +58,14 @@ func ExecuteCue(resource, reqinput string, verify bool, policies ...string) {
 	if err != nil {
 		log.Errorf("Error reading URL: %v", err)
 	}
+
+	// TODO: remove the 2nd return logic
+	dataSet, _, err := utils.ReadAndCompileData(dataPath, defPath)
+	if err != nil {
+		log.Errorf("Error processing data: %v", err)
+		return
+	}
+
 	overlay, err := utils.GenerateOverlay(staticFS, td, definitions)
 	if err != nil {
 		log.Fatal(err)
@@ -70,13 +78,7 @@ func ExecuteCue(resource, reqinput string, verify bool, policies ...string) {
 		Package: "*",
 	}
 
-	defName := "#" + dataPath
-
-	_, dataSet, err := utils.ReadAndCompileData(dataPath, defPath)
-	if err != nil {
-		log.Errorf("Error processing data: %v", err)
-		return
-	}
+	defName := "#" + defPath
 
 	v, err := cuecore.BuildInstance(ctx, definitions, conf)
 	if err != nil {
@@ -134,7 +136,7 @@ func ExecuteCue(resource, reqinput string, verify bool, policies ...string) {
 
 	// Only print the success log for generation if verify is false
 	if !verify {
-		log.Infof("%v validation succeeded, generated manifests in '%v':\n", dataPath, outputDir)
+		log.Infof("%v validation succeeded, generated manifests in '%v':\n", defPath, outputDir)
 		for _, fileName := range outputFiles {
 			fmt.Printf(" - %v\n", fileName)
 		}

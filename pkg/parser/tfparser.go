@@ -8,11 +8,11 @@ package parser
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	hcl "github.com/hashicorp/hcl/v2"
 	"github.com/hashicorp/hcl/v2/hclsyntax"
+	"github.com/intelops/genval/pkg/utils"
 	"github.com/zclconf/go-cty/cty"
 	ctyconvert "github.com/zclconf/go-cty/cty/convert"
 	ctyjson "github.com/zclconf/go-cty/cty/json"
@@ -283,7 +283,7 @@ func (c *converter) wrapExpr(expr hclsyntax.Expression) string {
 // ConvertTFtoJSON reads a Terraform file and converts it to JSON format.
 func ConvertTFtoJSON(tfFilePath string) (string, error) {
 	// Read the Terraform file
-	tfData, err := os.ReadFile(tfFilePath)
+	tfData, err := utils.ReadPolicyFile(tfFilePath)
 	if err != nil {
 		return "", err
 	}

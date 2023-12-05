@@ -6,6 +6,7 @@ import (
 
 	generate "github.com/intelops/genval/pkg/generate/dockerfile_gen"
 	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
 )
@@ -35,17 +36,17 @@ func ExecuteContainer(value, output, inputpolicy, outputpolicy string) {
 
 	err := parser.ParseDockerfileInput(inputPath, &data)
 	if err != nil {
-		log.Error("Error:", err)
+		log.Error("Error parsing Dockerfile input:", err)
 		return
 	}
 
-	yamlContent, err := os.ReadFile(inputPath)
+	inputContent, err := utils.ReadPolicyFile(inputPath)
 	if err != nil {
-		log.Fatalf("Error reading YAML file: %v", err)
+		log.Fatalf("Unable to read input: %v", err)
 	}
 
 	// Validate the YAML using OPA
-	err = validate.ValidateInput(string(yamlContent), inputPolicyFile)
+	err = validate.ValidateInput(string(inputContent), inputPolicyFile)
 	if err != nil {
 		log.Fatalf("Validation error: %v", err)
 		return

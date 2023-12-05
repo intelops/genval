@@ -17,10 +17,15 @@ import (
 
 // ValidateDockerfileUsingRego validates a Dockerfile using Rego.
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
-	dockerPolicy, pkg, err := utils.ReadPolicyFile(regoPolicyPath)
+	dockerPolicy, err := utils.ReadPolicyFile(regoPolicyPath)
 	if err != nil {
 		log.WithError(err).Error("Error reading the policy file.")
 		return errors.New("error reading the policy file")
+	}
+
+	pkg, err := utils.ExtractPackageName(dockerPolicy)
+	if err != nil {
+		log.Fatalf("Unable to fetch package name: %v", err)
 	}
 
 	// Prepare Rego input data

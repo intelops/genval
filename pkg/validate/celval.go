@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"strings"
 
 	"github.com/fatih/color"
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
+	"github.com/intelops/genval/pkg/utils"
 	"github.com/jedib0t/go-pretty/v6/table"
 )
 
@@ -51,24 +51,25 @@ func evaluateCEL(input string, celPolicy string) (string, error) {
 	return "Failed", nil
 }
 
-func EvaluateCELPolicies(policyFile string, jsonManifest string, t table.Writer) error {
+func EvaluateCELPolicies(policyFile string, inputFile string, t table.Writer) error {
 	// set colors for evaluation result
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()
-	file, err := os.Open(policyFile)
+	// TODO: CHange func name ReadPolicyFile
+	policyContent, err := utils.ReadPolicyFile(policyFile)
+	// log.Printf("POLICY CONTENT: %v", string(policyContent))
 	if err != nil {
-		return fmt.Errorf("unable to open policy file: %v", err)
+		log.Fatalf("Unable to read Policy file: %v", err)
 	}
-	defer file.Close()
 
-	scanner := bufio.NewScanner(file)
+	scanner := bufio.NewScanner(strings.NewReader(string(policyContent)))
 	var policyName, policy string
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "Name:") {
 			if policyName != "" {
 				// Evaluate the previous policy before starting the new one
-				result, err := evaluateCEL(jsonManifest, policy)
+				result, err := evaluateCEL(inputFile, policy)
 				var resultColorized string
 				if err != nil {
 					log.Printf("Error evaluating policy '%s': %v\n", policyName, err)
@@ -89,7 +90,7 @@ func EvaluateCELPolicies(policyFile string, jsonManifest string, t table.Writer)
 
 	// Evaluate the last policy in the file
 	if policyName != "" {
-		result, err := evaluateCEL(jsonManifest, policy)
+		result, err := evaluateCEL(inputFile, policy)
 		var resultColorized string
 		if err != nil {
 			log.Printf("Error evaluating policy '%s': %v\n", policyName, err)

@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -29,7 +29,7 @@ func ExecuteShowJSON(reqinput string) {
 	}
 
 	if strings.Contains(reqinput, "Dockerfile") {
-		inputContent, err := os.ReadFile(reqinput)
+		inputContent, err := utils.ReadPolicyFile(reqinput)
 		if err != nil {
 			log.Errorf("Error reading input: %v", err)
 		}

@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -32,7 +33,7 @@ func TempDirWithCleanup() (dirPath string, cleanupFunc func(), err error) {
 }
 
 // GenerateOverlay creates an overlay to store cue schemas
-func GenerateOverlay(staticFS fs.FS, td string, additionalFiles []string) (map[string]load.Source, error) {
+func GenerateOverlay(staticFS fs.FS, td string, policies []string) (map[string]load.Source, error) {
 	overlay := make(map[string]load.Source)
 
 	// Walk through and add files from the embedded fs
@@ -59,9 +60,9 @@ func GenerateOverlay(staticFS fs.FS, td string, additionalFiles []string) (map[s
 		return nil, err
 	}
 
-	// Add files from additionalFiles
-	for _, filePath := range additionalFiles {
-		fileBytes, _, err := ReadPolicyFile(filePath)
+	// Add files from policies
+	for _, filePath := range policies {
+		fileBytes, err := os.ReadFile(filePath)
 		if err != nil {
 			log.Errorf("Error reading schema:%v", err)
 			return nil, err
@@ -77,55 +78,60 @@ func toCamelCase(s string) string {
 }
 
 // ReadAndCompileData reads the content from the given file path to cue Value, returns an error if compiling fails.
-func ReadAndCompileData(defPath string, dataPath string) (titleCaseDefPath string, dataMap map[string]cue.Value, err error) {
+func ReadAndCompileData(dataPath string, defPath string) (dataMap map[string]cue.Value, titleCaseDefPath string, err error) {
 	// Initialize the context and dataMap
 	ctx := cuecontext.New()
 	dataMap = make(map[string]cue.Value)
 
-	// Check if the path is a directory or a single file
-	info, err := os.Stat(dataPath)
-	if err != nil {
-		return "", nil, err
-	}
+	u, err := url.ParseRequestURI(dataPath)
+	if err == nil && u.Scheme != "" && u.Host != "" {
 
-	if info.IsDir() {
-		// Handle directory
-		err = filepath.Walk(dataPath, func(path string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !info.IsDir() {
-				ds, err := os.ReadFile(path)
-				if err != nil {
-					return err
-				}
-				compiledData := ctx.CompileBytes(ds)
-				if compiledData.Err() != nil {
-					return compiledData.Err()
-				}
-				// Use the base file name as the map key
-				dataMap[path] = compiledData
-			}
-			return nil
-		})
-		if err != nil {
-			return "", nil, err
-		}
-	} else {
 		// Handle single file
-		ds, err := os.ReadFile(dataPath)
+		ds, err := ReadPolicyFile(dataPath)
 		if err != nil {
-			return "", nil, err
+			return nil, "", err
 		}
 		compiledData := ctx.CompileBytes(ds)
 		if compiledData.Err() != nil {
-			return "", nil, compiledData.Err()
+			return nil, "", compiledData.Err()
 		}
 		dataMap[strings.TrimSuffix(filepath.Base(dataPath), filepath.Ext(dataPath))] = compiledData
+
+	} else {
+		// Check if the path is a directory or a single file
+		info, err := os.Stat(dataPath)
+		if err != nil {
+			return nil, "", err
+		}
+
+		if info.IsDir() {
+			// Handle directory
+			err = filepath.Walk(dataPath, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if !info.IsDir() {
+					ds, err := ReadPolicyFile(path)
+					if err != nil {
+						return err
+					}
+					compiledData := ctx.CompileBytes(ds)
+					if compiledData.Err() != nil {
+						return compiledData.Err()
+					}
+					// Use the base file name as the map key
+					dataMap[path] = compiledData
+				}
+				return nil
+			})
+			if err != nil {
+				return nil, "", err
+			}
+		}
 	}
 
 	titleCaseDefPath = toCamelCase(defPath)
-	return titleCaseDefPath, dataMap, nil
+	return dataMap, titleCaseDefPath, nil
 }
 
 // isURL checks if the given string is a valid URL.
@@ -154,7 +160,7 @@ func fetchFileWithCURL(urlStr string) (string, error) {
 	// Create a cue_downloads directory in /tmp to store the files
 	dir := filepath.Join(os.TempDir(), "cue_downloads")
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.Mkdir(dir, 0700); err != nil {
+		if err := os.Mkdir(dir, 0777); err != nil {
 			// Handle error here
 			log.Println("Failed to create directory:", err)
 		}
@@ -163,7 +169,7 @@ func fetchFileWithCURL(urlStr string) (string, error) {
 		log.Println("Error checking directory:", err)
 	}
 
-	cmd := exec.Command("curl", "-s", "-O", filepath.Join(dir, filename), urlStr)
+	cmd := exec.Command("curl", "-s", "-o", filepath.Join(dir, filename), urlStr)
 	if err := cmd.Run(); err != nil {
 		log.Errorf("failed fetching content using curl: %v", err)
 		return "", err
@@ -209,7 +215,7 @@ func IsURL(s string) bool {
 }
 
 // ReadPolicyFile read the policy provided from cli args, accepts polices from a remote URL or local file
-func ReadPolicyFile(policyFile string) ([]byte, string, error) {
+func ReadPolicyFile(policyFile string) ([]byte, error) {
 	var policyContent []byte
 	var err error
 
@@ -217,43 +223,34 @@ func ReadPolicyFile(policyFile string) ([]byte, string, error) {
 	u, err := url.ParseRequestURI(policyFile)
 	if err == nil && u.Scheme != "" && u.Host != "" {
 		// It's a URL, fetch content
-		var resp *http.Response
-		resp, err = http.Get(u.String())
+		resp, err := http.Get(u.String())
 		if err != nil {
-			log.Printf("error fetching Rego policy from URL: %v", err)
-			return nil, "", err
+			log.Printf("error fetching policy from URL: %v", err)
+			return nil, err
 		}
 		defer resp.Body.Close()
 
 		if resp.StatusCode != http.StatusOK {
 			log.Printf("error fetching policy from URL: status code %d", resp.StatusCode)
-			return nil, "", err
+			return nil, fmt.Errorf("failed to fetch policy from URL with status code %d", resp.StatusCode)
 		}
-
 		policyContent, err = io.ReadAll(resp.Body)
 		if err != nil {
 			log.Printf("error reading policy from URL: %v", err)
-			return nil, "", err
+			return nil, err
 		}
 	} else {
 		// If not a URL, treat it as a local file path
 		policyContent, err = os.ReadFile(policyFile)
 		if err != nil {
 			log.Printf("error reading policy from file: %v", err)
-			return nil, "", err
+			return nil, err
 		}
 	}
 
-	// Extract package name from policy content
-	packageName, err := extractPackageName(policyContent)
-	if err != nil {
-		log.Printf("error extracting package name: %v", err)
-		return nil, "", err
-	}
-
-	return policyContent, packageName, nil
+	return policyContent, nil
 }
-func extractPackageName(content []byte) (string, error) {
+func ExtractPackageName(content []byte) (string, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(content))
 	for scanner.Scan() {
 		line := scanner.Text()

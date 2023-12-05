@@ -12,11 +12,12 @@ import (
 
 func ExecuteCEL(reqinput string, policies ...string) {
 
-	inputContent := reqinput
+	inputFile := reqinput
 	policyFile := policies
+
 	var data interface{}
 	// TODO: Change func name
-	err := parser.ParseDockerfileInput(inputContent, &data)
+	err := parser.ParseDockerfileInput(string(inputFile), &data)
 	if err != nil {
 		log.Fatalf("Unable to process input: %v", err)
 	}
@@ -32,7 +33,7 @@ func ExecuteCEL(reqinput string, policies ...string) {
 	t.AppendHeader(table.Row{"Policy Name", "Result"})
 
 	for _, policy := range policyFile {
-		err = validate.EvaluateCELPolicies(policy, string(jsonManifest), t)
+		err := validate.EvaluateCELPolicies(policy, string(jsonManifest), t)
 		if err != nil {
 			log.Fatalf("Error evaluating policies: %v", err)
 		}

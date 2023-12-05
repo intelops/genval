@@ -35,9 +35,14 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	ctx := context.Background()
 
 	// Read the Rego policy from the given path
-	regoContent, pkg, err := utils.ReadPolicyFile(regoPolicyPath)
+	regoContent, err := utils.ReadPolicyFile(regoPolicyPath)
 	if err != nil {
 		return fmt.Errorf("error reading Rego policy: %v", err)
+	}
+
+	pkg, err := utils.ExtractPackageName(regoContent)
+	if err != nil {
+		log.Fatalf("Unable to fetch package name: %v", err)
 	}
 
 	// Create Rego for query and evaluation

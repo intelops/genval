@@ -3,6 +3,7 @@ package parser
 import (
 	"encoding/json"
 	"errors"
+	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
@@ -37,16 +38,17 @@ func ParseDockerfileInput(filename string, data interface{}) error {
 	fileExtension := filepath.Ext(filename)
 	fileExtension = strings.TrimPrefix(fileExtension, ".")
 
-	fileContent, err := os.ReadFile(filename)
+	// TODO Change funct name for utils.ReadPOlicyFile
+	inputContent, err := utils.ReadPolicyFile(filename)
+	// log.Infof("INPUT CONTENT: %v", string(inputContent))
 	if err != nil {
-		return err
+		log.Fatalf("Unable to read input: %v", err)
 	}
-
 	switch strings.ToLower(fileExtension) {
 	case "yaml", "yml":
-		err = yaml.Unmarshal(fileContent, data)
+		err = yaml.Unmarshal(inputContent, data)
 	case "json":
-		err = json.Unmarshal(fileContent, data)
+		err = json.Unmarshal(inputContent, data)
 	default:
 		return errors.New("unsupported file format: " + fileExtension)
 	}

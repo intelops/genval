@@ -22,10 +22,14 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 		log.Fatalf("Error reading input content file: %v", err)
 	}
 
-	k8sPolicy, pkg, err := utils.ReadPolicyFile(regoPolicy)
+	k8sPolicy, err := utils.ReadPolicyFile(regoPolicy)
 	if err != nil {
-		log.WithError(err).Error("Error reading the policy file.")
+		log.WithError(err).Error("Error reading the policy file")
 		return err
+	}
+	pkg, err := utils.ExtractPackageName(k8sPolicy)
+	if err != nil {
+		log.Fatalf("Unable to fetch package name: %v", err)
 	}
 
 	var commands map[string]interface{}

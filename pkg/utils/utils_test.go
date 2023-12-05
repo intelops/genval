@@ -113,46 +113,56 @@ func TestReadRegoFile(t *testing.T) {
 	http.DefaultClient.Transport = mockClient
 	defer func() { http.DefaultClient.Transport = oldTransport }()
 
+	tempFile, err := os.CreateTemp("", "test_policy_*.rego")
+	if err != nil {
+		t.Fatalf("Failed to create temporary file: %v", err)
+	}
+	defer os.Remove(tempFile.Name()) // Clean up
+
+	// Write some content to the file
+	testContent := []byte("package local\n\nlocal content")
+	if _, err := tempFile.Write(testContent); err != nil {
+		t.Fatalf("Failed to write to temporary file: %v", err)
+	}
+	if err := tempFile.Close(); err != nil {
+		t.Fatalf("Failed to close temporary file: %v", err)
+	}
+
 	tests := []struct {
-		name            string
-		policyFile      string
-		wantContent     []byte
-		wantPackageName string
-		wantErr         bool
+		name        string
+		policyFile  string
+		wantContent []byte
+		wantErr     bool
 	}{
 		{
-			name:            "Read from valid URL",
-			policyFile:      "http://valid-url.com",
-			wantContent:     []byte("package test\n\ntest content from URL"),
-			wantPackageName: "test",
-			wantErr:         false,
+			name:        "Read from valid URL",
+			policyFile:  "http://valid-url.com",
+			wantContent: []byte("package test\n\ntest content from URL"),
+			wantErr:     false,
 		},
 		{
-			name:            "Read from invalid URL",
-			policyFile:      "invalid-url",
-			wantContent:     nil,
-			wantPackageName: "",
-			wantErr:         true,
+			name:        "Read from invalid URL",
+			policyFile:  "invalid-url",
+			wantContent: nil,
+			wantErr:     true,
 		},
 		{
-			name:            "Read from local file",
-			policyFile:      "test.rego",
-			wantContent:     []byte("package test\n\ntest content from file"),
-			wantPackageName: "test",
-			wantErr:         false,
+			name:        "Read from local filesystem",
+			policyFile:  tempFile.Name(),
+			wantContent: testContent,
+			wantErr:     false,
 		},
-		// Add more test cases as needed...
 	}
 
 	// Create a sample file for testing
-	if err := os.WriteFile("test.rego", []byte("package test\n\ntest content from file"), 0644); err != nil {
+	if err := os.WriteFile("test.rego", []byte("test content from file"), 0644); err != nil {
 		log.Println("Failed to write to file:", err)
 	}
 	defer os.Remove("test.rego")
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotContent, gotPackageName, err := ReadPolicyFile(tt.policyFile)
+			gotContent, err := ReadPolicyFile(tt.policyFile)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ReadPolicyFile() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -160,8 +170,40 @@ func TestReadRegoFile(t *testing.T) {
 			if !reflect.DeepEqual(gotContent, tt.wantContent) {
 				t.Errorf("ReadPolicyFile() content = %v, want %v", string(gotContent), string(tt.wantContent))
 			}
-			if gotPackageName != tt.wantPackageName {
-				t.Errorf("ReadPolicyFile() packageName = %v, want %v", gotPackageName, tt.wantPackageName)
+		})
+	}
+}
+
+func TestExtractPackageName(t *testing.T) {
+	tests := []struct {
+		name      string
+		content   []byte
+		wantName  string
+		wantError bool
+	}{
+		{
+			name:      "Valid package name",
+			content:   []byte("package test\n\nother content"),
+			wantName:  "test",
+			wantError: false,
+		},
+		{
+			name:      "Invalid package name",
+			content:   []byte("other content without package"),
+			wantName:  "",
+			wantError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotName, err := ExtractPackageName(tt.content)
+			if (err != nil) != tt.wantError {
+				t.Errorf("ExtractPackageName() error = %v, wantError %v", err, tt.wantError)
+				return
+			}
+			if gotName != tt.wantName {
+				t.Errorf("ExtractPackageName() gotName = %v, want %v", gotName, tt.wantName)
 			}
 		})
 	}
