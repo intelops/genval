@@ -11,8 +11,6 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// printJSON.go
-
 func ExecuteShowJSON(reqinput string) {
 	var prettyJSON bytes.Buffer
 

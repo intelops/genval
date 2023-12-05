@@ -57,16 +57,17 @@ Modes:
     Arguments: <reqinput.json> <Rego policy>
     Example usage:
       ./genval --mode=tf --reqinput=deployment.json --policy=<path/to/.rego policy>
-%s
-  - cel: Validating Kubernetes manifests with CEL
-	Arguments: <reqinput.json> <CEL policy>
-	Example usage:
-	  ./genval --mode=cel --reqinput=deployment.json --policy=<path/to/CEL policy>
 
 %s
-  - showjson: Helper mode to print the JSON representation of input
-	Arguments: <Dockerfile Or .tf file> 
-	Example usage:
+  - cel: Validating Kubernetes manifests with CEL.
+    Arguments: <reqinput.json> <CEL policy>
+    Example usage:
+      ./genval --mode=cel --reqinput=deployment.json --policy=<path/to/CEL policy>
+
+%s
+  - showjson: Helper mode to print the JSON representation of input.
+    Arguments: <Dockerfile Or .tf file> 
+    Example usage:
 	  ./genval --mode=showjson --reqinput=Dockerfle
 						
 `
