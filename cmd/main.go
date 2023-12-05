@@ -100,7 +100,7 @@ func main() {
 	case "tf":
 		// Call the Tf with rego mode's execution function
 		modes.ExecuteTf(reqinput, policies...)
-	case "printjson":
+	case "showjson":
 		// Call the showjson mode for prining the JSON representation of reqinput files
 		modes.ExecuteShowJSON(reqinput)
 	case "cel":
