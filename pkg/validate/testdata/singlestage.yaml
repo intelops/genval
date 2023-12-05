@@ -13,4 +13,4 @@ dockerfile:
   - copy:
     - requirements.txt .
   - run:  
-    - pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+    - "pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt"

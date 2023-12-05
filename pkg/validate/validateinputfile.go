@@ -2,7 +2,6 @@ package validate
 
 import (
 	"context"
-	_ "embed"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +20,7 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	inputBytes, err := parser.ProcessInput(yamlContent)
 	if err != nil {
 		log.Errorf("Error parsing input content: %v", err)
+		return err
 	}
 
 	// Convert the dockerfileYAML struct to a map for rego input
@@ -64,12 +64,14 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 			for key, value := range keys {
 				if value != true {
 					t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed")})
+					policyError = errors.New("policy evaluation failed: " + key)
 				} else {
 					t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed")})
 				}
 			}
 		} else {
 			log.Error("No policies passed")
+			policyError = errors.New("no policies passed")
 		}
 	}
 

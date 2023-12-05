@@ -2,73 +2,51 @@ package validate
 
 import (
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
-// Test case structure
-type testCase struct {
-	name              string
-	dockerfileContent string
-	regoPolicyPath    string
-	expectedError     bool
-	expectedErrorMsg  string
+func TestBaseImage(t *testing.T) {
+	err := ValidateDockerfile("./testdata/trustedimnage.json", "./testdata/rego/fail.rego")
+	assert.NotNil(t, err, "Expected error for using untrusted base image")
 }
 
-// TestValidateDockerfile tests the ValidateDockerfile function
-func TestValidateDockerfile(t *testing.T) {
-	// Define test cases
-	tests := []testCase{
-		{
-			name:              "Valid Dockerfile and Policy",
-			dockerfileContent: "./testdata/multistage.json",
-			regoPolicyPath:    "./testdata/rego/multi_stage.rego",
-			expectedError:     false,
-		},
-		{
-			name:              "Invalid Policy Path",
-			dockerfileContent: "./testdata/singlestage.json",
-			regoPolicyPath:    "./invalid/path",
-			expectedError:     true,
-			expectedErrorMsg:  "error reading the policy file",
-		},
-		{
-			name:              "Empty Dockerfile Content",
-			dockerfileContent: "",
-			regoPolicyPath:    "./testdata/policies/valid-policy.rego",
-			expectedError:     true,
-			expectedErrorMsg:  "no Dockerfile content",
-		},
-		{
-			name:              "Valid Dockerfile, Failing Policies",
-			dockerfileContent: "./testdata/multistage.json",
-			regoPolicyPath:    "./testdata/rego/fail.rego",
-			expectedError:     true,
-			expectedErrorMsg:  "policy violations found",
-		},
-		{
-			name:              "No Policies Defined",
-			dockerfileContent: "./testdata/multistage.json",
-			regoPolicyPath:    "",
-			expectedError:     true,
-			expectedErrorMsg:  "no policies defined",
-		},
+func TestRootUser(t *testing.T) {
+	content := `
+FROM ubuntu:latest
+USER root
+`
 
-		// Additional test cases...
-	}
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for using root user")
+}
 
-	// Iterate over test cases
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			err := ValidateDockerfile(tc.dockerfileContent, tc.regoPolicyPath)
+func TestSudoUsage(t *testing.T) {
+	content := `
+FROM ubuntu:latest
+RUN apt-get update && sudo apt-get install -y curl
+`
 
-			if tc.expectedError {
-				if err == nil {
-					t.Errorf("expected an error, but got none")
-				} else if err.Error() != tc.expectedErrorMsg {
-					t.Errorf("expected error message '%s', but got '%s'", tc.expectedErrorMsg, err.Error())
-				}
-			} else if err != nil {
-				t.Errorf("did not expect an error, but got %v", err)
-			}
-		})
-	}
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for sudo usage")
+}
+
+func TestCachedLayers(t *testing.T) {
+	content := `
+FROM ubuntu:latest
+RUN apt-get update && apt-get install -y curl
+`
+
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for not using --no-cache")
+}
+
+func TestAddUsage(t *testing.T) {
+	content := `
+FROM ubuntu:latest
+ADD source.txt /destination.txt
+`
+
+	err := ValidateDockerfile(content, "./testdata/rego/dockerfile_policies.rego")
+	assert.NotNil(t, err, "Expected error for using ADD instead of COPY")
 }

@@ -13,7 +13,7 @@ dockerfile:
   - copy:
     - requirements.txt .
   - run:  
-    - pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt
+    - "pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt"
 
 - stage: 1
   instructions:
@@ -28,7 +28,7 @@ dockerfile:
   - workdir:
     - "$APP_HOME"
   - copy:
-    - --from=builder /usr/src/myapp/target/release/myapp /usr/local/bin/
+    - "--from=builder /usr/src/myapp/target/release/myapp /usr/local/bin/"
   - run: 
     - adduser -D $APP_USER
   - user:

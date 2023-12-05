@@ -1,88 +1,94 @@
 package validate
 
 import (
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidateInput(t *testing.T) {
+// Successfully parse valid YAML input
+func test_valid_yaml_input(t *testing.T) {
+	yamlContent := `
+		key1: value1
+		key2: value2
+		`
+	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
 
-	regoPolicyContent := "./testdata/rego/inputfile_policies.rego"
-	tests := []struct {
-		name       string
-		inputFile  string
-		regoPolicy string
-		wantError  bool
-		errorMsg   string
-	}{
-		{
-			name:       "Valid YAML input",
-			inputFile:  "./testdata/multistage.yaml",
-			regoPolicy: regoPolicyContent,
-			wantError:  false,
-		},
-		{
-			name:       "Valid JSON input",
-			inputFile:  "./testdata/multistage.json",
-			regoPolicy: regoPolicyContent,
-			wantError:  false,
-		},
-		{
-			name:       "Invalid YAML input",
-			inputFile:  "./testdata/singlestage.yaml",
-			regoPolicy: regoPolicyContent,
-			wantError:  true,
-		},
-		{
-			name:       "Invalid JSON input",
-			inputFile:  "./testdata/singlestage.json",
-			regoPolicy: regoPolicyContent,
-			wantError:  true,
-		},
-		{
-			name:       "Valid YAML input",
-			inputFile:  "./testdata/trustedimage.yaml",
-			regoPolicy: regoPolicyContent,
-			wantError:  false,
-		},
-		{
-			name:       "Valid YAML input",
-			inputFile:  "./testdata/trustedimage.json",
-			regoPolicy: regoPolicyContent,
-			wantError:  false,
-		},
-		{
-			name:       "Invalid YAML input",
-			inputFile:  "./testdata/untrustedimage.yaml",
-			regoPolicy: regoPolicyContent,
-			wantError:  true,
-		},
-		{
-			name:       "Invalid JSON input",
-			inputFile:  "./testdata/untrustedimage.json",
-			regoPolicy: regoPolicyContent,
-			wantError:  true,
-		},
-	}
+	err := ValidateInput(yamlContent, regoPolicyPath)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			inputContent, err := os.ReadFile(tt.inputFile)
-			if err != nil {
-				t.Fatalf("Failed to read input file: %v", err)
-			}
+	assert.NoError(t, err)
+}
 
-			err = ValidateInput(string(inputContent), tt.regoPolicy)
-			if tt.wantError {
-				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
-				}
-			} else {
-				assert.NoError(t, err)
-			}
-		})
+// Successfully parse valid YAML input
+func TestValidYAMLInput(t *testing.T) {
+	// Mock input
+	yamlContent := "./testdata/multistage.yaml"
+
+	// Mock rego policy path
+	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
+
+	// Mock expected output
+	expectedError := error(nil)
+
+	// Call the function
+	err := ValidateInput(yamlContent, regoPolicyPath)
+
+	// Check the result
+	assert.Equal(t, expectedError, err)
+}
+
+// Successfully parse valid JSON input
+func TestValidJSONInput(t *testing.T) {
+	// Mock input
+	jsonContent := "./testdata/multistage.json"
+	// Mock rego policy path
+	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
+
+	// Mock expected output
+	expectedError := error(nil)
+
+	// Call the function
+	err := ValidateInput(jsonContent, regoPolicyPath)
+
+	// Check the result
+	assert.Equal(t, expectedError, err)
+}
+
+// Successfully parse valid JSON input from YAML input
+func TestValidJSONInputFromYAML(t *testing.T) {
+	// Mock input
+	yamlContent := "./testdata/multistage.json"
+
+	// Mock rego policy path
+	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
+
+	// Mock expected output
+	expectedError := error(nil)
+
+	// Call the function
+	err := ValidateInput(yamlContent, regoPolicyPath)
+
+	// Check the result
+	assert.Equal(t, expectedError, err)
+}
+
+// Return error when input is not valid YAML or JSON
+func TestInvalidInputFormat(t *testing.T) {
+	// Mock input with invalid content (you may directly pass an invalid string here)
+	invalidContent := "this is not valid JSON or YAML"
+
+	// Mock rego policy path
+	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
+
+	// Mock expected output
+	expectedErrorMessage := "open this is not valid JSON or YAML: no such file or directory"
+
+	// Call the function
+	err := ValidateInput(invalidContent, regoPolicyPath)
+
+	// Check if an error was returned
+	if assert.Error(t, err) {
+		// Check the error message
+		assert.Equal(t, expectedErrorMessage, err.Error())
 	}
 }

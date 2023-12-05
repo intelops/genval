@@ -66,12 +66,14 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 			for key, value := range keys {
 				if value != true {
 					t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed")})
+					policyError = errors.New("policy evaluation failed: " + key)
 				} else {
 					t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed")})
 				}
 			}
 		} else {
 			log.Error("No policies passed")
+			policyError = errors.New("no policies passed")
 		}
 	}
 

@@ -2,7 +2,8 @@ package dockerfile_validation
 
 default fail = false
 
-fail {
-    input[i].cmd == "#"
-    input[i].value == "stage"
+untrusted_base_image {
+    input[i].cmd == "from"
+    val := split(input[i].value, "/")
+    val[0] == "cgr.dev"
 }
