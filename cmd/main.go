@@ -15,13 +15,13 @@ var verify bool
 var policies multiValueFlag
 
 func init() {
-	flag.StringVar(&mode, "mode", "", "Specify mode: 'container' for Dockerfile validation/generation or 'cue' for K8s resource validation/generation.")
-	flag.StringVar(&resource, "resource", "", "Resource for K8s mode (cueval).")
-	flag.StringVar(&reqinput, "reqinput", "", "Input value (JSON) for K8s mode (cueval).")
-	flag.StringVar(&output, "output", "", "Output path for Dockerfile for in container mode.")
-	flag.Var(&policies, "policy", "Validation policies, .cue files to be used in cue mode.")
-	flag.StringVar(&inputpolicy, "inputpolicy", "", "Rego policy to validate JSON input in container mode.")
-	flag.StringVar(&outputpolicy, "outputpolicy", "", "Rego policy to validate generated Dockerfile in container mode.")
+	flag.StringVar(&mode, "mode", "", "Specify mode: 'container' for Dockerfile validation/generation or 'cue' for K8s resource validation/generation")
+	flag.StringVar(&resource, "resource", "", "A top-level label used to define the Cue Definition in cue mode")
+	flag.StringVar(&reqinput, "reqinput", "", "Input file in JSON/YAML format for validating in different modes")
+	flag.StringVar(&output, "output", "", "Output path for Dockerfile for in container mode")
+	flag.Var(&policies, "policy", "Validation policies, .cue, .rego or CEL policy files to be used in respective mode.")
+	flag.StringVar(&inputpolicy, "inputpolicy", "", "Rego policy to validate JSON input in container mode")
+	flag.StringVar(&outputpolicy, "outputpolicy", "", "Rego policy to validate generated Dockerfile in container mode")
 	flag.BoolVar(&verify, "verify", false, "Flag to perform validation and skip generation of final manifest")
 	flag.Usage = func() {
 		helpText := `
@@ -57,11 +57,24 @@ Modes:
     Arguments: <reqinput.json> <Rego policy>
     Example usage:
       ./genval --mode=tf --reqinput=deployment.json --policy=<path/to/.rego policy>
+%s
+  - cel: Validating Kubernetes manifests with CEL
+	Arguments: <reqinput.json> <CEL policy>
+	Example usage:
+	  ./genval --mode=cel --reqinput=deployment.json --policy=<path/to/CEL policy>
+
+%s
+  - showjson: Helper mode to print the JSON representation of input
+	Arguments: <Dockerfile Or .tf file> 
+	Example usage:
+	  ./genval --mode=showjson --reqinput=Dockerfle
 						
 `
 
 		modeHeading := color.New(color.FgGreen, color.Bold).SprintfFunc()
-		fmt.Fprintf(os.Stderr, helpText, modeHeading("Container Mode:"), modeHeading("Cue Mode:"), modeHeading("K8s Mode:"), modeHeading("Terraform Mode:"))
+		fmt.Fprintf(os.Stderr, helpText, modeHeading("Container Mode:"), modeHeading("Cue Mode:"),
+			modeHeading("K8s Mode:"), modeHeading("Terraform Mode:"), modeHeading("CEL Mode:"),
+			modeHeading("ShowJSON Mode:"))
 		flagsHeader := color.New(color.FgYellow, color.Bold).Sprint("Available flags:")
 		fmt.Fprintf(os.Stderr, "\n%s\n\n", flagsHeader)
 
@@ -90,6 +103,9 @@ func main() {
 	case "printjson":
 		// Call the showjson mode for prining the JSON representation of reqinput files
 		modes.ExecuteShowJSON(reqinput)
+	case "cel":
+		// Call cel mode for validating Kubernetes manifests with CEL
+		modes.ExecuteCEL(reqinput, policies...)
 	default:
 		fmt.Println("Invalid mode. Choose 'container', 'cue', 'k8s' or 'tf'.")
 		flag.Usage()

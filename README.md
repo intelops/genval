@@ -152,6 +152,9 @@ Genval offers four modes:
 -  `cue` for Kubernetes and CRD validation and generation
 -  `k8s` for validating Kubernetes manifests with Rego policies
 -  `tf`  for validating Terraform resource files with Rego policies
+-  `cel` for validating Kubernetes resource files with CEL policies
+
+A helper mode `showjson` is available for user to view the **JSON** representation of the input files passed to Genval. In `--mode showjson` a user can pass the input file, for example a Dockerfile, Terraform file or a Kubernetes YAML manifests and get the JSON representation of that specific input. As most of the policies are written based on input in a JSON structured format. This would enable user to refer this JSON document to write their custom policies in **Rego** and **CEL**.
 
 
 > All the modes accept inputs that include local files and files obtained from a remote URL, such as those from a Git repository. 
@@ -241,6 +244,18 @@ genval --mode tf --reqinput ../templates/inputs/terraform/sec-group.tf \
              <REDACTED>
 ```
 
+### Validating Kubernetes resource manifest files with CEL policies
+
+Genval enables validating Kubernees manifests using [Common Expression Language — (CEL)](https://github.com/google/cel-spec). To validate different Kubernetes manifest files in `cel` mode. Use `--mode cel` with the same two flags `--reqinput` for passing the input in either **JSON** or **YAML** format and `--policy` to pass the CEL policies in a text file format.
+
+The `./templates/defaultpolicies/cel/cel_policies` contains some sample policies that can be used with `cel` mode.
+
+Example:
+
+```shell
+$ genval --mode cel --reqinput ./templates/inputs/k8s/deployment.json --policy ./templates/defaultpolicies/cel/cel_policies 
+```
+
 ### Templates
 
-The `./templates` folder holds some sample files to be used in Genval. the `./templates/inputs` holds JSON input templates for both generating Dockerfiles in `container` mode and Kubernetes manifests in `cue` mode. Similarly, all the default policies for both the modes are stored in `./templates/defaultpolices` directory. User can use these template files to start with and as they go along they can customize these files to suite their specific use cases.  
+The `./templates` folder holds some sample files to be used in Genval. the `./templates/inputs` holds JSON input templates for both generating Dockerfiles in `container` mode and Kubernetes manifests in `cue` mode. Similarly, all the sample policies for all the modes are stored in `./templates/defaultpolices` directory. User can use these template files to start with and as they go along they can build upon it and customize these policies to suite their specific use cases.  
