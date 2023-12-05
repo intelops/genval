@@ -13,7 +13,7 @@ import (
 
 // printJSON.go
 
-func ExecutePrintJSON(reqinput string) {
+func ExecuteShowJSON(reqinput string) {
 	var prettyJSON bytes.Buffer
 
 	if strings.HasSuffix(reqinput, ".tf") {
