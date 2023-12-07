@@ -19,7 +19,7 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 	// If input is a file
 	jsonData, err := parser.ProcessInput(inputContent)
 	if err != nil {
-		log.Fatalf("Error reading input content file: %v", err)
+		log.Errorf("Error reading input content file: %v", err)
 	}
 
 	k8sPolicy, err := utils.ReadPolicyFile(regoPolicy)
@@ -30,12 +30,14 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 	pkg, err := utils.ExtractPackageName(k8sPolicy)
 	if err != nil {
 		log.Fatalf("Unable to fetch package name: %v", err)
+		return err
 	}
 
 	var commands map[string]interface{}
 	err = json.Unmarshal(jsonData, &commands)
 	if err != nil {
 		log.Errorf("Cannot Unmarshal jsonData: %v", err)
+		return err
 	}
 	ctx := context.Background()
 
@@ -49,13 +51,13 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 	// Evaluate the Rego query
 	rs, err := regoQuery.Eval(ctx)
 	if err != nil {
-		log.Fatal("Error evaluating query:", err)
+		log.Errorf("Error evaluating query:%v", err)
+		return err
 	}
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Policy", "Status"})
-	var policyError error
 
 	for _, result := range rs {
 		if len(result.Expressions) > 0 {
@@ -69,14 +71,10 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 			}
 		} else {
 			log.Error("No policies passed")
+			return errors.New("no policies passed")
 		}
 	}
 
 	t.Render()
-
-	if err != nil {
-		return errors.New("error evaluating Rego")
-	}
-
-	return policyError
+	return nil
 }
