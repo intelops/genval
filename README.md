@@ -1,4 +1,8 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/7843/badge)](https://www.bestpractices.dev/projects/7843)
+[![Go Report Card](https://goreportcard.com/badge/github.com/intelops/genval)](https://goreportcard.com/report/github.com/intelops/genval)
+[![Build Status](https://github.com/intelops/genval/actions/workflows/ci.yaml/badge.svg)](https://github.com/intelops/genval/actions?query=workflow%3Abuild)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
 
 # Genval: Simplifying Configuration Management
 
@@ -16,8 +20,8 @@ Genval is a versatile Go utility that simplifies configuration management for a 
 
   
 
-## Why Genval?
-
+## Why Genval?go install github.com/sigstore/gitsign@latest
+go install github.com/sigstore/gitsign@latest
   
 
 Managing configurations across different tools can be a daunting task. Ensuring that these configurations adhere to best practices is critical but can be time-consuming and error-prone. Genval automates these processes, making configuration management more efficient.
@@ -157,7 +161,7 @@ Genval offers four modes:
 A helper mode `showjson` is available for user to view the **JSON** representation of the input files passed to Genval. In `--mode showjson` a user can pass the input file, for example a Dockerfile, Terraform file or a Kubernetes YAML manifests and get the JSON representation of that specific input. As most of the policies are written based on input in a JSON structured format. This would enable user to refer this JSON document to write their custom policies in **Rego** and **CEL**.
 
 
-> All the modes accept inputs that include local files and files obtained from a remote URL, such as those from a Git repository. 
+> All the modes accept inputs that include local files and files obtained from a remote URL, such as those from a Git repositoryin raw format. 
   
 
 ### Dockerfile Validation and Generation:
@@ -209,7 +213,7 @@ The above command will validate a Deployment manifests using the provided `.cue`
 For a detailed workflow illustrating the capabilities of Cue and Genval for validating and generating Kubernetes configurations, you can refer to [this document](./cmd/cueval/example.md).
 The workflow for adding a Cue schema for Kubernetes CRDs is failry easy, and demostrated in the [CONTRIBUTION.md document](./CONTRIBUTION.md/#contributing-by-adding-a-cue-schema-to-the-project).  
 
-### Validation of Kubernetes resources with Repgo policies
+### Validation of Kubernetes resources with Rego policies
 
 To validate Kubernetes manifests with Rego policies, users can use `--mode k8s` with `--reqinput` for providing the required input in JSON or YAML format, and `--policy` flag to pass in the Rego policies.
 
@@ -222,16 +226,14 @@ genval --mode k8s --reqinput <Path/to/input/yaml/json file> \
 
 ### Validate Terraform resource files with Rego policies
 
-To validate the Terraform resource file in `.tf` format. Use `--mode tf` with two flags as above `--reqinput` and `--policy`. The Genval tool internally will transform the input `.tf` file in JSON and validate the resource file with Rego policies.
+To validate the Terraform resource file in `.tf` format. Use `--mode tf` with two flags as above `--reqinput` and `--policy`. The Genval tool willvalidate the `.tf` resource file with Rego policies.
 
-To write custom policies, users might require to know the `JSON` representation of the input `.tf` file. In order to get the `JSON` representation of the `.tf` users can use `--json` flag after passing the `--reqinput` and `--policy` flags. This will print the JSON doc for the input. Now, users can pipe it to tools lie [jq](https://jqlang.github.io/jq/) to get a prettified JSOn representation that could help user write rego policies.
+To write custom policies, users might require to know the `JSON` representation of the input `.tf` file. In order to get the `JSON` representation of the `.tf` users can use `--showjson` mode and pass the `.tf` file as input to get the JSON representation that could help user write rego policies.
 
 Example:
 
 ```shell
-genval --mode tf --reqinput ../templates/inputs/terraform/sec-group.tf \
-    --policy ./templates/defaultpolicies/rego/terraform.rego \
-    --json true jq .
+genval --mode showjson --reqinput ../templates/inputs/terraform/sec-group.tf 
 {
   "resource": [
     {

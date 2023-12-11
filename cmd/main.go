@@ -30,7 +30,7 @@ Usage of genval:
 Modes:
 %s
   - container: Dockerfile validation and generation.
-    Arguments: <reqinput.json> <output.Dockerfile> <input.rego policy file> <output.rego policy file>
+    Arguments: <reqinput.json> <output.Dockerfile> <input.rego policy file> <outfile in JSON and validate theput.rego policy file>
     Example usage:
       ./genval --mode=container --reqinput=input.json \
         --output=output.Dockerfile \
