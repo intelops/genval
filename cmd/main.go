@@ -8,10 +8,11 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/intelops/genval/cmd/modes"
+	"github.com/intelops/genval/pkg/api/v1"
 )
 
 var mode, resource, reqinput, output, inputpolicy, outputpolicy string
-var verify bool
+var verify, serverMode bool
 var policies multiValueFlag
 
 func init() {
@@ -23,6 +24,7 @@ func init() {
 	flag.StringVar(&inputpolicy, "inputpolicy", "", "Rego policy to validate JSON input in container mode")
 	flag.StringVar(&outputpolicy, "outputpolicy", "", "Rego policy to validate generated Dockerfile in container mode")
 	flag.BoolVar(&verify, "verify", false, "Flag to perform validation and skip generation of final manifest")
+	flag.BoolVar(&serverMode, "server", false, "Run Genval in server mode")
 	flag.Usage = func() {
 		helpText := `
 Usage of genval:
@@ -85,6 +87,10 @@ Modes:
 
 func main() {
 	flag.Parse()
+	if serverMode {
+		runServer()
+		return
+	}
 
 	// Pass arguments after the mode flag
 
@@ -123,4 +129,15 @@ func (m *multiValueFlag) String() string {
 func (m *multiValueFlag) Set(value string) error {
 	*m = append(*m, value)
 	return nil
+}
+
+func runServer() {
+	r := api.SetupAPI()
+	port := ":3333"
+	serverAddr := "localhost" + port
+	fmt.Printf("API server is running on port %s...\n", port)
+
+	if err := r.Run(serverAddr); err != nil {
+		fmt.Printf("Error starting server: %v\n", err)
+	}
 }
