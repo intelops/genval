@@ -22,11 +22,11 @@ func init() {
 
 func SetupAPI() *gin.Engine {
 	r := gin.Default()
-	r.POST("/container", route.CallEndpoint)
-	r.POST("/cue", route.CallEndpoint)
-	r.POST("/k8s", route.CallEndpoint)
-	r.POST("/tf", route.CallEndpoint)
-	r.POST("/cel", route.CallEndpoint)
+	r.POST("/container", route.ContainerHandeler)
+	r.POST("/cue", route.CueHandeler)
+	r.POST("/k8s", route.K8sHandeler)
+	r.POST("/tf", route.TfHandeler)
+	r.POST("/cel", route.CELHandeler)
 
 	return r
 }
