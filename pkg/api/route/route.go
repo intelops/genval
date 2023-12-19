@@ -9,20 +9,40 @@ import (
 )
 
 func ContainerHandeler(c *gin.Context) {
-	// Extract input data from the request
-	reqinput := c.PostForm("reqinput")
-	output := c.PostForm("output")
-	inputpolicy := c.PostForm("inputpolicy")
-	outputpolicy := c.PostForm("outputpolicy")
+	var requestData struct {
+		Mode         string `json:"mode"`
+		ReqInput     string `json:"reqinput"`
+		Output       string `json:"output"`
+		InputPolicy  string `json:"inputpolicy"`
+		OutputPolicy string `json:"outputpolicy"`
+	}
 
-	if reqinput == "" || output == "" || inputpolicy == "" || outputpolicy == "" {
-		c.JSON(400, gin.H{"error": "Required arguments missing"})
+	if err := c.ShouldBindJSON(&requestData); err != nil {
+		c.JSON(400, gin.H{"error": "Invalid JSON data"})
 		return
 	}
 
-	cmd := exec.Command("genval", "--mode", "container", "--reqinput", reqinput, "--output", output, "--inputputpolicy", inputpolicy, "--outputpolicy", outputpolicy)
+	mode := requestData.Mode
+	reqinput := requestData.ReqInput
+	output := requestData.Output
+	inputpolicy := requestData.InputPolicy
+	outputpolicy := requestData.OutputPolicy
 
-	bc, err := cmd.CombinedOutput()
+	// if reqinput == "" || output == "" || inputpolicy == "" || outputpolicy == "" {
+	// 	c.JSON(400, gin.H{"error": "Required arguments missing"})
+	// 	return
+	// }
+	log.Infof("Received Data: reqinput=%s, output=%s, inputpolicy=%s, outputpolicy=%s", reqinput, output, inputpolicy, outputpolicy)
+
+	cmd := exec.Command("./bin/genval", "--mode", mode, "--reqinput", reqinput, "--output", output, "--inputpolicy", inputpolicy, "--outputpolicy", outputpolicy)
+	// errOutput, err := cmd.CombinedOutput()
+	// if err != nil {
+	// 	log.Errorf("Error executing Command: %v\nError Output: %s", err, errOutput)
+	// 	c.JSON(500, gin.H{"error": fmt.Sprintf("Error executing Command: %v", err)})
+	// 	return
+	// }
+	bc, err := cmd.Output()
+	// log.Printf("Command: %v", string(bc))
 	if err != nil {
 		log.Errorf("Error executing Command: %v", err)
 		c.JSON(500, gin.H{"error": fmt.Sprintf("Error executing Command: %v", err)})
@@ -41,8 +61,8 @@ func CueHandeler(c *gin.Context) {
 		return
 	}
 
-	cmd := exec.Command("genval", "--mode", "cue", "--reqinput", reqinput, "--resource", resource, "--policy", policies)
-	bc, err := cmd.CombinedOutput()
+	cmd := exec.Command("./bin/genval", "--mode", "cue", "--reqinput", reqinput, "--resource", resource, "--policy", policies)
+	bc, err := cmd.Output()
 	if err != nil {
 		log.Errorf("Error executing Command: %v", err)
 		c.JSON(500, gin.H{"error": fmt.Sprintf("Error executing Command: %v", err)})
@@ -62,8 +82,8 @@ func K8sHandeler(c *gin.Context) {
 		return
 	}
 
-	cmd := exec.Command("genval", "--mode", "k8s", "--reqinput", reqinput, "--policy", policies)
-	bc, err := cmd.CombinedOutput()
+	cmd := exec.Command("./bin/genval", "--mode", "k8s", "--reqinput", reqinput, "--policy", policies)
+	bc, err := cmd.Output()
 	if err != nil {
 		log.Errorf("Error executing Command: %v", err)
 		c.JSON(500, gin.H{"error": fmt.Sprintf("Error executing Command: %v", err)})
@@ -83,8 +103,8 @@ func TfHandeler(c *gin.Context) {
 		return
 	}
 
-	cmd := exec.Command("genval", "--mode", "tf", "--reqinput", reqinput, "--policy", policies)
-	bc, err := cmd.CombinedOutput()
+	cmd := exec.Command("./bin/genval", "--mode", "tf", "--reqinput", reqinput, "--policy", policies)
+	bc, err := cmd.Output()
 	if err != nil {
 		log.Errorf("Error executing Command: %v", err)
 		c.JSON(500, gin.H{"error": fmt.Sprintf("Error executing Command: %v", err)})
@@ -104,8 +124,8 @@ func CELHandeler(c *gin.Context) {
 		return
 	}
 
-	cmd := exec.Command("genval", "--mode", "cel", "--reqinput", reqinput, "--policy", policies)
-	bc, err := cmd.CombinedOutput()
+	cmd := exec.Command("./bin/genval", "--mode", "cel", "--reqinput", reqinput, "--policy", policies)
+	bc, err := cmd.Output()
 	if err != nil {
 		log.Errorf("Error executing Command: %v", err)
 		c.JSON(500, gin.H{"error": fmt.Sprintf("Error executing Command: %v", err)})
