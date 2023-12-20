@@ -2,7 +2,6 @@ package route
 
 import (
 	"fmt"
-	"io"
 	"os/exec"
 
 	"github.com/gin-gonic/gin"
@@ -15,10 +14,6 @@ func CELHandler(c *gin.Context) {
 		ReqInput string `json:"reqinput"`
 		Policy   string `json:"policy"`
 	}
-
-	// Read the request body and print it for debugging``
-	requestBody, _ := io.ReadAll(c.Request.Body)
-	fmt.Println("Request Body:", string(requestBody))
 
 	if err := c.ShouldBindJSON(&requestData); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid JSON data"})

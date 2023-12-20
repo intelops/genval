@@ -4,7 +4,6 @@ package route
 
 import (
 	"fmt"
-	"io"
 	"os/exec"
 
 	"github.com/gin-gonic/gin"
@@ -19,15 +18,7 @@ func CueHandler(c *gin.Context) {
 		Policy   string `json:"policy"`
 	}
 
-	// Read the request body and print it for debugging
-	requestBody, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		log.Errorf("Error Reading ReqBody: %v", err)
-	}
-	fmt.Printf("Request Body: %s", requestBody)
-
 	if err := c.ShouldBindJSON(&requestData); err != nil {
-		log.Printf("Bind ERROR: %v", err)
 		c.JSON(400, gin.H{"error": "Invalid JSON dataaa"})
 	}
 
