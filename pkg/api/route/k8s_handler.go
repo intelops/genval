@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CELHandeler(c *gin.Context) {
+func K8sHandler(c *gin.Context) {
 	var requestData struct {
 		Mode     string `json:"mode"`
 		ReqInput string `json:"reqinput"`

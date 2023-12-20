@@ -8,7 +8,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func TfHandeler(c *gin.Context) {
+func TfHandler(c *gin.Context) {
 	var requestData struct {
 		Mode     string `json:"mode"`
 		ReqInput string `json:"reqinput"`

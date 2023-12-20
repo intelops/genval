@@ -11,7 +11,7 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func CueHandeler(c *gin.Context) {
+func CueHandler(c *gin.Context) {
 	var requestData struct {
 		Mode     string `json:"mode"`
 		ReqInput string `json:"reqinput"`
@@ -20,14 +20,17 @@ func CueHandeler(c *gin.Context) {
 	}
 
 	// Read the request body and print it for debugging
-	requestBody, _ := io.ReadAll(c.Request.Body)
-	fmt.Println("Request Body:", string(requestBody))
+	requestBody, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		log.Errorf("Error Reading ReqBody: %v", err)
+	}
+	fmt.Printf("Request Body: %s", requestBody)
 
 	if err := c.ShouldBindJSON(&requestData); err != nil {
 		log.Printf("Bind ERROR: %v", err)
 		c.JSON(400, gin.H{"error": "Invalid JSON dataaa"})
-		return
 	}
+
 	mode := requestData.Mode
 	reqinput := requestData.ReqInput
 	resource := requestData.Resource
@@ -38,9 +41,9 @@ func CueHandeler(c *gin.Context) {
 		return
 	}
 
-	cmd := exec.Command("./bin/genval", "--mode", mode, "--reqinput", reqinput, "policy", policy)
-
+	cmd := exec.Command("./bin/genval", "--mode", mode, "--reqinput", reqinput, "--resource", resource, "--policy", policy)
 	log.Printf("CMD:%v", cmd)
+
 	bs, err := cmd.Output()
 	if err != nil {
 		log.Errorf("Error executing Command: %v", err)

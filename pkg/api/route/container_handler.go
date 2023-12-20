@@ -17,7 +17,7 @@ type Validationresult struct {
 	ValidationResults string `json:"validationResults"`
 }
 
-func ContainerHandeler(c *gin.Context) {
+func ContainerHandler(c *gin.Context) {
 	var requestData struct {
 		Mode         string `json:"mode"`
 		ReqInput     string `json:"reqinput"`

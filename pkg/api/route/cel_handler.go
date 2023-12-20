@@ -2,18 +2,23 @@ package route
 
 import (
 	"fmt"
+	"io"
 	"os/exec"
 
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 )
 
-func K8sHandeler(c *gin.Context) {
+func CELHandler(c *gin.Context) {
 	var requestData struct {
 		Mode     string `json:"mode"`
 		ReqInput string `json:"reqinput"`
 		Policy   string `json:"policy"`
 	}
+
+	// Read the request body and print it for debugging``
+	requestBody, _ := io.ReadAll(c.Request.Body)
+	fmt.Println("Request Body:", string(requestBody))
 
 	if err := c.ShouldBindJSON(&requestData); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid JSON data"})
