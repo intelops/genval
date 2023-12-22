@@ -5,7 +5,7 @@
       "instructions": [
         {
           "from": [
-            "cgr.dev/chainguard/clang:latest-dev as builder"
+            "cgr.dev/chainguard/clang:1.20-dev as builder"
           ]
         },
         {
@@ -48,7 +48,7 @@
       "instructions": [
         {
           "from": [
-            "cgr.dev/chainguard/static:latest"
+            "cgr.dev/chainguard/static:1.20"
           ]
         },
         {

@@ -15,10 +15,3 @@ check_multi_stage{
 }
 
 
-# No more than 1 From instruction
-# check_base_image{
-# 	cmd := input.Dockerfile[_].Instructions[_].from[_]
-# 	s:= input.Dockerfile[_].Stage
-# 	s == 0
-# 	cmd == 1
-# }

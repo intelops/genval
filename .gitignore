@@ -3,3 +3,6 @@
 coverage.out
 input.yaml
 input.json
+input_dockerfile.json
+/output
+Dockerfile*

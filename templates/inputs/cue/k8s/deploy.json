@@ -1,0 +1,56 @@
+{
+    "apiVersion": "apps/v1",
+    "kind": "Deployment", 
+    "metadata": {
+      "namespace": "websites",
+      "labels": {
+        "app": "cueTest"
+      }
+    },
+    "spec": {
+      "selector": {
+        "matchLabels": {
+          "app": "cueTest"
+        }
+      },
+      "minReadySeconds": 5,
+      "template": {
+        "metadata": {
+          "labels": {
+            "app": "cueTest"
+          }
+        },
+        "spec": {
+          "containers": [
+            {
+              "name": "website",
+              "image": "nginx:1.20",
+              "imagePullPolicy": "Always",
+              "ports": [
+                {
+                  "containerPort": 80,
+                  "protocol": "TCP"
+                }
+              ],
+              "readinessProbe": {
+                "httpGet": {
+                  "port": 80
+                },
+                "initialDelaySeconds": 6,
+                "failureThreshold": 3,
+                "periodSeconds": 10
+              },
+              "livenessProbe": {
+                "httpGet": {
+                  "port": 80
+                },
+                "initialDelaySeconds": 6,
+                "failureThreshold": 3,
+                "periodSeconds": 10
+              }
+            }
+          ]
+        }
+      }
+    }
+  }

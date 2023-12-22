@@ -1,0 +1,43 @@
+{
+"apiVersion": "apiextensions.crossplane.io/v3",
+  "spec": {
+    "group": "pet2cattle.com",
+    "names": {
+      "kind": "SGAllowOutgoing",
+      "plural": "sgsallowoutgoing"
+    },
+    "versions": [
+      {
+        "name": "v1alpha1",
+        "served": true,
+        "referenceable": true,
+        "schema": {
+          "openAPIV3Schema": {
+            "type": "object",
+            "properties": {
+              "spec": {
+                "type": "object",
+                "properties": {
+                  "parameters": {
+                    "type": "object",
+                    "properties": {
+                      "region": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "region"
+                    ]
+                  }
+                },
+                "required": [
+                  "parameters"
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
+  }
+}
