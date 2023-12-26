@@ -6,12 +6,14 @@ require (
 	cuelang.org/go v0.6.0
 	github.com/fatih/color v1.16.0
 	github.com/google/cel-go v0.18.2
+	github.com/google/go-github/v57 v57.0.0
 	github.com/hashicorp/hcl/v2 v2.19.1
 	github.com/jedib0t/go-pretty/v6 v6.4.9
 	github.com/open-policy-agent/opa v0.57.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.8.4
 	github.com/zclconf/go-cty v1.13.0
+	golang.org/x/oauth2 v0.12.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -34,6 +36,7 @@ require (
 	github.com/gobwas/glob v0.2.3 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/flatbuffers v23.5.26+incompatible // indirect
+	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/uuid v1.3.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.18.0 // indirect
@@ -69,6 +72,7 @@ require (
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
+	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231016165738-49dd2c1f3d0b // indirect
 	google.golang.org/grpc v1.59.0 // indirect

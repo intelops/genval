@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/fs"
@@ -17,7 +18,9 @@ import (
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
+	"github.com/google/go-github/v57/github"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/oauth2"
 )
 
 // TempDirWithCleanup creates a temporary directory and returns its path along with a cleanup function.
@@ -73,65 +76,130 @@ func GenerateOverlay(staticFS fs.FS, td string, policies []string) (map[string]l
 	return overlay, nil
 }
 
-func toCamelCase(s string) string {
-	return strings.ToLower(s[:1]) + s[1:]
+// ReadAndCompileData reads the content from the given file path or GitHub URL and compiles it into cue.Value.
+func ReadAndCompileData(dataPath string) (map[string]cue.Value, error) {
+	token := os.Getenv("GITHUB_TOKEN") // Use environment variable for GitHub token
+	client := CreateGitHubClient(token)
+
+	// Check if dataPath is a URL
+	if u, err := url.ParseRequestURI(dataPath); err == nil && u.Scheme != "" && u.Host != "" {
+		return handleGitHubURL(client, u)
+	}
+
+	// Handle local file or directory
+	return handleLocalPath(dataPath)
 }
 
-// ReadAndCompileData reads the content from the given file path to cue Value, returns an error if compiling fails.
-func ReadAndCompileData(dataPath string, defPath string) (dataMap map[string]cue.Value, titleCaseDefPath string, err error) {
-	// Initialize the context and dataMap
+// handleGitHubURL parses the Github URL, reads the contents and compiles it to Cue Value
+func handleGitHubURL(client *github.Client, u *url.URL) (map[string]cue.Value, error) {
+	dataMap := make(map[string]cue.Value)
 	ctx := cuecontext.New()
-	dataMap = make(map[string]cue.Value)
 
-	u, err := url.ParseRequestURI(dataPath)
-	if err == nil && u.Scheme != "" && u.Host != "" {
+	splitPath := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
 
-		// Handle single file
-		ds, err := ReadPolicyFile(dataPath)
+	owner := splitPath[0]
+	repo := splitPath[1]
+	var branch string
+	var path string
+	if strings.HasPrefix(u.Hostname(), "github.com") {
+		branch = splitPath[3]
+		path = strings.Join(splitPath[4:], "/")
+	}
+	if strings.HasPrefix(u.Hostname(), "raw.githubusercontent.com") {
+		branch = splitPath[2]
+		path = strings.Join(splitPath[3:], "/")
+	}
+	// Get repository contents
+	fc, dc, _, err := client.Repositories.GetContents(context.Background(), owner, repo, path, &github.RepositoryContentGetOptions{Ref: branch})
+	if err != nil {
+		return nil, err
+	}
+	// Check if it's a directory or a single file
+	if len(dc) == 0 {
+		// If single file
+		fileContent, err := fc.GetContent()
 		if err != nil {
-			return nil, "", err
+			return nil, err
 		}
-		compiledData := ctx.CompileBytes(ds)
+		compiledData := ctx.CompileBytes([]byte(fileContent))
 		if compiledData.Err() != nil {
-			return nil, "", compiledData.Err()
+			return nil, compiledData.Err()
 		}
-		dataMap[strings.TrimSuffix(filepath.Base(dataPath), filepath.Ext(dataPath))] = compiledData
-
+		dataMap[fc.GetName()] = compiledData
 	} else {
-		// Check if the path is a directory or a single file
-		info, err := os.Stat(dataPath)
-		if err != nil {
-			return nil, "", err
-		}
-
-		if info.IsDir() {
-			// Handle directory
-			err = filepath.Walk(dataPath, func(path string, info os.FileInfo, err error) error {
+		// IF directory
+		for _, content := range dc {
+			if content.GetType() == "file" {
+				file, _, _, err := client.Repositories.GetContents(context.Background(), owner, repo, *content.Path, &github.RepositoryContentGetOptions{Ref: branch})
 				if err != nil {
-					return err
+					log.Errorf("Error reading file from Github Directory: %v", err)
 				}
-				if !info.IsDir() {
-					ds, err := ReadPolicyFile(path)
-					if err != nil {
-						return err
-					}
-					compiledData := ctx.CompileBytes(ds)
-					if compiledData.Err() != nil {
-						return compiledData.Err()
-					}
-					// Use the base file name as the map key
-					dataMap[path] = compiledData
+				fileContent, err := file.GetContent()
+				if err != nil {
+					return nil, err
 				}
-				return nil
-			})
-			if err != nil {
-				return nil, "", err
+				compiledData := ctx.CompileBytes([]byte(fileContent))
+				if compiledData.Err() != nil {
+					return nil, compiledData.Err()
+				}
+				dataMap[content.GetName()] = compiledData
 			}
 		}
 	}
+	return dataMap, nil
+}
 
-	titleCaseDefPath = toCamelCase(defPath)
-	return dataMap, titleCaseDefPath, nil
+// handleLocalPath processes either a single file or all files in a directory.
+func handleLocalPath(path string) (map[string]cue.Value, error) {
+	dataMap := make(map[string]cue.Value)
+	// ctx := cuecontext.New()
+
+	// Check if the path is a directory or a single file.
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		return nil, err
+	}
+
+	if fileInfo.IsDir() {
+		// Handle directory.
+		files, err := os.ReadDir(path)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, file := range files {
+			if !file.IsDir() {
+				filePath := filepath.Join(path, file.Name())
+				err := compileAndAddFile(filePath, dataMap)
+				if err != nil {
+					return nil, err
+				}
+			}
+		}
+	} else {
+		// Handle single file.
+		err := compileAndAddFile(path, dataMap)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return dataMap, nil
+}
+
+// compileAndAddFile reads, compiles a file, and adds it to the dataMap.
+func compileAndAddFile(filePath string, dataMap map[string]cue.Value) error {
+	fileContent, err := os.ReadFile(filePath)
+	if err != nil {
+		return err
+	}
+	ctx := cuecontext.New()
+	compiledData := ctx.CompileBytes(fileContent)
+	if compiledData.Err() != nil {
+		return compiledData.Err()
+	}
+	dataMap[filepath.Base(filePath)] = compiledData
+	return nil
 }
 
 // isURL checks if the given string is a valid URL.
@@ -169,12 +237,12 @@ func fetchFileWithCURL(urlStr string) (string, error) {
 		log.Println("Error checking directory:", err)
 	}
 
-	cmd := exec.Command("curl", "-s", "-o", filepath.Join(dir, filename), urlStr)
+	cmd := exec.Command("curl", "-LJ", "-o", filepath.Join(dir, filename), urlStr)
 	if err := cmd.Run(); err != nil {
 		log.Errorf("failed fetching content using curl: %v", err)
 		return "", err
 	}
-
+	log.Infof("FilePath: %v", filepath.Join(dir, filename))
 	return filepath.Join(dir, filename), nil
 }
 
@@ -268,4 +336,12 @@ func ExtractPackageName(content []byte) (string, error) {
 	}
 
 	return "", io.EOF
+}
+
+func CreateGitHubClient(token string) *github.Client {
+	ctx := context.Background()
+	ts := oauth2.StaticTokenSource(&oauth2.Token{AccessToken: token})
+	tc := oauth2.NewClient(ctx, ts)
+	client := github.NewClient(tc)
+	return client
 }
