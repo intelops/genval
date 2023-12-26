@@ -60,7 +60,7 @@ func ExecuteCue(reqinput, resource string, verify bool, policies ...string) {
 	}
 
 	// TODO: remove the 2nd return logic
-	dataSet, _, err := utils.ReadAndCompileData(dataPath, defPath)
+	dataSet, err := utils.ReadAndCompileData(dataPath)
 	if err != nil {
 		log.Errorf("Error processing data: %v", err)
 		return
@@ -136,7 +136,7 @@ func ExecuteCue(reqinput, resource string, verify bool, policies ...string) {
 
 	// Only print the success log for generation if verify is false
 	if !verify {
-		log.Infof("%v validation succeeded, generated manifests in '%v':\n", defPath, outputDir)
+		log.Infof("%v validation succeeded, generated manifests in '%v' directory:\n", defPath, outputDir)
 		for _, fileName := range outputFiles {
 			fmt.Printf(" - %v\n", fileName)
 		}
