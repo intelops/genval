@@ -2,9 +2,12 @@ package cuecore
 
 import (
 	"fmt"
+	"net/url"
+	"os"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/load"
+	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
 )
@@ -48,4 +51,18 @@ func MarshalToYAML(value cue.Value) ([]byte, error) {
 	}
 
 	return yaml.Marshal(output)
+}
+
+// ReadAndCompileData reads the content from the given file path or GitHub URL and compiles it into cue.Value.
+func ReadAndCompileData(dataPath string) (map[string]cue.Value, error) {
+	token := os.Getenv("GITHUB_TOKEN")
+	// Use environment variable for GitHub token
+	client := utils.CreateGitHubClient(token)
+
+	// Check if dataPath is a URL
+	if u, err := url.ParseRequestURI(dataPath); err == nil && u.Scheme != "" && u.Host != "" {
+		return utils.CompileFromURL(client, u)
+	}
+	// Handle local file or directory
+	return utils.CompileFromLocal(dataPath)
 }
