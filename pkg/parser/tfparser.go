@@ -90,7 +90,6 @@ func (c *converter) convertBlock(block *hclsyntax.Block, cfg jsonObj, lcfg lineO
 			var ok bool
 			cfg, ok = inner.(jsonObj)
 			if !ok {
-				// TODO: better diagnostics
 				return fmt.Errorf("unable to convert Block to JSON: %v.%v", block.Type, strings.Join(block.Labels, "."))
 			}
 
