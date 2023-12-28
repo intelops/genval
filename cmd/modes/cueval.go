@@ -59,7 +59,6 @@ func ExecuteCue(reqinput, resource string, verify bool, policies ...string) {
 		log.Errorf("Error reading URL: %v", err)
 	}
 
-	// TODO: remove the 2nd return logic
 	dataSet, err := utils.ReadAndCompileData(dataPath)
 	if err != nil {
 		log.Errorf("Error processing data: %v", err)

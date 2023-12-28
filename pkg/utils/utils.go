@@ -10,9 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"cuelang.org/go/cue"
@@ -85,7 +83,6 @@ func ReadAndCompileData(dataPath string) (map[string]cue.Value, error) {
 	if u, err := url.ParseRequestURI(dataPath); err == nil && u.Scheme != "" && u.Host != "" {
 		return handleGitHubURL(client, u)
 	}
-
 	// Handle local file or directory
 	return handleLocalPath(dataPath)
 }
@@ -152,8 +149,6 @@ func handleGitHubURL(client *github.Client, u *url.URL) (map[string]cue.Value, e
 // handleLocalPath processes either a single file or all files in a directory.
 func handleLocalPath(path string) (map[string]cue.Value, error) {
 	dataMap := make(map[string]cue.Value)
-	// ctx := cuecontext.New()
-
 	// Check if the path is a directory or a single file.
 	fileInfo, err := os.Stat(path)
 	if err != nil {
@@ -210,48 +205,85 @@ func isURL(s string) bool {
 
 // fetchFileWithCURL fetches the content of a given URL using curl and saves it to a temporary file.
 // It returns the name of the temporary file.
-func fetchFileWithCURL(urlStr string) (string, error) {
-	// Parse the URL to extract the filename
+func fetchFileFromURL(urlStr string, client *github.Client) (string, error) {
+	// Parse the URL
 	u, err := url.Parse(urlStr)
 	if err != nil {
 		log.Errorf("cannot parse URL '%s': %v", urlStr, err)
 		return "", err
 	}
 
-	// Extract the filename from the URL path
-	filename := filepath.Base(u.Path)
-	if filename == "" || filename == "/" {
-		// Generate a random filename if we couldn't extract one from the URL
-		filename = "cue-" + strconv.Itoa(10000) + ".cue"
-	}
+	if strings.HasPrefix(u.Hostname(), "github.com") || strings.HasPrefix(u.Hostname(), "raw.githubusercontent.com") {
+		// Extract owner, repo, branch/commit, and path from the URL
+		splitPath := strings.Split(strings.TrimPrefix(u.Path, "/"), "/")
 
-	// Create a cue_downloads directory in /tmp to store the files
-	dir := filepath.Join(os.TempDir(), "cue_downloads")
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.Mkdir(dir, 0777); err != nil {
-			// Handle error here
-			log.Println("Failed to create directory:", err)
+		owner := splitPath[0]
+		repo := splitPath[1]
+		var branch string
+		var filePath string
+		if strings.HasPrefix(u.Hostname(), "github.com") {
+			branch = splitPath[3]
+			filePath = strings.Join(splitPath[4:], "/")
 		}
-	} else if err != nil {
-		// Handle other potential errors from os.Stat
-		log.Println("Error checking directory:", err)
+		if strings.HasPrefix(u.Hostname(), "raw.githubusercontent.com") {
+			branch = splitPath[2]
+			filePath = strings.Join(splitPath[3:], "/")
+		}
+
+		// Get the file content from GitHub API
+		fileCon, _, _, err := client.Repositories.GetContents(context.Background(), owner, repo, filePath, &github.RepositoryContentGetOptions{
+			Ref: branch,
+		})
+		if err != nil {
+			log.Errorf("failed fetching content from GitHub: %v", err)
+			return "", err
+		}
+
+		// Read the content of the file
+		fileContent, err := fileCon.GetContent()
+		if err != nil {
+			log.Errorf("failed fetching content from GitHub: %v", err)
+			return "", err
+		}
+
+		// Extract the filename from GitHub API
+		filename := fileCon.GetName()
+
+		// Create a cue_downloads directory in /tmp to store the files
+		dir := filepath.Join(os.TempDir(), "cue_downloads")
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			if err := os.Mkdir(dir, 0777); err != nil {
+				// Handle error here
+				log.Println("Failed to create directory:", err)
+			}
+		} else if err != nil {
+			// Handle other potential errors from os.Stat
+			log.Println("Error checking directory:", err)
+		}
+
+		// Write the content to a file with the original filename
+		filePath = filepath.Join(dir, filename)
+		if err := os.WriteFile(filePath, []byte(fileContent), 0644); err != nil {
+			log.Errorf("failed to write content to file: %v", err)
+			return "", err
+		}
+
+		// Return the path to the downloaded file
+		return filePath, nil
 	}
 
-	cmd := exec.Command("curl", "-LJ", "-o", filepath.Join(dir, filename), urlStr)
-	if err := cmd.Run(); err != nil {
-		log.Errorf("failed fetching content using curl: %v", err)
-		return "", err
-	}
-	log.Infof("FilePath: %v", filepath.Join(dir, filename))
-	return filepath.Join(dir, filename), nil
+	// If it's not a GitHub URL, return an error or handle it as needed
+	return "", fmt.Errorf("unsupported URL: %s", urlStr)
 }
 
 // ProcessInputs processes the CLI args, fetches content from URLs if needed, and returns a slice of filenames.
 func ProcessInputs(inputs []string) ([]string, error) {
+	token := os.Getenv("GITHUB_TOKEN") // Use environment variable for GitHub token
+	client := CreateGitHubClient(token)
 	var filenames []string
 	for _, input := range inputs {
 		if isURL(input) {
-			filename, err := fetchFileWithCURL(input)
+			filename, err := fetchFileFromURL(input, client)
 			if err != nil {
 				return nil, err
 			}
