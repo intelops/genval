@@ -4,18 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
-	"cuelang.org/go/cue"
-	"cuelang.org/go/cue/cuecontext"
-	"cuelang.org/go/cue/load"
 	"github.com/google/go-github/v57/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -33,143 +31,24 @@ func TempDirWithCleanup() (dirPath string, cleanupFunc func(), err error) {
 	}, nil
 }
 
-// GenerateOverlay creates an overlay to store cue schemas
-func GenerateOverlay(staticFS fs.FS, td string, policies []string) (map[string]load.Source, error) {
-	overlay := make(map[string]load.Source)
+// GetDefinitions reads the policies/definitions passed in as CLI arg and returns filenames
+func GetDefinitions(dirPath string) ([]string, error) {
+	var filenames []string
 
-	// Walk through and add files from the embedded fs
-	err := fs.WalkDir(staticFS, ".", func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.Type().IsRegular() {
-			return nil
-		}
-		f, err := staticFS.Open(p)
-		if err != nil {
-			return err
-		}
-		byts, err := io.ReadAll(f)
-		if err != nil {
-			return err
-		}
-		op := filepath.Join(td, p)
-		overlay[op] = load.FromBytes(byts)
-		return nil
-	})
+	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
-
-	// Add files from policies
-	for _, policy := range policies {
-		policyBytes, err := os.ReadFile(policy)
-		if err != nil {
-			log.Errorf("Error reading schema:%v", err)
-			return nil, err
+	// Skip directories
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
 		}
-		overlay[filepath.Join(td, filepath.Base(policy))] = load.FromBytes(policyBytes)
+		fileName := entry.Name()
+		filenames = append(filenames, fileName)
 	}
 
-	return overlay, nil
-}
-
-// compileFromURL parses the Github URL, reads the contents and compiles it to Cue Value
-func CompileFromURL(client *github.Client, u *url.URL) (map[string]cue.Value, error) {
-	dataMap := make(map[string]cue.Value)
-	ctx := cuecontext.New()
-
-	// Use fetchFromGitHub to get the file or directory content
-	fileCon, dirCon, err := fetchFromGitHub(u.String(), client)
-	if err != nil {
-		return nil, err
-	}
-
-	// Check if it's a directory or a single file
-	if len(dirCon) == 0 {
-		// If single file
-		fileContent, err := fileCon.GetContent()
-		if err != nil {
-			return nil, err
-		}
-		compiledData := ctx.CompileBytes([]byte(fileContent))
-		if compiledData.Err() != nil {
-			return nil, compiledData.Err()
-		}
-		dataMap[fileCon.GetName()] = compiledData
-	} else {
-		// If directory
-		for _, content := range dirCon {
-			if content.GetType() == "file" {
-				fileCon, _, err := fetchFromGitHub(content.GetDownloadURL(), client)
-				if err != nil {
-					log.Errorf("Error reading file from GitHub Directory: %v", err)
-					continue
-				}
-				fileContent, err := fileCon.GetContent()
-				if err != nil {
-					return nil, err
-				}
-				compiledData := ctx.CompileBytes([]byte(fileContent))
-				if compiledData.Err() != nil {
-					return nil, compiledData.Err()
-				}
-				dataMap[content.GetName()] = compiledData
-			}
-		}
-	}
-	return dataMap, nil
-}
-
-// compileFromLocal processes either a single file or all files in a directory.
-func CompileFromLocal(path string) (map[string]cue.Value, error) {
-	dataMap := make(map[string]cue.Value)
-	// Check if the path is a directory or a single file.
-	fileInfo, err := os.Stat(path)
-	if err != nil {
-		return nil, err
-	}
-
-	if fileInfo.IsDir() {
-		// Handle directory.
-		files, err := os.ReadDir(path)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, file := range files {
-			if !file.IsDir() {
-				filePath := filepath.Join(path, file.Name())
-				err := compileAndAddFile(filePath, dataMap)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-	} else {
-		// Handle single file.
-		err := compileAndAddFile(path, dataMap)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	return dataMap, nil
-}
-
-// compileAndAddFile reads, compiles a file, and appends it to the dataMap.
-func compileAndAddFile(filePath string, dataMap map[string]cue.Value) error {
-	fileContent, err := os.ReadFile(filePath)
-	if err != nil {
-		return err
-	}
-	ctx := cuecontext.New()
-	compiledData := ctx.CompileBytes(fileContent)
-	if compiledData.Err() != nil {
-		return compiledData.Err()
-	}
-	dataMap[filepath.Base(filePath)] = compiledData
-	return nil
+	return filenames, nil
 }
 
 // isURL checks if the given string is a valid URL.
@@ -178,7 +57,7 @@ func isURL(s string) bool {
 	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
-func fetchFromGitHub(urlStr string, client *github.Client) (*github.RepositoryContent, []*github.RepositoryContent, error) {
+func FetchFromGitHub(urlStr string, client *github.Client) (*github.RepositoryContent, []*github.RepositoryContent, error) {
 	// Parse the URL
 	u, err := url.Parse(urlStr)
 	if err != nil {
@@ -220,7 +99,7 @@ func fetchFromGitHub(urlStr string, client *github.Client) (*github.RepositoryCo
 // fetchFilenames fetches the content of a given URL and saves it to a temporary file and returns file names.
 func fetchFilenames(urlStr string, client *github.Client) (string, error) {
 	// Use the fetchFromGitHub function to get the file content
-	fileCon, _, err := fetchFromGitHub(urlStr, client)
+	fileCon, _, err := FetchFromGitHub(urlStr, client)
 	if err != nil {
 		log.Errorf("failed fetching content from GitHub: %v", err)
 		return "", err
@@ -359,4 +238,23 @@ func CreateGitHubClient(token string) *github.Client {
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 	return client
+}
+
+func ExtractModule(dirPath string) (string, error) {
+	moduleFilePath := filepath.Join(dirPath, "cue.mod", "module.cue")
+	// Read the module.cue file
+	content, err := os.ReadFile(moduleFilePath)
+	if err != nil {
+		return "", err
+	}
+	// Regular expression to find the module string
+	re := regexp.MustCompile(`module:\s*"(.*?)"`)
+	log.Infof("REGEX: %v", re)
+	matches := re.FindStringSubmatch(string(content))
+	if len(matches) < 2 {
+		return "", errors.New("module not found in module.cue")
+	}
+
+	// Return the extracted module string
+	return matches[1], nil
 }

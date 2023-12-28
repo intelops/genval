@@ -9,7 +9,6 @@ import (
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
-	embeder "github.com/intelops/genval"
 	"github.com/intelops/genval/pkg/cuecore"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
@@ -27,10 +26,7 @@ func init() {
 	})
 }
 
-func ExecuteCue(reqinput, resource string, verify bool, policies ...string) {
-
-	const modPath = "github.com/intelops/genval"
-	staticFS := embeder.CueDef
+func ExecuteCue(reqinput, resource string, verify bool, policy string) {
 
 	td, cleanup, err := utils.TempDirWithCleanup()
 	if err != nil {
@@ -42,21 +38,24 @@ func ExecuteCue(reqinput, resource string, verify bool, policies ...string) {
 			log.Printf("Error removing cue_downloads directory: %v", err)
 		}
 	}()
-
 	ctx := cuecontext.New()
 
-	if resource == "" || reqinput == "" || len(policies) == 0 {
+	if resource == "" || reqinput == "" || policy == "" {
 		fmt.Println("[Usage]: genval --mode=cue --resource=<Resource> --reqinput=<Input JSON> --policy <path/to/.cue schema file>")
 		return
 	}
 
 	dataPath := reqinput
 	defPath := resource
-	schemaFile := policies
+	schemaFile := policy
 
-	definitions, err := utils.ProcessInputs(schemaFile)
+	definitions, err := utils.GetDefinitions(policy)
 	if err != nil {
-		log.Errorf("Error reading URL: %v", err)
+		log.Fatalf("Error reading Cue Definitions: %v", err)
+	}
+	modPath, err := utils.ExtractModule(policy)
+	if err != nil {
+		log.Errorf("Error fetching module: %v", err)
 	}
 
 	dataSet, err := cuecore.ReadAndCompileData(dataPath)
@@ -65,7 +64,7 @@ func ExecuteCue(reqinput, resource string, verify bool, policies ...string) {
 		return
 	}
 
-	overlay, err := utils.GenerateOverlay(staticFS, td, definitions)
+	overlay, err := cuecore.GenerateOverlay(schemaFile, td, definitions)
 	if err != nil {
 		log.Fatal(err)
 	}

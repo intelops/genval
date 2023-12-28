@@ -10,7 +10,7 @@ import (
 	"github.com/intelops/genval/cmd/modes"
 )
 
-var mode, resource, reqinput, output, inputpolicy, outputpolicy string
+var mode, resource, reqinput, output, inputpolicy, outputpolicy, policy string
 var verify bool
 var policies multiValueFlag
 
@@ -19,10 +19,13 @@ func init() {
 	flag.StringVar(&resource, "resource", "", "A top-level label used to define the Cue Definition in cue mode")
 	flag.StringVar(&reqinput, "reqinput", "", "Input file in JSON/YAML format for validating in different modes")
 	flag.StringVar(&output, "output", "", "Output path for Dockerfile for in container mode")
-	flag.Var(&policies, "policy", "Validation policies, .cue, .rego or CEL policy files to be used in respective mode.")
+	// TODO: Change the name policies OR update the logic in all the modes to accept policy as a String instead of []string
+	flag.Var(&policies, "policies", "Validation policies, .cue, .rego or CEL policy files to be used in respective mode.")
 	flag.StringVar(&inputpolicy, "inputpolicy", "", "Rego policy to validate JSON input in container mode")
 	flag.StringVar(&outputpolicy, "outputpolicy", "", "Rego policy to validate generated Dockerfile in container mode")
 	flag.BoolVar(&verify, "verify", false, "Flag to perform validation and skip generation of final manifest")
+	flag.StringVar(&policy, "policy", "", "a directory containing cue.mod and cue definitions")
+
 	flag.Usage = func() {
 		helpText := `
 Usage of genval:
@@ -94,7 +97,7 @@ func main() {
 		modes.ExecuteContainer(reqinput, output, inputpolicy, outputpolicy)
 	case "cue":
 		// Call the Cue mode's execution function
-		modes.ExecuteCue(reqinput, resource, verify, policies...)
+		modes.ExecuteCue(reqinput, resource, verify, policy)
 	case "k8s":
 		// Call the K8s with rego mode's execution function
 		modes.ExecuteK8s(reqinput, policies...)
