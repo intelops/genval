@@ -27,7 +27,6 @@ func init() {
 }
 
 func ExecuteCue(reqinput, resource string, verify bool, policy string) {
-
 	td, cleanup, err := utils.TempDirWithCleanup()
 	if err != nil {
 		log.Fatal(err)
@@ -88,7 +87,7 @@ func ExecuteCue(reqinput, resource string, verify bool, policy string) {
 
 	// Check if the output directory exists, if not create it
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
-		err := os.Mkdir(outputDir, 0755)
+		err := os.Mkdir(outputDir, 0o755)
 		if err != nil {
 			log.Fatalf("Error creating output directory: %v", err)
 		}
@@ -122,7 +121,7 @@ func ExecuteCue(reqinput, resource string, verify bool, policy string) {
 				outputFileName := strings.TrimSuffix(baseName, filepath.Ext(baseName)) + ".yaml"
 				fullOutputPath := filepath.Join(outputDir, outputFileName)
 
-				err = os.WriteFile(fullOutputPath, yamlData, 0644)
+				err = os.WriteFile(fullOutputPath, yamlData, 0o644)
 				if err != nil {
 					log.Errorf("Writing YAML: %v", err)
 					return

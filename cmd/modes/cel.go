@@ -11,7 +11,6 @@ import (
 )
 
 func ExecuteCEL(reqinput string, policies ...string) {
-
 	inputFile := reqinput
 	policyFile := policies
 

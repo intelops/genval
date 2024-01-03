@@ -89,5 +89,4 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 	}
 
 	return policyError
-
 }

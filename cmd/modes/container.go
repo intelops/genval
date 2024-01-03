@@ -55,7 +55,7 @@ func ExecuteContainer(value, output, inputpolicy, outputpolicy string) {
 	dockerfileContent := generate.GenerateDockerfileContent(&data)
 
 	outputData := []byte(dockerfileContent)
-	err = os.WriteFile(outputPath, outputData, 0644)
+	err = os.WriteFile(outputPath, outputData, 0o644)
 	if err != nil {
 		log.Error("Error writing Dockerfile:", err)
 		return

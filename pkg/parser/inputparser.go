@@ -3,12 +3,13 @@ package parser
 import (
 	"encoding/json"
 	"errors"
-	log "github.com/sirupsen/logrus"
 	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/intelops/genval/pkg/utils"
 	"gopkg.in/yaml.v3"

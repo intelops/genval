@@ -10,9 +10,11 @@ import (
 	"github.com/intelops/genval/cmd/modes"
 )
 
-var mode, resource, reqinput, output, inputpolicy, outputpolicy, policy string
-var verify bool
-var policies multiValueFlag
+var (
+	mode, resource, reqinput, output, inputpolicy, outputpolicy, policy string
+	verify                                                              bool
+	policies                                                            multiValueFlag
+)
 
 func init() {
 	flag.StringVar(&mode, "mode", "", "Specify mode: 'container' for Dockerfile validation/generation or 'cue' for K8s resource validation/generation")

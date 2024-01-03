@@ -155,7 +155,7 @@ func TestReadRegoFile(t *testing.T) {
 	}
 
 	// Create a sample file for testing
-	if err := os.WriteFile("test.rego", []byte("test content from file"), 0644); err != nil {
+	if err := os.WriteFile("test.rego", []byte("test content from file"), 0o644); err != nil {
 		log.Println("Failed to write to file:", err)
 	}
 	defer os.Remove("test.rego")
