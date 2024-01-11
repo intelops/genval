@@ -22,7 +22,7 @@ Please follow these steps and note these guidelines to begin contributing:
 ## Set up your Local Development Environment
 
 Make sure you have built the [application from source](./README.md/#build-from-source) on your operating system before you start contributing:
- 
+
 Clone the Genval repository:
 
 ```shell
@@ -114,7 +114,7 @@ package tekton
 
 import "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 
-#Pipeline: v1beta1.#Pipeline & { 
+#Pipeline: v1beta1.#Pipeline & {
 	apiVersion: string | *"tekton.dev/v1beta1"
 	kind:       string | *"Pipeline"
     ...

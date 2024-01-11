@@ -8,7 +8,7 @@ import "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	metadata:   _Metadata
 	spec:       v1beta1.#PipelineSpec & {
 		params: [...{
-			name:        string 
+			name:        string
 			description: string
 			...
 		}]

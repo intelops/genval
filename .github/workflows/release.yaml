@@ -8,7 +8,7 @@ name: release
 on:
   push:
     tags:
-      - 'v*'  # Run pn Push tag 
+      - 'v*'  # Run pn Push tag
 
 permissions:
    contents: write # needed to write releases
@@ -28,7 +28,7 @@ jobs:
           cache: true
       - name: Run tests
         run: go test ./... -coverprofile=coverage.out -coverpkg=./... -covermode=atomic
-        
+
       - uses: sigstore/cosign-installer@v3.1.2         # installs cosign
       - uses: anchore/sbom-action/download-syft@v0.14.3 # installs syft
       - uses: goreleaser/goreleaser-action@v5          # run goreleaser
@@ -50,8 +50,7 @@ jobs:
             --cert "https://github.com/intelops/genval/releases/download/${TAG}/checksums.txt.pem" \
             --signature "https://github.com/intelops/genval/releases/download/${TAG}/checksums.txt.sig" \
             ./checksums.txt
-          
- 
-          
-        
-      
+
+
+
+

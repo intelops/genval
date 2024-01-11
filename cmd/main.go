@@ -71,10 +71,10 @@ Modes:
 
 %s
   - showjson: Helper mode to print the JSON representation of input.
-    Arguments: <Dockerfile Or .tf file> 
+    Arguments: <Dockerfile Or .tf file>
     Example usage:
 	  ./genval --mode=showjson --reqinput=Dockerfle
-						
+
 `
 
 		modeHeading := color.New(color.FgGreen, color.Bold).SprintfFunc()
