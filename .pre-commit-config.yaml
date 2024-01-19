@@ -134,6 +134,6 @@ repos:
         else
             echo "WARNING: The latest commit is not signed with gitsign."
         fi
-        exit 0
+        exit 1
     language: system
     pass_filenames: false
