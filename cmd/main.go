@@ -65,6 +65,12 @@ Modes:
       ./genval --mode=cel --reqinput=deployment.json --policy=<path/to/CEL policy>
 
 %s
+  - dockerval: Validate Dockerfile with Rego policies
+	  Aeguments: <reqinput.json> <Rego policy>
+		Example usage:
+		  ./genval --mode dockerval --reqinput ./Dockerfile
+
+%s
   - showjson: Helper mode to print the JSON representation of input.
     Arguments: <Dockerfile Or .tf file> 
     Example usage:
@@ -75,7 +81,7 @@ Modes:
 		modeHeading := color.New(color.FgGreen, color.Bold).SprintfFunc()
 		fmt.Fprintf(os.Stderr, helpText, modeHeading("Container Mode:"), modeHeading("Cue Mode:"),
 			modeHeading("K8s Mode:"), modeHeading("Terraform Mode:"), modeHeading("CEL Mode:"),
-			modeHeading("ShowJSON Mode:"))
+			modeHeading("ShowJSON Mode:"), modeHeading("Dockerval Mode:"))
 		flagsHeader := color.New(color.FgYellow, color.Bold).Sprint("Available flags:")
 		fmt.Fprintf(os.Stderr, "\n%s\n\n", flagsHeader)
 
@@ -95,6 +101,9 @@ func main() {
 	case "cue":
 		// Call the Cue mode's execution function
 		modes.ExecuteCue(reqinput, resource, verify, policies...)
+	case "dockerval":
+		// Call the Dockerfile validation execution function
+		modes.ExecuteDockerfileval(reqinput, outputpolicy)
 	case "k8s":
 		// Call the K8s with rego mode's execution function
 		modes.ExecuteK8s(reqinput, policies...)

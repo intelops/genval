@@ -39,7 +39,7 @@ func ExecuteCue(reqinput, resource string, verify bool, policies ...string) {
 	defer cleanup()
 	defer func() {
 		if err := utils.CleanupDownloadedDir(); err != nil {
-			log.Printf("Error removing cue_downloads directory: %v", err)
+			log.Printf("Error removing cue_downloads directoclangry: %v", err)
 		}
 	}()
 
