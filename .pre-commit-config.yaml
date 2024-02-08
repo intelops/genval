@@ -1,0 +1,115 @@
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v4.5.0
+  hooks:
+  # Checks for files that contain merge conflict strings.
+  - id: check-merge-conflict
+  # Detects aws credentials from the aws cli credentials file.
+  - id: detect-aws-credentials
+    args: [--allow-missing-credentials]
+  # detects the presence of private keys.
+  - id: detect-private-key
+  # Trims trailing whitespace in codebase.
+  - id: trailing-whitespace
+  # Protect commit to main branch
+  - id: no-commit-to-branch
+    args: [--branch,main]
+
+
+# Check is the Commit is Signed off using `--signoff/-s`
+- repo: https://github.com/KAUTH/pre-commit-git-checks
+  rev: v0.0.1 # Use the SHA or tag you want to point to
+  hooks:
+    - id: git-signoff
+      stages: [commit-msg]
+
+# Checks your git commit messages for style.
+- repo: https://github.com/jorisroovers/gitlint
+  rev:  v0.19.1
+  hooks:
+  - id: gitlint
+    name: Scan Commit messages
+
+# Detects hardcoded secrets, security vulnerabilities and policy breaks using GGShield
+- repo: https://github.com/zricethezav/gitleaks
+  rev: v8.18.1
+  hooks:
+  - id: gitleaks
+    name: Detect hardcoded secrets
+    description: Detect hardcoded secrets using Gitleaks
+    entry: gitleaks protect --verbose --redact --staged
+    language: golang
+    pass_filenames: false
+
+- repo: https://github.com/Bahjat/pre-commit-golang
+  rev: v1.0.3
+  hooks:
+  # Formats Go code
+  # - id: gofumpt # requires gofumpt to be installed from github.com/mvdan/gofumpt
+  #   name: Go formatter
+  #   description: Runs a strict Go formatter
+  - id: go-fmt-import
+    name: Go formatter
+    description: Go formatter with fmt and imports
+  # Runs Unit tests
+  - id: go-unit-tests
+    name: Run Unit tests
+    desription: Runs all the unit tests in the repo
+    # Runs static analysis of the Go code
+  - id: go-static-check
+    name: Go Static Check
+    description: Finds bugs and performance issues
+
+# Local hooks
+
+# Check for Dockerfile in a project
+- repo: local
+  hooks:
+  - name: Check Dockerfile
+    id: check-dockerfile-sh
+    entry: bash
+    args:
+    - -c
+    - |
+        check_dockerfile() {
+        if [[ $1 == *"Dockerfile"* ]]; then
+              base_image=$(grep '^FROM' "$1" | awk '{print $2}')
+            if [[ $base_image != cgr.dev/chianguard* ]]; then
+                echo "Error: Base image in $1 is not from cgr.dev/chianguard"
+                return 1
+            fi
+        fi
+        return 0
+        }
+
+        export -f check_dockerfile
+
+        if find . -type f -exec bash -c 'check_dockerfile "$0"' {} \; | grep -q 'Error'; then
+          echo "Commit failed due to non-compliant Dockerfile(s)."
+          exit 1
+        fi
+
+        echo "All Dockerfiles are compliant."
+        exit 0
+    language: system
+    pass_filenames: false
+
+# Check commit signed by gitsign
+- repo: local
+  hooks:
+  - name: Check GitSign
+    id: check-gitsign-sh
+    entry: bash
+    args:
+    - -c
+    - |
+        latest_commit=$(git rev-parse HEAD)
+        signed_commit=$(git verify-commit $latest_commit 2>&1)
+        if [[ $signed_commit == *"Validated Git signature: true"* ]]; then
+            echo "Latest commit is signed with gitsign."
+        else
+            echo "WARNING: The latest commit is not signed with gitsign."
+        fi
+        exit 1
+    language: system
+    pass_filenames: false
