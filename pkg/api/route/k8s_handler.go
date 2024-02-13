@@ -29,7 +29,7 @@ func K8sHandler(c *gin.Context) {
 		return
 	}
 
-	cmd := exec.Command("./bin/genval", "--mode", mode, "--reqinput", reqinput, "--policy", policies)
+	cmd := exec.Command("/genval", "--mode", mode, "--reqinput", reqinput, "--policy", policies)
 	bs, err := cmd.Output()
 	if err != nil {
 		log.Errorf("Error executing Command: %v", err)

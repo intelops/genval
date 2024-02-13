@@ -43,7 +43,7 @@ func ContainerHandler(c *gin.Context) {
 	}
 	// log.Infof("Received Data: reqinput=%s, output=%s, inputpolicy=%s, outputpolicy=%s", reqinput, output, inputpolicy, outputpolicy)
 
-	cmd := exec.Command("./bin/genval", "--mode", mode, "--reqinput", reqinput, "--output", output, "--inputpolicy", inputpolicy, "--outputpolicy", outputpolicy)
+	cmd := exec.Command("/genval", "--mode", mode, "--reqinput", reqinput, "--output", output, "--inputpolicy", inputpolicy, "--outputpolicy", outputpolicy)
 	// errOutput, err := cmd.CombinedOutput()
 	// if err != nil {
 	// 	log.Errorf("Error executing Command: %v\nError Output: %s", err, errOutput)

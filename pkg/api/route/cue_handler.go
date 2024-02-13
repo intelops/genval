@@ -32,7 +32,7 @@ func CueHandler(c *gin.Context) {
 		return
 	}
 
-	cmd := exec.Command("./bin/genval", "--mode", mode, "--reqinput", reqinput, "--resource", resource, "--policy", policy)
+	cmd := exec.Command("/genval", "--mode", mode, "--reqinput", reqinput, "--resource", resource, "--policy", policy)
 	log.Printf("CMD:%v", cmd)
 
 	bs, err := cmd.Output()
