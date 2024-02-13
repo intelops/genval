@@ -1,6 +1,6 @@
 module github.com/intelops/genval
 
-go 1.21.1
+go 1.21.7
 
 require (
 	cuelang.org/go v0.7.0

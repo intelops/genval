@@ -1,0 +1,6 @@
+projectKey=genvalforl
+serverUrl=http://localhost:9000
+serverVersion=10.4.0.87286
+dashboardUrl=http://localhost:9000/dashboard?id=genvalforl
+ceTaskId=3eb58766-13fa-4691-abca-91a523d05136
+ceTaskUrl=http://localhost:9000/api/ce/task?id=3eb58766-13fa-4691-abca-91a523d05136
