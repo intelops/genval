@@ -22,7 +22,7 @@ func rootCommand() *cobra.Command {
 		╚██████╔╝███████╗██║░╚███║░░╚██╔╝░░██║░░██║███████╗╚█████╔╝░░░██║░░░███████╗
 		░╚═════╝░╚══════╝╚═╝░░╚══╝░░░╚═╝░░░╚═╝░░╚═╝╚══════╝░╚════╝░░░░╚═╝░░░╚══════╝
 
-genvalctl is a CLI tool to generate and validate files.
+		Genval is a versatile Go utility that simplifies configuration management for a wide range of tools, including Dockerfile, Kubernetes manifests, Helm, Timoni, Kustomize, Kubernetes Operators, Tekton, GitOps, Kubernetes Infrastructure YAML files, and more.
 		`,
 	}
 }
