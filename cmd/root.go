@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/intelops/genval/cmd/container"
 	"github.com/intelops/genval/pkg/log"
 	"github.com/spf13/cobra"
 )
@@ -30,6 +31,8 @@ func rootCommand() *cobra.Command {
 // buildCommand creates and returns the root command for the CLI application.
 func buildCommand() *cobra.Command {
 	rootCmd := rootCommand()
+
+	rootCmd.AddCommand(container.NewContainerCommand())
 
 	return rootCmd
 }
