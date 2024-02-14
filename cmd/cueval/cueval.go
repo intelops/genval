@@ -1,23 +1,28 @@
 package cueval
 
 import (
+	"embed"
 	"fmt"
 	"os"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
-	embeder "github.com/intelops/genval"
 	"github.com/intelops/genval/pkg/cuecore"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
+// Embed all `.cue` files in the cue.mod directory.
+
+// go:embed cue.mod/module.cue cue.mod/gen/**/*.cue cue.mod
+var CueDef embed.FS
+
 func Execute(resource, reqinput string, policies ...string) {
 
 	const modPath = "github.com/intelops/genval"
-	staticFS := embeder.CueDef
+	staticFS := CueDef
 
 	td, cleanup, err := utils.TempDirWithCleanup()
 	if err != nil {

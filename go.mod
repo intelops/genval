@@ -11,6 +11,11 @@ require (
 )
 
 require (
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+)
+
+require (
 	cuelabs.dev/go/oci/ociregistry v0.0.0-20231103182354-93e78c079a13 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
@@ -41,6 +46,7 @@ require (
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20230328191034-3462fbc510c0 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
+	github.com/spf13/cobra v1.8.0
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
