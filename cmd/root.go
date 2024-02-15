@@ -5,6 +5,7 @@ import (
 
 	"github.com/intelops/genval/cmd/container"
 	"github.com/intelops/genval/pkg/log"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -29,10 +30,10 @@ func rootCommand() *cobra.Command {
 }
 
 // buildCommand creates and returns the root command for the CLI application.
-func buildCommand() *cobra.Command {
+func buildCommand(logger *logrus.Logger) *cobra.Command {
 	rootCmd := rootCommand()
 
-	rootCmd.AddCommand(container.NewContainerCommand())
+	rootCmd.AddCommand(container.NewContainerCommand(logger))
 
 	return rootCmd
 }
@@ -43,7 +44,7 @@ func Execute() {
 	logger := log.GetLogger()
 
 	// Build the root command
-	rootCmd := buildCommand()
+	rootCmd := buildCommand(logger)
 
 	// Execute the root command
 	err := rootCmd.Execute()
