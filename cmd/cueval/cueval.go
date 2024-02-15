@@ -17,7 +17,7 @@ import (
 // Embed all `.cue` files in the cue.mod directory.
 
 // go:embed cue.mod/module.cue cue.mod/gen/**/*.cue cue.mod
-var CueDef embed.FS
+var CueDef embed.FS //nolint:stylecheck // ST1022 ignore this!	
 
 func Execute(resource, reqinput string, policies ...string) {
 

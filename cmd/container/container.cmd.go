@@ -16,7 +16,7 @@ var cmd *containerCmd
 
 func NewContainerCommand(logger *logrus.Logger) *cobra.Command {
 	cmd = &containerCmd{
-		logger: logger,
+		logger:      logger,
 		projectName: &textinput.Output{},
 	}
 	containerCmd := &cobra.Command{
