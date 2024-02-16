@@ -1,10 +1,21 @@
 package server
 
-import "github.com/gin-gonic/gin"
+import (
+	"os"
 
-const PORT = "3030"
+	"github.com/gin-gonic/gin"
+	"github.com/intelops/genval/pkg/log"
+)
+
+const PORT = ":3030"
 
 func InitServer() {
+	logger := log.GetLogger()
 	router := gin.Default()
-	router.Run(":" + PORT)
+	err := router.Run(PORT)
+
+	if err != nil {
+		logger.Errorf("Error starting server: %s", err)
+		os.Exit(1)
+	}
 }
