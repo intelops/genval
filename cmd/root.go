@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"github.com/intelops/genval/cmd/container"
+	"github.com/intelops/genval/cmd/server"
 	"github.com/intelops/genval/pkg/log"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -34,6 +35,7 @@ func buildCommand(logger *logrus.Logger) *cobra.Command {
 	rootCmd := rootCommand()
 
 	rootCmd.AddCommand(container.NewContainerCommand(logger))
+	rootCmd.AddCommand(server.NewServerCommand(logger))
 
 	return rootCmd
 }
