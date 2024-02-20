@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/fs"
@@ -19,6 +20,7 @@ import (
 	"github.com/google/go-github/v57/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
+	"gopkg.in/yaml.v3"
 )
 
 // TempDirWithCleanup creates a temporary directory and returns its path along with a cleanup function.
@@ -163,13 +165,53 @@ func compileAndAddFile(filePath string, dataMap map[string]cue.Value) error {
 	if err != nil {
 		return err
 	}
+
 	ctx := cuecontext.New()
-	compiledData := ctx.CompileBytes(fileContent)
-	if compiledData.Err() != nil {
-		return compiledData.Err()
+
+	// Check if the file has a YAML extension
+	if isYAMLFile(filePath) {
+		// Convert YAML to JSON
+		jsonContent, err := yamlToJSON(fileContent)
+		if err != nil {
+			return err
+		}
+		compiledData := ctx.CompileString(string(jsonContent))
+		if compiledData.Err() != nil {
+			return compiledData.Err()
+		}
+		dataMap[filepath.Base(filePath)] = compiledData
+	} else {
+		// For other extensions, directly compile the content
+		compiledData := ctx.CompileBytes(fileContent)
+		if compiledData.Err() != nil {
+			return compiledData.Err()
+		}
+		dataMap[filepath.Base(filePath)] = compiledData
 	}
-	dataMap[filepath.Base(filePath)] = compiledData
+
 	return nil
+}
+
+// isYAMLFile checks if the file extension is either yaml or yml
+func isYAMLFile(filePath string) bool {
+	ext := strings.ToLower(filepath.Ext(filePath))
+	return ext == ".yaml" || ext == ".yml"
+}
+
+// yamlToJSON converts YAML to JSON
+func yamlToJSON(yamlContent []byte) ([]byte, error) {
+	var yamlMap interface{}
+	err := yaml.Unmarshal(yamlContent, &yamlMap)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonContent, err := json.Marshal(yamlMap)
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonContent, nil
 }
 
 // isURL checks if the given string is a valid URL.
