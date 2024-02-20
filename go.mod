@@ -5,7 +5,7 @@ go 1.21
 require (
 	cuelang.org/go v0.7.1
 	github.com/fatih/color v1.16.0
-	github.com/google/cel-go v0.19.0
+	github.com/google/cel-go v0.20.0
 	github.com/hashicorp/hcl/v2 v2.19.1
 	github.com/jedib0t/go-pretty/v6 v6.5.4
 	github.com/open-policy-agent/opa v0.61.0
