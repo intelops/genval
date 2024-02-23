@@ -39,7 +39,7 @@ func ParseDockerfileInput(filename string, data interface{}) error {
 	fileExtension = strings.TrimPrefix(fileExtension, ".")
 
 	// TODO Change funct name for utils.ReadPOlicyFile
-	inputContent, err := utils.ReadPolicyFile(filename)
+	inputContent, err := utils.ReadFile(filename)
 	// log.Infof("INPUT CONTENT: %v", string(inputContent))
 	if err != nil {
 		log.Fatalf("Unable to read input: %v", err)
@@ -97,7 +97,7 @@ func ProcessInput(input string) ([]byte, error) {
 	if isJSON(input) {
 		data = []byte(input)
 	} else {
-		data, err = readData(input)
+		data, err = utils.ReadFile(input)
 		if err != nil {
 			return nil, err
 		}

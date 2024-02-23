@@ -282,7 +282,7 @@ func (c *converter) wrapExpr(expr hclsyntax.Expression) string {
 // ConvertTFtoJSON reads a Terraform file and converts it to JSON format.
 func ConvertTFtoJSON(tfFilePath string) (string, error) {
 	// Read the Terraform file
-	tfData, err := utils.ReadPolicyFile(tfFilePath)
+	tfData, err := utils.ReadFile(tfFilePath)
 	if err != nil {
 		return "", err
 	}

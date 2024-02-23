@@ -5,7 +5,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"io"
 	"io/fs"
 	"net/http"
@@ -22,6 +22,8 @@ import (
 	"golang.org/x/oauth2"
 	"gopkg.in/yaml.v3"
 )
+
+var token = os.Getenv("GITHUB_TOKEN")
 
 // TempDirWithCleanup creates a temporary directory and returns its path along with a cleanup function.
 func TempDirWithCleanup() (dirPath string, cleanupFunc func(), err error) {
@@ -82,7 +84,7 @@ func CompileFromURL(client *github.Client, u *url.URL) (map[string]cue.Value, er
 	ctx := cuecontext.New()
 
 	// Use fetchFromGitHub to get the file or directory content
-	fileCon, dirCon, err := fetchFromGitHub(u.String(), client)
+	fileCon, dirCon, err := fetchFromGitHub(u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -103,7 +105,7 @@ func CompileFromURL(client *github.Client, u *url.URL) (map[string]cue.Value, er
 		// If directory
 		for _, content := range dirCon {
 			if content.GetType() == "file" {
-				fileCon, _, err := fetchFromGitHub(content.GetDownloadURL(), client)
+				fileCon, _, err := fetchFromGitHub(content.GetDownloadURL())
 				if err != nil {
 					log.Errorf("Error reading file from GitHub Directory: %v", err)
 					continue
@@ -220,11 +222,13 @@ func isURL(s string) bool {
 	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
-func fetchFromGitHub(urlStr string, client *github.Client) (*github.RepositoryContent, []*github.RepositoryContent, error) {
+func fetchFromGitHub(urlStr string) (*github.RepositoryContent, []*github.RepositoryContent, error) {
+	// Use environment variable for GitHub token
+	client := CreateGitHubClient(token)
 	// Parse the URL
 	u, err := url.Parse(urlStr)
 	if err != nil {
-		log.Errorf("cannot parse URL '%s': %v", urlStr, err)
+		log.Errorf("error processing the provided URL '%s'. Please ensure it is a valid URL: %v", urlStr, err)
 		return nil, nil, err
 	}
 
@@ -256,13 +260,14 @@ func fetchFromGitHub(urlStr string, client *github.Client) (*github.RepositoryCo
 		return fileCon, dirCon, nil
 	}
 	// If it's not a GitHub URL, return an error
-	return nil, nil, fmt.Errorf("unsupported URL: %s", urlStr)
+	log.Errorf("unsupported URL: %s", urlStr)
+	return nil, nil, err
 }
 
 // fetchFilenames fetches the content of a given URL and saves it to a temporary file and returns file names.
 func fetchFilenames(urlStr string, client *github.Client) (string, error) {
 	// Use the fetchFromGitHub function to get the file content
-	fileCon, _, err := fetchFromGitHub(urlStr, client)
+	fileCon, _, err := fetchFromGitHub(urlStr)
 	if err != nil {
 		log.Errorf("failed fetching content from GitHub: %v", err)
 		return "", err
@@ -282,12 +287,10 @@ func fetchFilenames(urlStr string, client *github.Client) (string, error) {
 	dir := filepath.Join(os.TempDir(), "cue_downloads")
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		if err := os.Mkdir(dir, 0777); err != nil {
-			// Handle error here
-			log.Println("Failed to create directory:", err)
+			log.Errorf("Failed to create directory: %v", err)
 		}
 	} else if err != nil {
-		// Handle other potential errors from os.Stat
-		log.Println("Error checking directory:", err)
+		log.Errorf("Error checking directory: %v", err)
 	}
 
 	// Write the content to a file with the original filename
@@ -303,7 +306,6 @@ func fetchFilenames(urlStr string, client *github.Client) (string, error) {
 
 // ProcessInputs processes the CLI args, fetches content from URLs if needed, and returns a slice of filenames.
 func ProcessInputs(inputs []string) ([]string, error) {
-	token := os.Getenv("GITHUB_TOKEN") // Use environment variable for GitHub token
 	client := CreateGitHubClient(token)
 	var filenames []string
 	for _, input := range inputs {
@@ -339,42 +341,75 @@ func IsURL(s string) bool {
 	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
-// ReadPolicyFile read the policy provided from cli args, accepts polices from a remote URL or local file
-func ReadPolicyFile(policyFile string) ([]byte, error) {
+// ReadFile reads the files provided from cli args and returns []byte and an error if any
+func ReadFile(content string) ([]byte, error) {
 	var policyContent []byte
 	var err error
 
-	// Attempt to parse the policyFile as a URL
-	u, err := url.ParseRequestURI(policyFile)
-	if err == nil && u.Scheme != "" && u.Host != "" {
-		// It's a URL, fetch content
-		resp, err := http.Get(u.String())
+	// Attempt to parse the content as a URL
+	u, err := url.ParseRequestURI(content)
+	if err == nil && strings.HasPrefix(u.Hostname(), "github.com") && strings.HasPrefix(u.Hostname(), "raw.githubusercontent.com") {
+		fileCon, dirCon, err := fetchFromGitHub(u.String())
 		if err != nil {
-			log.Printf("error fetching policy from URL: %v", err)
+			return nil, err
+		}
+		// Check if it's a directory or a single file
+		if len(dirCon) == 0 {
+			// If single file
+			policyContent, err := fileCon.GetContent()
+			if err != nil {
+				return nil, err
+			}
+			return []byte(policyContent), nil
+		}
+		// If directory
+		for _, content := range dirCon {
+			if content.GetType() == "file" {
+				fileCon, _, err := fetchFromGitHub(content.GetDownloadURL())
+				if err != nil {
+					log.Errorf("Error reading file from GitHub Directory: %v", err)
+					continue
+				}
+				policyContent, err := fileCon.GetContent()
+				if err != nil {
+					return nil, err
+				}
+				return []byte(policyContent), nil
+			}
+		}
+	} else {
+		if err == nil && u.Scheme != "" && u.Host != "" {
+			policyContent, err = readData(content)
+			if err != nil {
+				return nil, err
+			}
+			return policyContent, nil
+		} else {
+			// Handle local file
+			policyContent, err = os.ReadFile(content)
+			if err != nil {
+				return nil, err
+			}
+			return policyContent, nil
+		}
+	}
+	return nil, errors.New("unsupported file source. Please provide a valid URL or a local file path")
+
+}
+
+// readData reads data from a URL or a local file.
+func readData(input string) ([]byte, error) {
+	if IsURL(input) {
+		resp, err := http.Get(input)
+		if err != nil {
 			return nil, err
 		}
 		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			log.Printf("error fetching policy from URL: status code %d", resp.StatusCode)
-			return nil, fmt.Errorf("failed to fetch policy from URL with status code %d", resp.StatusCode)
-		}
-		policyContent, err = io.ReadAll(resp.Body)
-		if err != nil {
-			log.Printf("error reading policy from URL: %v", err)
-			return nil, err
-		}
-	} else {
-		// If not a URL, treat it as a local file path
-		policyContent, err = os.ReadFile(policyFile)
-		if err != nil {
-			log.Printf("error reading policy from file: %v", err)
-			return nil, err
-		}
+		return io.ReadAll(resp.Body)
 	}
-
-	return policyContent, nil
+	return os.ReadFile(input)
 }
+
 func ExtractPackageName(content []byte) (string, error) {
 	scanner := bufio.NewScanner(bytes.NewReader(content))
 	for scanner.Scan() {

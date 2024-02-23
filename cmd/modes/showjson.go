@@ -29,7 +29,7 @@ func ExecuteShowJSON(reqinput string) {
 	}
 
 	if strings.Contains(reqinput, "Dockerfile") {
-		inputContent, err := utils.ReadPolicyFile(reqinput)
+		inputContent, err := utils.ReadFile(reqinput)
 		if err != nil {
 			log.Errorf("Error reading input: %v", err)
 		}
