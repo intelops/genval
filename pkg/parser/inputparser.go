@@ -3,12 +3,10 @@ package parser
 import (
 	"encoding/json"
 	"errors"
-	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/intelops/genval/pkg/utils"
 	"gopkg.in/yaml.v3"
@@ -64,19 +62,6 @@ func ParseDockerfileInput(filename string, data interface{}) error {
 func isJSON(str string) bool {
 	var js json.RawMessage
 	return json.Unmarshal([]byte(str), &js) == nil
-}
-
-// readData reads data from a URL or a local file.
-func readData(input string) ([]byte, error) {
-	if utils.IsURL(input) {
-		resp, err := http.Get(input)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		return io.ReadAll(resp.Body)
-	}
-	return os.ReadFile(input)
 }
 
 // convertYAMLToJSON converts YAML data to JSON.
