@@ -16,13 +16,13 @@ import (
 
 func ValidateWithRego(inputContent string, regoPolicy string) error {
 
-	// If input is a file
+	// read input is a file
 	jsonData, err := parser.ProcessInput(inputContent)
 	if err != nil {
 		log.Errorf("Error reading input content file: %v", err)
 	}
 
-	k8sPolicy, err := utils.ReadPolicyFile(regoPolicy)
+	k8sPolicy, err := utils.ReadFile(regoPolicy)
 	if err != nil {
 		log.WithError(err).Error("Error reading the policy file")
 		return err

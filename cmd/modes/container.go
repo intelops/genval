@@ -40,7 +40,7 @@ func ExecuteContainer(value, output, inputpolicy, outputpolicy string) {
 		return
 	}
 
-	inputContent, err := utils.ReadPolicyFile(inputPath)
+	inputContent, err := utils.ReadFile(inputPath)
 	if err != nil {
 		log.Fatalf("Unable to read input: %v", err)
 	}

@@ -161,7 +161,7 @@ Genval offers four modes:
 A helper mode `showjson` is available for user to view the **JSON** representation of the input files passed to Genval. In `--mode showjson` a user can pass the input file, for example a Dockerfile, Terraform file or a Kubernetes YAML manifests and get the JSON representation of that specific input. As most of the policies are written based on input in a JSON structured format. This would enable user to refer this JSON document to write their custom policies in **Rego** and **CEL**.
 
 
-> All the modes accept inputs that include local files and files obtained from a remote URL, such as those from a Git repositoryin raw format. 
+> All the modes accept inputs that include local files and files obtained from a remote URL, such as those from a Git repositoryin raw format. If you want to query the files from the `https://github.com`. You need to authenticate to GitHub by providing your Personal Access Token. You can do this by creating and an enviornment variable named. Here's how to do it: `export GITHUB_TOKEN=<Your...PAT>` 
   
 
 ### Dockerfile Validation and Generation:
