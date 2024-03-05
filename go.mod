@@ -7,7 +7,7 @@ require (
 	github.com/fatih/color v1.16.0
 	github.com/google/cel-go v0.20.0
 	github.com/google/go-github/v57 v57.0.0
-	github.com/hashicorp/hcl/v2 v2.19.1
+	github.com/hashicorp/hcl/v2 v2.20.0
 	github.com/jedib0t/go-pretty/v6 v6.5.4
 	github.com/open-policy-agent/opa v0.62.0
 	github.com/sirupsen/logrus v1.9.3
@@ -69,9 +69,11 @@ require (
 	go.opentelemetry.io/otel/sdk v1.23.1 // indirect
 	go.opentelemetry.io/otel/trace v1.23.1 // indirect
 	golang.org/x/exp v0.0.0-20231006140011-7918f672742d // indirect
+	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/net v0.22.0 // indirect
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/tools v0.15.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240205150955-31a09d347014 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240205150955-31a09d347014 // indirect
