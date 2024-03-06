@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -61,9 +60,6 @@ Genval supports both local file paths or remote URLs, such as those hosted on Gi
 }
 
 func runContainerCmd(cmd *cobra.Command, args []string) error {
-	if len(args) < 1 {
-		return errors.New("missing required args")
-	}
 
 	inputPath := containerArgs.reqinput
 	outputPath := containerArgs.output
