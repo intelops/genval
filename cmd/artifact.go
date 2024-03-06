@@ -6,7 +6,7 @@ import (
 
 var artifactCmd = &cobra.Command{
 	Use:   "artifact",
-	Short: "Command that manages building and pushing OCI artifacts",
+	Short: "Command that manages building, pushing and pulling of OCI artifacts",
 	Long: `
 artifact command provides capabilities for building and pushing of the OCI complient artifacts built form the
 generated/validated config files using Genval.

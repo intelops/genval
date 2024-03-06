@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
@@ -286,7 +287,7 @@ func fetchFilenames(urlStr string) (string, error) {
 	// Create a cue_downloads directory in /tmp to store the files
 	dir := filepath.Join(os.TempDir(), "cue_downloads")
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		if err := os.Mkdir(dir, 0777); err != nil {
+		if err := os.Mkdir(dir, 0o777); err != nil {
 			log.Errorf("Failed to create directory: %v", err)
 		}
 	} else if err != nil {
@@ -295,7 +296,7 @@ func fetchFilenames(urlStr string) (string, error) {
 
 	// Write the content to a file with the original filename
 	filePath := filepath.Join(dir, filename)
-	if err := os.WriteFile(filePath, []byte(fileContent), 0644); err != nil {
+	if err := os.WriteFile(filePath, []byte(fileContent), 0o644); err != nil {
 		log.Errorf("failed to write content to file: %v", err)
 		return "", err
 	}
@@ -396,7 +397,6 @@ func ReadFile(content string) ([]byte, error) {
 		return policyContent, nil
 	}
 	return nil, errors.New("unsupported file source. Please provide a valid URL or a local file path")
-
 }
 
 func ExtractPackageName(content []byte) (string, error) {
@@ -425,4 +425,18 @@ func CreateGitHubClient(token string) *github.Client {
 	tc := oauth2.NewClient(ctx, ts)
 	client := github.NewClient(tc)
 	return client
+}
+
+func CheckPathExists(path string) error {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("path %s does not exist", path)
+	}
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("path %s is not a directory", path)
+	}
+	return nil
 }
