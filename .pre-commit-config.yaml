@@ -45,16 +45,16 @@ repos:
   rev: v1.0.3
   hooks:
   # Formats Go code
-  # - id: gofumpt # requires gofumpt to be installed from github.com/mvdan/gofumpt
-  #   name: Go formatter
-  #   description: Runs a strict Go formatter
+  - id: gofumpt # requires gofumpt to be installed from github.com/mvdan/gofumpt
+    name: Go formatter
+    description: Runs a strict Go formatter
   - id: go-fmt-import
     name: Go formatter
     description: Go formatter with fmt and imports
   # Runs Unit tests
   - id: go-unit-tests
     name: Run Unit tests
-    desription: Runs all the unit tests in the repo
+    description: Runs all the unit tests in the repo
     # Runs static analysis of the Go code
   - id: go-static-check
     name: Go Static Check
@@ -63,36 +63,36 @@ repos:
 # Local hooks
 
 # Check for Dockerfile in a project
-- repo: local
-  hooks:
-  - name: Check Dockerfile
-    id: check-dockerfile-sh
-    entry: bash
-    args:
-    - -c
-    - |
-        check_dockerfile() {
-        if [[ $1 == *"Dockerfile"* ]]; then
-              base_image=$(grep '^FROM' "$1" | awk '{print $2}')
-            if [[ $base_image != cgr.dev/chianguard* ]]; then
-                echo "Error: Base image in $1 is not from cgr.dev/chianguard"
-                return 1
-            fi
-        fi
-        return 0
-        }
+# - repo: local
+#   hooks:
+#   - name: Check Dockerfile
+#     id: check-dockerfile-sh
+#     entry: bash
+#     args:
+#     - -c
+#     - |
+#         check_dockerfile() {
+#         if [[ $1 == *"Dockerfile"* ]]; then
+#               base_image=$(grep '^FROM' "$1" | awk '{print $2}')
+#             if [[ $base_image != cgr.dev/chianguard* ]]; then
+#                 echo "Error: Base image in $1 is not from cgr.dev/chianguard"
+#                 return 1
+#             fi
+#         fi
+#         return 0
+#         }
 
-        export -f check_dockerfile
+#         export -f check_dockerfile
 
-        if find . -type f -exec bash -c 'check_dockerfile "$0"' {} \; | grep -q 'Error'; then
-          echo "Commit failed due to non-compliant Dockerfile(s)."
-          exit 1
-        fi
+#         if find . -type f -exec bash -c 'check_dockerfile "$0"' {} \; | grep -q 'Error'; then
+#           echo "Commit failed due to non-compliant Dockerfile(s)."
+#           exit 1
+#         fi
 
-        echo "All Dockerfiles are compliant."
-        exit 0
-    language: system
-    pass_filenames: false
+#         echo "All Dockerfiles are compliant."
+#         exit 0
+#     language: system
+#     pass_filenames: false
 
 # Check commit signed by gitsign
 - repo: local

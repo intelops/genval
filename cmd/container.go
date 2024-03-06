@@ -52,15 +52,33 @@ the output policies.
 Provides flexibility of supplying input files in YAML or JSON formats, as well as policy files for input and output policies.
 Genval supports both local file paths or remote URLs, such as those hosted on GitHub (e.g., https://github.com)
 `,
-	Example: `./genval container --reqinput=input.json \
-  --output=output.Dockerfile \
-  --inputpolicy=<path/to/input.rego policy> \
-  --outputpolicy=<path/to/output.rego file>`,
+	Example: `
+# Generating and validating Dockerfile with local files
+./genval container --reqinput=input.json \
+--output=output.Dockerfile \
+--inputpolicy=<path/to/input.rego policy> \
+--outputpolicy=<path/to/output.rego file>
+
+# Generating and validating Dockewrfile by passing input template and security policies from remote URL's
+# like for example https://github.com
+
+./genval container --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/input-templates/dockerfile_input/clang_input.json \
+--output ./output/Dockerfile-cobra \
+--inputpolicy https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/default-policies/rego/inputfile_policies.rego \
+--outputpolicy https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/default-policies/rego/dockerfile_policies.rego
+
+# For authenticating with GitHub.com, set the env variable GITHUB_TOKEN
+# export GITHUB_TOKEN=<Your GitHub PAT>
+
+./genval container --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/dockerfile_input/clang_input.json \
+--output ./output/Dockefile-cobra \
+--inputpolicy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/inputfile_policies.rego \
+--outputpolicy  https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
+	`,
 	RunE: runContainerCmd,
 }
 
 func runContainerCmd(cmd *cobra.Command, args []string) error {
-
 	inputPath := containerArgs.reqinput
 	outputPath := containerArgs.output
 	inputPolicyFile := containerArgs.inputPolicy
