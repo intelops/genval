@@ -265,7 +265,7 @@ func fetchFromGitHub(urlStr string) (*github.RepositoryContent, []*github.Reposi
 }
 
 // fetchFilenames fetches the content of a given URL and saves it to a temporary file and returns file names.
-func fetchFilenames(urlStr string, client *github.Client) (string, error) {
+func fetchFilenames(urlStr string) (string, error) {
 	// Use the fetchFromGitHub function to get the file content
 	fileCon, _, err := fetchFromGitHub(urlStr)
 	if err != nil {
@@ -306,11 +306,10 @@ func fetchFilenames(urlStr string, client *github.Client) (string, error) {
 
 // ProcessInputs processes the CLI args, fetches content from URLs if needed, and returns a slice of filenames.
 func ProcessInputs(inputs []string) ([]string, error) {
-	client := CreateGitHubClient(token)
 	var filenames []string
 	for _, input := range inputs {
 		if isURL(input) {
-			filename, err := fetchFilenames(input, client)
+			filename, err := fetchFilenames(input)
 			if err != nil {
 				return nil, err
 			}
@@ -346,9 +345,16 @@ func ReadFile(content string) ([]byte, error) {
 	var policyContent []byte
 	var err error
 
+	if !isURL(content) {
+		policyContent, err := os.ReadFile(content)
+		if err != nil {
+			return nil, err
+		}
+		return policyContent, err
+	}
 	// Attempt to parse the content as a URL
 	u, err := url.ParseRequestURI(content)
-	if err == nil && strings.HasPrefix(u.Hostname(), "github.com") && strings.HasPrefix(u.Hostname(), "raw.githubusercontent.com") {
+	if err == nil && strings.HasPrefix(u.Hostname(), "github.com") || strings.HasPrefix(u.Hostname(), "raw.githubusercontent.com") {
 		fileCon, dirCon, err := fetchFromGitHub(u.String())
 		if err != nil {
 			return nil, err
@@ -378,36 +384,19 @@ func ReadFile(content string) ([]byte, error) {
 			}
 		}
 	} else {
-		if err == nil && u.Scheme != "" && u.Host != "" {
-			policyContent, err = readData(content)
-			if err != nil {
-				return nil, err
-			}
-			return policyContent, nil
-		} else {
-			// Handle local file
-			policyContent, err = os.ReadFile(content)
-			if err != nil {
-				return nil, err
-			}
-			return policyContent, nil
-		}
-	}
-	return nil, errors.New("unsupported file source. Please provide a valid URL or a local file path")
-
-}
-
-// readData reads data from a URL or a local file.
-func readData(input string) ([]byte, error) {
-	if IsURL(input) {
-		resp, err := http.Get(input)
+		resp, err := http.Get(content)
 		if err != nil {
 			return nil, err
 		}
 		defer resp.Body.Close()
-		return io.ReadAll(resp.Body)
+		policyContent, err = io.ReadAll(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+		return policyContent, nil
 	}
-	return os.ReadFile(input)
+	return nil, errors.New("unsupported file source. Please provide a valid URL or a local file path")
+
 }
 
 func ExtractPackageName(content []byte) (string, error) {
