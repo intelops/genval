@@ -4,5 +4,5 @@ import "embed"
 
 // Embed all `.cue` files in the cue.mod directory.
 
-//go:embed cue.mod/module.cue cue.mod/gen/**/*.cue cue.mod
+//go:embed module.cue gen/**/*.cue
 var CueDef embed.FS
