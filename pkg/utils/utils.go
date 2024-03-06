@@ -14,10 +14,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
+	"github.com/briandowns/spinner"
 	"github.com/google/go-github/v57/github"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -439,4 +441,12 @@ func CheckPathExists(path string) error {
 		return fmt.Errorf("path %s is not a directory", path)
 	}
 	return nil
+}
+
+// StartSpinner starts a spinner with the given message.
+func StartSpinner(msg string) *spinner.Spinner {
+	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond, spinner.WithWriter(os.Stderr))
+	s.Suffix = " " + msg
+	s.Start()
+	return s
 }
