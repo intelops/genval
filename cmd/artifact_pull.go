@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -74,27 +75,31 @@ func init() {
 }
 
 func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
+	// ctx :=
 	output := filepath.Dir(pullArgs.path)
 	if err := utils.CheckPathExists(output); err != nil {
 		log.Errorf("Error reading %s: %s\n", output, err)
 		os.Exit(1)
 	}
-	if pullArgs.verify {
-		ctx := context.Background()
-		co, err := oci.BuildCosignCheckOpts(ctx, pullArgs.cosignKey)
-		if err != nil {
-			return err
-		}
-		verified, err := oci.VerifyArifact(ctx, pullArgs.cosignKey, pullArgs.dest, co)
-		if err != nil {
-			log.Errorf("Artifact varifcation failed: %s", err)
-		}
-		spin := utils.StartSpinner("pushVarifying artifact")
+
+	if pullArgs.verify && pullArgs.cosignKey == "" {
+		spin := utils.StartSpinner("Verifying artifact")
 		defer spin.Stop()
-		if verified {
-			log.Printf("Artifact %s verified succussfully", pullArgs.dest)
+
+		verified, err := oci.VerifyArifact(context.Background(), pullArgs.dest, pullArgs.cosignKey)
+		if err != nil {
+			log.Errorf("Artifact verification failed: %s", err)
+			os.Exit(1)
 		}
+
+		if verified {
+			fmt.Printf("Artifact %s verified successfully", pullArgs.dest)
+		} else {
+			fmt.Println("Artifact verification failed.")
+		}
+
 		spin.Stop()
 	}
+
 	return nil
 }
