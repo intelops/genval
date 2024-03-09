@@ -3,17 +3,18 @@ package oci
 import (
 	"bufio"
 	"context"
+	"crypto/x509"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 
-	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/fulcio"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/rekor"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
-	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	sig "github.com/sigstore/cosign/v2/pkg/signature"
 	log "github.com/sirupsen/logrus"
 )
@@ -68,70 +69,66 @@ func processCosignIO(cosignCmd *exec.Cmd) error {
 	return nil
 }
 
-// var rekorURL = flag.String("rekor-url", defaultRekorURL, "specify Rekor URL")
+var (
+	rekorURL            = flag.String("rekor-url", defaultRekorURL, "specify Rekor URL")
+	defaultRekorURL     = "https://rekor.sigstore.dev"
+	fulcioIntermediates *x509.CertPool
+)
 
-// var defaultRekorURL = "https://rekor.sigstore.dev"
-
-func VerifyArifact(ctx context.Context, key string, url string, co *cosign.CheckOpts) (verified bool, err error) {
-	// var fulcioIntermediates *x509.CertPool
+func VerifyArifact(ctx context.Context, url, key string) (verified bool, err error) {
 	ref, err := name.ParseReference(url)
 	if err != nil {
 		return false, err
 	}
 
-	_, bundleVerified, err := cosign.VerifyImageSignatures(ctx, ref, co)
+	rc, err := rekor.NewClient(*rekorURL)
 	if err != nil {
-		return false, err
-	}
-	if bundleVerified {
-		log.Printf("Artifact %s verified succussfully", url)
-	}
-	return true, nil
-}
-
-// var rekorURL = flag.String("rekor-url", defaultRekorURL, "specify Rekor URL")
-// var fulcioIntermediates *x509.CertPool
-// var defaultRekorURL = "https://rekor.sigstore.dev"
-
-func BuildCosignCheckOpts(ctx context.Context, key string) (*cosign.CheckOpts, error) {
-	opts := []remote.Option{
-		remote.WithAuthFromKeychain(authn.DefaultKeychain),
-		remote.WithContext(ctx),
+		panic(fmt.Sprintf("creating Rekor client: %v", err))
 	}
 
-	rootCerts, err := fulcio.GetRoots()
+	roots, err := fulcio.GetRoots()
 	if err != nil {
-		return nil, fmt.Errorf("getting Fulcio roots: %w", err)
+		panic(fmt.Sprintf("getting Fulcio root certs: %v", err))
 	}
-
-	intermediateCerts, err := fulcio.GetIntermediates()
+	ro := options.RegistryOptions{}
+	co, err := ro.ClientOpts(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("getting Fulcio intermediates: %w", err)
+		return
 	}
 
-	co := &cosign.CheckOpts{
+	chopts := &cosign.CheckOpts{
+		RekorClient:        rc,
+		RootCerts:          roots,
+		IntermediateCerts:  fulcioIntermediates,
+		RegistryClientOpts: co,
 		ClaimVerifier:      cosign.SimpleClaimVerifier,
-		IntermediateCerts:  intermediateCerts,
-		RootCerts:          rootCerts,
-		RegistryClientOpts: []ociremote.Option{ociremote.WithRemoteOptions(opts...)},
 	}
-
-	fulcioVerified := co.SigVerifier == nil
-	log.Printf("FulCio Verified: %v", fulcioVerified)
-
 	// Check if PubKey is supplied
 	if key != "" {
 		pub, err := sig.LoadPublicKey(ctx, key)
 		if err != nil {
 			log.Errorf("Error loading Pub Key: %v", err)
-			return nil, err
+			return false, err
 		}
-		co.SigVerifier = pub
+		chopts.SigVerifier = pub
 	}
 
-	co.IgnoreTlog = true
-	co.IgnoreSCT = true
-	co.Offline = true
-
-	return co, nil
+	chopts.RekorPubKeys, err = cosign.GetRekorPubs(ctx)
+	if err != nil {
+		log.Printf("unable to get Rekor public keys: %s", err)
+		return false, err
+	}
+	chopts.CTLogPubKeys, err = cosign.GetCTLogPubs(ctx)
+	if err != nil {
+		log.Printf("unable to get CTLog public keys: %s", err)
+		return false, err
+	}
+	sigs, bundleVerified, err := cosign.VerifyImageSignatures(context.Background(), ref, chopts)
+	if err != nil {
+		return false, err
+	}
+	if bundleVerified {
+		fmt.Printf("%v Signatures forund for artifact %s and verified succussfully \n", len(sigs), url)
+	}
+	return true, nil
 }
