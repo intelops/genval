@@ -14,28 +14,36 @@ import (
 
 var pullCmd = &cobra.Command{
 	Use:   "pull",
-	Short: "The artifact pull command  verifies the artifact with Cosign and pulls the artifact from container registry",
+	Short: "The artifact pull command verifies and pulls the artifact from container registry ",
 	Long: `
-The artifact push command takes in a tar.gz bundle of configuration files generated/validated by Genval
-and pushes them into a OCI complient container registry
+The artifact pull command pull the artifact stored in the remote container registry.
+If --verify flag is set to true (false by default), Genval will verify the artifact's signature
+which is signed by Cosign in Keyless mode and pull the artifact, and unpack the tar.gz archive in desired path.
+
 `,
 	Example: `
-# Build and push the provided file/files as OCI artifact to registry
+# Verify the Cosign signature and Pull the artifact in Keyless mode
+and unpack the archive in desired path
+# https://github.com/sigstore/cosign/blob/main/KEYLESS.md.
 
-# Genval provides functionality to sign the artifact using Sigstore cosign tool.
-# To sign the artifact set the --sign flag to true (false by default)
-# Through this workflow, user needs to open th redirectoin link and authorize with OIDC token
+./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
+--path ./output \
+--verify true
 
-./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
---sign true
+# User can also pull the artifact by providing the Cosign generated public-key
+and unpack the archive in desired path
+# TODO: Test this workflow
 
-# User can pass additional annotations in <key=value> format while pushing the artifact
+./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
+--path ./output \
+--key <Path to Cosign Public key> for verification
+--verify true
 
-./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
---annotations  foo=bar
+# Uses can also pull the artifact with verifying the signatures of the artifact
+in the container registry and unpack the archive in desired path
 
+./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
+--path ./output
 `,
 	RunE: runPullArtifactCmd,
 }
@@ -54,22 +62,6 @@ func init() {
 	pullCmd.Flags().StringVarP(&pullArgs.dest, "dest", "d", "", "destination URL for pulling the artifact from")
 	pullCmd.Flags().BoolVarP(&pullArgs.verify, "verify", "v", false, "Set signature verification of the artifact using Sigstore cosign")
 	pullCmd.Flags().StringVarP(&pullArgs.cosignKey, "key", "k", "", "Cosign public key for varifying the artifact")
-	// pullCmd.Flags().StringVar(&pullArgs.certIdentity, "certificate-id", "",
-	// 	"The identity expected in a valid Fulcio certificate for verifying the Cosign signature.\n"+
-	// 		"Valid values include email address, DNS names, IP addresses, and URIs.\n"+
-	// 		"Either --certificate-identity or --certificate-identity-regexp must be set for keyless verification.")
-	// pullCmd.Flags().StringVar(&pullArgs.certIdentityRegexp, "certificate-regexp", "",
-	// 	"A regular expression alternative to --certificate-identity for verifying the Cosign signature.\n"+
-	// 		"Accepts the Go regular expression syntax described at https://golang.org/s/re2syntax.\n"+
-	// 		"Either --certificate-identity or --certificate-identity-regexp must be set for keyless verification.")
-	// pullCmd.Flags().StringVar(&pullArgs.certiOIDCIssuer, "certificate-OIDC", "",
-	// 	"The OIDC issuer expected in a valid Fulcio certificate for verifying the Cosign signature,\n"+
-	// 		"e.g. https://token.actions.githubusercontent.com or https://oauth2.sigstore.dev/auth.\n"+
-	// 		"Either --certificate-oidc-issuer or --certificate-oidc-issuer-regexp must be set for keyless verification.")
-	// pullCmd.Flags().StringVar(&pullArgs.certOIDCIssuerRegexp, "OIDC-regexp", "",
-	// 	"A regular expression alternative to --certificate-oidc-issuer for verifying the Cosign signature.\n"+
-	// 		"Accepts the Go regular expression syntax described at https://golang.org/s/re2syntax.\n"+
-	// 		"Either --certificate-oidc-issuer or --certificate-oidc-issuer-regexp must be set for keyless verification.")
 
 	artifactCmd.AddCommand(pullCmd)
 }
@@ -82,7 +74,7 @@ func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
 		os.Exit(1)
 	}
 
-	if pullArgs.verify && pullArgs.cosignKey == "" {
+	if pullArgs.verify {
 		spin := utils.StartSpinner("Verifying artifact")
 		defer spin.Stop()
 
@@ -101,5 +93,11 @@ func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
 		spin.Stop()
 	}
 
+	if err := oci.PullArtifact(context.Background(), pullArgs.dest, pullArgs.path); err != nil {
+		log.Errorf("Error pulling artifact from remote : %v", err)
+		return err
+	}
+
+	log.Printf("Artifact from %s pulled and stored in :%s", pullArgs.dest, pullArgs.path)
 	return nil
 }

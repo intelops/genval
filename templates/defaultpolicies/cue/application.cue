@@ -13,7 +13,7 @@ import "github.com/argoproj/argo-cd/v2/pkg/apis/application/v1alpha1"
 			path:           string // requires the path to the manifest in the repo
 			chart:          string // requires if your app uses Helm
 			helm: {
-				// All your Helm file values go here               
+				// All your Helm file values go here
 				...
 			}
 			// If your app uses Kustomize overlays, they go here

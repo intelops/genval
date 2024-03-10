@@ -18,7 +18,7 @@ test: ## Run full test suite
 testfunc: ## Runs test on a specific function specified in the arg.| Example usage `make testfunc validateInput`
 	@echo "Running specific test function..."
 	@$(GOTEST) $(TESTFLAGS) -run $(filter-out $@,$(MAKECMDGOALS)) $(PKGS)
-	
+
 .PHONY: test testfunc
 
 coverage: ## Generate and view the test coverage

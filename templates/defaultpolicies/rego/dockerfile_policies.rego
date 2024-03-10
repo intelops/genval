@@ -21,7 +21,7 @@ deny_root_user {
     input[i].cmd == "user"
     val2:= input[i].value
     val2 != "root"
-    val2 != "0" 
+    val2 != "0"
 }
 
 # Do not sudo
@@ -38,14 +38,14 @@ deny_caching{
     matches := regex.match(".*?(apk|yum|dnf|apt|pip).+?(install|[dist-|check-|group]?up[grade|date]).*", val4)
     matches == true
     contains(val4, "--no-cache")
-}	
+}
 
 # Ensure that COPY is used instead of ADD CIS 4.9
 deny_add{
     input[i].cmd != "add"
 }
 
-# Ensure ADD does not include unpack archives or download files 
+# Ensure ADD does not include unpack archives or download files
 # deny_image_expansion{
 # 	input[_].cmd == "add"
 # 	val5 := input[_].value

@@ -3,8 +3,6 @@ package oci
 import (
 	"bufio"
 	"context"
-	"crypto/x509"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -19,7 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-// SignCosign signs an image (`imageRef`) using a cosign private key (`keyRef`)
+// SignCosign signs an image (`imageRef`) in Keyless mode
+// https://github.com/sigstore/cosign/blob/main/KEYLESS.md.
 func SignCosign(imageRef string) error {
 	cosignExecutable, err := exec.LookPath("cosign")
 	if err != nil {
@@ -69,40 +68,38 @@ func processCosignIO(cosignCmd *exec.Cmd) error {
 	return nil
 }
 
-var (
-	rekorURL            = flag.String("rekor-url", defaultRekorURL, "specify Rekor URL")
-	defaultRekorURL     = "https://rekor.sigstore.dev"
-	fulcioIntermediates *x509.CertPool
-)
-
 func VerifyArifact(ctx context.Context, url, key string) (verified bool, err error) {
 	ref, err := name.ParseReference(url)
 	if err != nil {
 		return false, err
 	}
 
-	rc, err := rekor.NewClient(*rekorURL)
+	chopts := &cosign.CheckOpts{
+		ClaimVerifier: cosign.SimpleClaimVerifier,
+	}
+
+	chopts.RekorClient, err = rekor.NewClient(options.DefaultRekorURL)
 	if err != nil {
 		panic(fmt.Sprintf("creating Rekor client: %v", err))
 	}
 
-	roots, err := fulcio.GetRoots()
+	chopts.RootCerts, err = fulcio.GetRoots()
 	if err != nil {
 		panic(fmt.Sprintf("getting Fulcio root certs: %v", err))
 	}
+
 	ro := options.RegistryOptions{}
-	co, err := ro.ClientOpts(ctx)
+	chopts.RegistryClientOpts, err = ro.ClientOpts(ctx)
 	if err != nil {
+		return false, err
+	}
+
+	chopts.IntermediateCerts, err = fulcio.GetIntermediates()
+	if err != nil {
+		log.Errorf("unable to get Fulcio intermediate certs: %s", err)
 		return
 	}
 
-	chopts := &cosign.CheckOpts{
-		RekorClient:        rc,
-		RootCerts:          roots,
-		IntermediateCerts:  fulcioIntermediates,
-		RegistryClientOpts: co,
-		ClaimVerifier:      cosign.SimpleClaimVerifier,
-	}
 	// Check if PubKey is supplied
 	if key != "" {
 		pub, err := sig.LoadPublicKey(ctx, key)
