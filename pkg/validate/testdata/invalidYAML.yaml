@@ -1,7 +1,7 @@
 dockerfile:
 - stage: 0
   instructions:
-  -from: 
+  -from:
     - "golang-alpine:latest-dev as builder"
   - env:
     - "APP_HOME=/app"
@@ -12,5 +12,5 @@ dockerfile:
     - pip install --upgrade pip wheel
   - copy:
     - requirements.txt .
-  - run:  
+  - run:
     - "pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt"

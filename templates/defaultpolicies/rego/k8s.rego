@@ -22,7 +22,7 @@ deny_secret{
     input.kind == "Deployment"
     container := input.spec.template.spec.containers[_]
     env := container.envFrom[_]
-    
+
     not env.secretRef
 	}
 

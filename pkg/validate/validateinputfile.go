@@ -16,7 +16,6 @@ import (
 )
 
 func ValidateInput(yamlContent string, regoPolicyPath string) error {
-
 	inputBytes, err := parser.ProcessInput(yamlContent)
 	if err != nil {
 		log.Errorf("Error parsing input content: %v", err)
@@ -87,5 +86,4 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	}
 
 	return policyError
-
 }

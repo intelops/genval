@@ -3,6 +3,8 @@ package oci
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
+	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -12,7 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/authn"
+	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
+	log "github.com/sirupsen/logrus"
 )
 
 func GetGitRemoteURL() (string, error) {
@@ -113,4 +118,90 @@ func ParseOCIURL(ociURL string) (name.Reference, error) {
 	}
 
 	return ref, nil
+}
+
+// PullArtifact checks if tag exists and pull's the artifact from remote repository and writes to disk
+func PullArtifact(ctx context.Context, dest, path string) error {
+	if dest == "" {
+		return errors.New("artifact URl can niot be empty")
+	}
+	if fs, err := os.Stat(path); err != nil || !fs.IsDir() {
+		return fmt.Errorf("invalid output path %q: %w", path, err)
+	}
+	opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
+
+	parts := strings.Split(dest, ":")
+	url := parts[0]
+	desiredTag := parts[1]
+
+	tags, err := crane.ListTags(url, opts)
+	if err != nil {
+		log.Error("Error fetching tags from remote")
+		return err
+	}
+
+	// Check if the desired tag is present in the remote tags
+	found := false
+	for _, tag := range tags {
+		if tag == desiredTag {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		log.Errorf("Provided artifact tag '%s' not found in remote", desiredTag)
+		return err
+	}
+
+	ref, err := name.ParseReference(dest)
+	if err != nil {
+		log.Error("Invalid URL")
+		return err
+	}
+
+	// Pull the image from the repository
+	img, err := crane.Pull(ref.String())
+	if err != nil {
+		log.Error("error pulling artifact:")
+		return err
+	}
+
+	tempDir, err := os.MkdirTemp("", "artifact")
+	if err != nil {
+		log.Error("error creating temp dir:")
+		return err
+	}
+	defer os.RemoveAll(tempDir)
+
+	tarballPath := filepath.Join(tempDir, "artifact.tar.gz")
+
+	destTar, err := os.Create(tarballPath)
+	if err != nil {
+		log.Error("error creating tarball file:")
+		return err
+	}
+	defer destTar.Close()
+
+	// Export the image to the tarball file
+	if err := crane.Export(img, destTar); err != nil {
+		log.Error("error exporting artifact")
+		return err
+	}
+
+	reader, err := os.Open(tarballPath)
+	if err != nil {
+		log.Error("error opening tarball file:")
+		return err
+	}
+	defer reader.Close()
+
+	tarReader := tar.NewReader(reader)
+
+	if err := ExtractTarContents(tarReader, path); err != nil {
+		log.Errorf("error extracting artifact:")
+		return err
+	}
+
+	return nil
 }
