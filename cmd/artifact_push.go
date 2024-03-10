@@ -22,7 +22,7 @@ import (
 
 var pushCmd = &cobra.Command{
 	Use:   "push",
-	Short: "The artifact push command pushes the tar.gz bundle to an OCI complient container registry",
+	Short: "The artifact push command builds an arifact bundle and pushes it to an OCI complient container registry",
 	Long: `
 The artifact push command takes in a tar.gz bundle of configuration files generated/validated by Genval
 and pushes them into a OCI complient container registry

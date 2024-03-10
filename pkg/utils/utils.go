@@ -8,7 +8,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,7 +17,6 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
-	"cuelang.org/go/cue/load"
 	"github.com/briandowns/spinner"
 	"github.com/google/go-github/v57/github"
 	log "github.com/sirupsen/logrus"
@@ -38,47 +36,6 @@ func TempDirWithCleanup() (dirPath string, cleanupFunc func(), err error) {
 	return td, func() {
 		os.RemoveAll(td)
 	}, nil
-}
-
-// GenerateOverlay creates an overlay to store cue schemas
-func GenerateOverlay(staticFS fs.FS, td string, policies []string) (map[string]load.Source, error) {
-	overlay := make(map[string]load.Source)
-
-	// Walk through and add files from the embedded fs
-	err := fs.WalkDir(staticFS, ".", func(p string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if !d.Type().IsRegular() {
-			return nil
-		}
-		f, err := staticFS.Open(p)
-		if err != nil {
-			return err
-		}
-		byts, err := io.ReadAll(f)
-		if err != nil {
-			return err
-		}
-		op := filepath.Join(td, p)
-		overlay[op] = load.FromBytes(byts)
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// Add files from policies
-	for _, policy := range policies {
-		policyBytes, err := os.ReadFile(policy)
-		if err != nil {
-			log.Errorf("Error reading schema:%v", err)
-			return nil, err
-		}
-		overlay[filepath.Join(td, filepath.Base(policy))] = load.FromBytes(policyBytes)
-	}
-
-	return overlay, nil
 }
 
 // compileFromURL parses the Github URL, reads the contents and compiles it to Cue Value
