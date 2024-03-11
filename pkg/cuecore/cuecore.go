@@ -101,7 +101,6 @@ func ExtractModule(dirPath string) (string, error) {
 	}
 	// Regular expression to find the module string
 	re := regexp.MustCompile(`module:\s*"(.*?)"`)
-	log.Infof("REGEX: %v", re)
 	matches := re.FindStringSubmatch(string(content))
 	if len(matches) < 2 {
 		return "", errors.New("module not found in module.cue")
