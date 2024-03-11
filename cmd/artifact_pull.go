@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/fatih/color"
+
 	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
@@ -32,12 +34,11 @@ and unpack the archive in desired path
 
 # User can also pull the artifact by providing the Cosign generated public-key
 and unpack the archive in desired path
-# TODO: Test this workflow
 
-./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
+./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:no-sign \
 --path ./output \
---key <Path to Cosign Public key> for verification
---verify true
+--verify true \
+--key ./cosign/cosign.pub
 
 # Uses can also pull the artifact with verifying the signatures of the artifact
 in the container registry and unpack the archive in desired path
@@ -80,24 +81,24 @@ func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
 
 		verified, err := oci.VerifyArifact(context.Background(), pullArgs.dest, pullArgs.cosignKey)
 		if err != nil {
-			log.Errorf("Artifact verification failed: %s", err)
+			color.Red("Artifact verification failed: %s", err)
 			os.Exit(1)
 		}
 
 		if verified {
 			fmt.Printf("Artifact %s verified successfully", pullArgs.dest)
 		} else {
-			fmt.Println("Artifact verification failed.")
+			color.Red("Artifact verification failed.")
 		}
 
 		spin.Stop()
 	}
 
 	if err := oci.PullArtifact(context.Background(), pullArgs.dest, pullArgs.path); err != nil {
-		log.Errorf("Error pulling artifact from remote : %v", err)
+		color.Red("Error pulling artifact from remote : %v", err)
 		return err
 	}
 
-	log.Printf("Artifact from %s pulled and stored in :%s", pullArgs.dest, pullArgs.path)
+	color.Green("Artifact from %s pulled and stored in :%s", pullArgs.dest, pullArgs.path)
 	return nil
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -50,4 +52,15 @@ func ExtractTarContents(tarReader *tar.Reader, destinationDir string) error {
 	}
 
 	return nil
+}
+
+// GetGitRemoteURL fetches the remote url of the project
+func GetGitRemoteURL() (string, error) {
+	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
+	output, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("failed to get Git remote URL: %w", err)
+	}
+	remoteURL := strings.TrimSpace(string(output))
+	return remoteURL, nil
 }

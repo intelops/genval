@@ -7,3 +7,4 @@ input_dockerfile.json
 /output
 Dockerfile*
 genval
+cosign

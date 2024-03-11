@@ -38,6 +38,8 @@ and pushes them into a OCI complient container registry
 --url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 
+# TODO: Add fucntionality for signing with Cosign genrated pvt key
+
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
@@ -157,7 +159,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Printf("✔ Artifact pushed successfully to: %v \n with Digest: %v\n", source, digest)
+	log.Printf("✔ Artifact pushed successfully to: %v\n, with Digest: %v\n", source, digest)
 	log.Printf("Digest URL: %v\n", digestURL)
 	return nil
 }

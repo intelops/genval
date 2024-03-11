@@ -9,7 +9,6 @@ import (
 	"io"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -19,16 +18,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	log "github.com/sirupsen/logrus"
 )
-
-func GetGitRemoteURL() (string, error) {
-	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
-	output, err := cmd.Output()
-	if err != nil {
-		return "", fmt.Errorf("failed to get Git remote URL: %w", err)
-	}
-	remoteURL := strings.TrimSpace(string(output))
-	return remoteURL, nil
-}
 
 func ParseAnnotations(args []string) (map[string]string, error) {
 	annotations := map[string]string{}
@@ -123,16 +112,18 @@ func ParseOCIURL(ociURL string) (name.Reference, error) {
 // PullArtifact checks if tag exists and pull's the artifact from remote repository and writes to disk
 func PullArtifact(ctx context.Context, dest, path string) error {
 	if dest == "" {
-		return errors.New("artifact URl can niot be empty")
+		return errors.New("artifact URL can not be empty")
 	}
 	if fs, err := os.Stat(path); err != nil || !fs.IsDir() {
-		return fmt.Errorf("invalid output path %q: %w", path, err)
+		log.Errorf("Invalid Output path: %s requires a directory", err)
+		return err
 	}
-	opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
 
 	parts := strings.Split(dest, ":")
 	url := parts[0]
 	desiredTag := parts[1]
+
+	opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
 
 	tags, err := crane.ListTags(url, opts)
 	if err != nil {
