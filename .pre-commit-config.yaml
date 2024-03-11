@@ -60,57 +60,11 @@ repos:
     name: Go Static Check
     description: Finds bugs and performance issues
 
-# Local hooks
+# Intelops Hooks
 
-# Check for Dockerfile in a project
-# - repo: local
-#   hooks:
-#   - name: Check Dockerfile
-#     id: check-dockerfile-sh
-#     entry: bash
-#     args:
-#     - -c
-#     - |
-#         check_dockerfile() {
-#         if [[ $1 == *"Dockerfile"* ]]; then
-#               base_image=$(grep '^FROM' "$1" | awk '{print $2}')
-#             if [[ $base_image != cgr.dev/chianguard* ]]; then
-#                 echo "Error: Base image in $1 is not from cgr.dev/chianguard"
-#                 return 1
-#             fi
-#         fi
-#         return 0
-#         }
-
-#         export -f check_dockerfile
-
-#         if find . -type f -exec bash -c 'check_dockerfile "$0"' {} \; | grep -q 'Error'; then
-#           echo "Commit failed due to non-compliant Dockerfile(s)."
-#           exit 1
-#         fi
-
-#         echo "All Dockerfiles are compliant."
-#         exit 0
-#     language: system
-#     pass_filenames: false
-
-# Check commit signed by gitsign
-- repo: local
+- repo: https://github.com/intelops/gitrepos-templates-policies
+  rev: v0.0.1
   hooks:
-  - name: Check GitSign
-    id: check-gitsign-sh
-    entry: bash
-    args:
-    - -c
-    - |
-        latest_commit=$(git rev-parse HEAD)
-        signed_commit=$(git verify-commit $latest_commit 2>&1)
-        if [[ $signed_commit == *"Validated Git signature: true"* ]]; then
-            echo "Latest commit is signed with gitsign."
-            exit 0
-        else
-            echo "WARNING: The latest commit is not signed with gitsign."
-        fi
-        exit 1
-    language: system
-    pass_filenames: false
+  - id: check-gitsign
+    name: Check gitsign
+    description: Check if the last commit is signed with Sigstore gitsign

@@ -8,12 +8,15 @@ import (
 	"os"
 	"os/exec"
 
+	"github.com/fatih/color"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/fulcio"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/rekor"
+	"github.com/sigstore/cosign/v2/cmd/cosign/cli/verify"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	sig "github.com/sigstore/cosign/v2/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -109,6 +112,7 @@ func VerifyArifact(ctx context.Context, url, key string) (verified bool, err err
 		}
 		chopts.SigVerifier = pub
 	}
+	fulcioVerified := (chopts.SigVerifier == nil)
 
 	chopts.RekorPubKeys, err = cosign.GetRekorPubs(ctx)
 	if err != nil {
@@ -124,8 +128,48 @@ func VerifyArifact(ctx context.Context, url, key string) (verified bool, err err
 	if err != nil {
 		return false, err
 	}
+
 	if bundleVerified {
-		fmt.Printf("%v Signatures forund for artifact %s and verified succussfully \n", len(sigs), url)
+		verify.PrintVerificationHeader(ctx, ref.String(), chopts, bundleVerified, fulcioVerified)
+		for _, sig := range sigs {
+			if cert, err := sig.Cert(); err == nil && cert != nil {
+				ce := cosign.CertExtensions{Cert: cert}
+				sub := ""
+				if sans := cryptoutils.GetSubjectAlternateNames(cert); len(sans) > 0 {
+					sub = sans[0]
+				}
+				color.Green("Certificate subject: %s", sub)
+				if issuerURL := ce.GetIssuer(); issuerURL != "" {
+					color.Green("Certificate issuer URL: %s", issuerURL)
+				}
+
+				if githubWorkflowTrigger := ce.GetCertExtensionGithubWorkflowTrigger(); githubWorkflowTrigger != "" {
+					color.Green("GitHub Workflow Trigger: %s", githubWorkflowTrigger)
+				}
+
+				if githubWorkflowSha := ce.GetExtensionGithubWorkflowSha(); githubWorkflowSha != "" {
+					color.Green("GitHub Workflow SHA: %s", githubWorkflowSha)
+				}
+				if githubWorkflowName := ce.GetCertExtensionGithubWorkflowName(); githubWorkflowName != "" {
+					color.Green("GitHub Workflow Name: %s", githubWorkflowName)
+				}
+
+				if githubWorkflowRepository := ce.GetCertExtensionGithubWorkflowRepository(); githubWorkflowRepository != "" {
+					color.Green("GitHub Workflow Repository: %s", githubWorkflowRepository)
+				}
+
+				if githubWorkflowRef := ce.GetCertExtensionGithubWorkflowRef(); githubWorkflowRef != "" {
+					color.Green("GitHub Workflow Ref: %s", githubWorkflowRef)
+				}
+			}
+
+			// p, err := sig.Payload()
+			// if err != nil {
+			// 	fmt.Fprintf(os.Stderr, "Error fetching payload: %v", err)
+			// 	return false, err
+			// }
+			// fmt.Println(string(p))
+		}
 	}
 	return true, nil
 }
