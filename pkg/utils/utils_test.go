@@ -3,12 +3,10 @@ package utils
 import (
 	"io"
 	"net/http"
-	"os"
 	"reflect"
 	"strings"
 	"testing"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -100,6 +98,7 @@ func (c *MockHTTPClient) RoundTrip(req *http.Request) (*http.Response, error) {
 
 // Test for ReadRegoFile using above mock
 
+// TestReadRegoFile()
 func TestReadRegoFile(t *testing.T) {
 	// Mock HTTP client setup (if you're mocking HTTP requests)
 	// Mock HTTP client setup
@@ -113,20 +112,8 @@ func TestReadRegoFile(t *testing.T) {
 	http.DefaultClient.Transport = mockClient
 	defer func() { http.DefaultClient.Transport = oldTransport }()
 
-	tempFile, err := os.CreateTemp("", "test_policy_*.rego")
-	if err != nil {
-		t.Fatalf("Failed to create temporary file: %v", err)
-	}
-	defer os.Remove(tempFile.Name()) // Clean up
-
-	// Write some content to the file
-	testContent := []byte("package local\n\nlocal content")
-	if _, err := tempFile.Write(testContent); err != nil {
-		t.Fatalf("Failed to write to temporary file: %v", err)
-	}
-	if err := tempFile.Close(); err != nil {
-		t.Fatalf("Failed to close temporary file: %v", err)
-	}
+	// Use test.rego file in the same directory
+	testRegoFile := "test.rego"
 
 	tests := []struct {
 		name        string
@@ -148,21 +135,21 @@ func TestReadRegoFile(t *testing.T) {
 		},
 		{
 			name:        "Read from local filesystem",
-			policyFile:  tempFile.Name(),
-			wantContent: testContent,
+			policyFile:  testRegoFile,
+			wantContent: []byte("test content from file"),
 			wantErr:     false,
+		},
+		{
+			name:        "Unsupported file source",
+			policyFile:  "unsupported-source",
+			wantContent: nil,
+			wantErr:     true,
 		},
 	}
 
-	// Create a sample file for testing
-	if err := os.WriteFile("test.rego", []byte("test content from file"), 0644); err != nil {
-		log.Println("Failed to write to file:", err)
-	}
-	defer os.Remove("test.rego")
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotContent, err := ReadPolicyFile(tt.policyFile)
+			gotContent, err := ReadFile(tt.policyFile)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ReadPolicyFile() error = %v, wantErr %v", err, tt.wantErr)
 				return

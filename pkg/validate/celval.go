@@ -56,7 +56,7 @@ func EvaluateCELPolicies(policyFile string, inputFile string, t table.Writer) er
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()
 	// TODO: CHange func name ReadPolicyFile
-	policyContent, err := utils.ReadPolicyFile(policyFile)
+	policyContent, err := utils.ReadFile(policyFile)
 	// log.Printf("POLICY CONTENT: %v", string(policyContent))
 	if err != nil {
 		log.Fatalf("Unable to read Policy file: %v", err)

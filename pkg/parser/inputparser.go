@@ -3,12 +3,10 @@ package parser
 import (
 	"encoding/json"
 	"errors"
-	log "github.com/sirupsen/logrus"
-	"io"
-	"net/http"
-	"os"
 	"path/filepath"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/intelops/genval/pkg/utils"
 	"gopkg.in/yaml.v3"
@@ -39,7 +37,7 @@ func ParseDockerfileInput(filename string, data interface{}) error {
 	fileExtension = strings.TrimPrefix(fileExtension, ".")
 
 	// TODO Change funct name for utils.ReadPOlicyFile
-	inputContent, err := utils.ReadPolicyFile(filename)
+	inputContent, err := utils.ReadFile(filename)
 	// log.Infof("INPUT CONTENT: %v", string(inputContent))
 	if err != nil {
 		log.Fatalf("Unable to read input: %v", err)
@@ -66,19 +64,6 @@ func isJSON(str string) bool {
 	return json.Unmarshal([]byte(str), &js) == nil
 }
 
-// readData reads data from a URL or a local file.
-func readData(input string) ([]byte, error) {
-	if utils.IsURL(input) {
-		resp, err := http.Get(input)
-		if err != nil {
-			return nil, err
-		}
-		defer resp.Body.Close()
-		return io.ReadAll(resp.Body)
-	}
-	return os.ReadFile(input)
-}
-
 // convertYAMLToJSON converts YAML data to JSON.
 func convertYAMLToJSON(data []byte) ([]byte, error) {
 	var obj interface{}
@@ -97,7 +82,7 @@ func ProcessInput(input string) ([]byte, error) {
 	if isJSON(input) {
 		data = []byte(input)
 	} else {
-		data, err = readData(input)
+		data, err = utils.ReadFile(input)
 		if err != nil {
 			return nil, err
 		}
