@@ -54,6 +54,10 @@ func init() {
 }
 
 func runCueCmd(cmd *cobra.Command, args []string) error {
+	dataPath := cueArgs.source
+	defPath := cueArgs.resource
+	schemaFile := cueArgs.policy
+
 	td, cleanup, err := utils.TempDirWithCleanup()
 	if err != nil {
 		log.Fatal(err)
@@ -67,22 +71,22 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 
 	ctx := cuecontext.New()
 
-	definitions, err := cuecore.GetDefinitions(cueArgs.policy)
+	definitions, err := cuecore.GetDefinitions(schemaFile)
 	if err != nil {
 		log.Fatalf("Error reading Cue Definitions: %v", err)
 	}
-	modPath, err := cuecore.ExtractModule(cueArgs.policy)
+	modPath, err := cuecore.ExtractModule(schemaFile)
 	if err != nil {
 		log.Errorf("Error fetching module: %v", err)
 	}
 
-	dataSet, err := cuecore.ReadAndCompileData(cueArgs.resource)
+	dataSet, err := cuecore.ReadAndCompileData(dataPath)
 	if err != nil {
 		log.Errorf("Error processing data: %v", err)
 		return err
 	}
 
-	overlay, err := cuecore.GenerateOverlay(cueArgs.policy, td, definitions)
+	overlay, err := cuecore.GenerateOverlay(schemaFile, td, definitions)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -94,7 +98,7 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 		Package: "*",
 	}
 
-	defName := "#" + cueArgs.resource
+	defName := "#" + defPath
 
 	v, err := cuecore.BuildInstance(ctx, definitions, conf)
 	if err != nil {
@@ -146,7 +150,7 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 
 		}
 	}
-	log.Infof("%v validation succeeded, generated manifests in '%v' directory:\n", cueArgs.resource, outputDir)
+	log.Infof("%v validation succeeded, generated manifests in '%v' directory:\n", defPath, outputDir)
 	for _, fileName := range outputFiles {
 		fmt.Printf(" - %v\n", fileName)
 	}
