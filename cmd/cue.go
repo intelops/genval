@@ -23,17 +23,32 @@ var cueCmd = &cobra.Command{
 	Short: "The cue command validates and generates Kubernetes manifests",
 	Long: `
 The Cue command enables the validation and generation of Kubernetes and related manifests.
-Users can provide an input manifest in either JSON or YAML format. This input is then validated against a predefined set of Cue definitions
-tailored for the specific manifest.	These Cue definitions may include defaults and constraints, offering a way to enforce specific configurations
-on the input manifest.
-Users can combine these definitions by providing a top-level label to the --resource flag via the command-line interface.
+Developers can provide an input manifest in either JSON or YAML format. This input is then validated
+against a predefined set of Cue definitions (policies) tailored for the specific manifest.	These policies
+may include defaults and constraints set on spefic fields of the manifest, offering a way to enforce
+secure configurations following induestry best-practices. Developers can target these policies
+by providing a top-level label to the --resource flag via the command-line interface.
 
 Upon successful validation, the entire set of Kubernetes manifests is generated and written to the "./output" directory
 within the current working directory.
 
 `,
 	Example: `
-# TODO: add examples
+Usecase - 1
+# A developer may provide a bare-minimum set of requireents for a Deployment and a Service for a Kubernetes resource as a directory.
+The Security/DevOps team would prepare a policy written in Cuelang with all the type checking against the upstream Kubernetes API,
+and the mandatory defaults for the Deployment and a Service. Genval will validate the input provided by the developer against
+the policy/policies and generate the complete set of manifests in the ./output directory.
+
+# Demo files are stored in https://github.com/santoshkal/cuemod-demo
+
+./genval cue --source ./k8s \
+--resource Application
+--policy ./policy
+
+./genval cue --source https://github.com/santoshkal/cuemod-demo/tree/main/k8s \
+--resource Application \
+--policy ./policy
 `,
 	RunE: runCueCmd,
 }
