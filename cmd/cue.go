@@ -11,6 +11,7 @@ import (
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
+	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/cuecore"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
@@ -150,7 +151,7 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 
 		}
 	}
-	log.Infof("%v validation succeeded, generated manifests in '%v' directory:\n", defPath, outputDir)
+	color.Green("%v validation succeeded, generated manifests in '%v' directory:\n", defPath, outputDir)
 	for _, fileName := range outputFiles {
 		fmt.Printf(" - %v\n", fileName)
 	}
