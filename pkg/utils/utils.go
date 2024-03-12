@@ -44,7 +44,7 @@ func CompileFromURL(client *github.Client, u *url.URL) (map[string]cue.Value, er
 	ctx := cuecontext.New()
 
 	// Use fetchFromGitHub to get the file or directory content
-	fileCon, dirCon, err := fetchFromGitHub(u.String())
+	fileCon, dirCon, err := FetchFromGitHub(u.String())
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func CompileFromURL(client *github.Client, u *url.URL) (map[string]cue.Value, er
 		// If directory
 		for _, content := range dirCon {
 			if content.GetType() == "file" {
-				fileCon, _, err := fetchFromGitHub(content.GetDownloadURL())
+				fileCon, _, err := FetchFromGitHub(content.GetDownloadURL())
 				if err != nil {
 					log.Errorf("Error reading file from GitHub Directory: %v", err)
 					continue
@@ -182,7 +182,7 @@ func isURL(s string) bool {
 	return err == nil && u.Scheme != "" && u.Host != ""
 }
 
-func fetchFromGitHub(urlStr string) (*github.RepositoryContent, []*github.RepositoryContent, error) {
+func FetchFromGitHub(urlStr string) (*github.RepositoryContent, []*github.RepositoryContent, error) {
 	// Use environment variable for GitHub token
 	client := CreateGitHubClient(token)
 	// Parse the URL
@@ -227,7 +227,7 @@ func fetchFromGitHub(urlStr string) (*github.RepositoryContent, []*github.Reposi
 // fetchFilenames fetches the content of a given URL and saves it to a temporary file and returns file names.
 func fetchFilenames(urlStr string) (string, error) {
 	// Use the fetchFromGitHub function to get the file content
-	fileCon, _, err := fetchFromGitHub(urlStr)
+	fileCon, _, err := FetchFromGitHub(urlStr)
 	if err != nil {
 		log.Errorf("failed fetching content from GitHub: %v", err)
 		return "", err
@@ -315,7 +315,7 @@ func ReadFile(content string) ([]byte, error) {
 	// Attempt to parse the content as a URL
 	u, err := url.ParseRequestURI(content)
 	if err == nil && strings.HasPrefix(u.Hostname(), "github.com") || strings.HasPrefix(u.Hostname(), "raw.githubusercontent.com") {
-		fileCon, dirCon, err := fetchFromGitHub(u.String())
+		fileCon, dirCon, err := FetchFromGitHub(u.String())
 		if err != nil {
 			return nil, err
 		}
@@ -331,7 +331,7 @@ func ReadFile(content string) ([]byte, error) {
 		// If directory
 		for _, content := range dirCon {
 			if content.GetType() == "file" {
-				fileCon, _, err := fetchFromGitHub(content.GetDownloadURL())
+				fileCon, _, err := FetchFromGitHub(content.GetDownloadURL())
 				if err != nil {
 					log.Errorf("Error reading file from GitHub Directory: %v", err)
 					continue

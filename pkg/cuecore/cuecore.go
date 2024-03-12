@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/http"
 	"net/url"
 	"os"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"cuelang.org/go/cue/load"
 	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/html"
 	"gopkg.in/yaml.v3"
 )
 
@@ -72,30 +74,105 @@ func ReadAndCompileData(dataPath string) (map[string]cue.Value, error) {
 	return utils.CompileFromLocal(dataPath)
 }
 
-// GetDefinitions reads the policies/definitions passed in as CLI arg and returns filenames
+// GetDefinitions reads the files names of teh Cue definitions from the provided path and returns a []filenames and an error
 func GetDefinitions(dirPath string) ([]string, error) {
 	var filenames []string
+	var err error
 
-	entries, err := os.ReadDir(dirPath)
-	if err != nil {
-		return nil, err
-	}
-	// Skip directories
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
+	if !utils.IsURL(dirPath) {
+		entries, err := os.ReadDir(dirPath)
+		if err != nil {
+			return nil, err
 		}
-		fileName := entry.Name()
-		filenames = append(filenames, fileName)
-	}
+		// Skip directories
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+			fileName := entry.Name()
+			filenames = append(filenames, fileName)
+		}
 
-	return filenames, nil
+		return filenames, nil
+	}
+	// Attempt to parse the content as a URL
+	u, err := url.ParseRequestURI(dirPath)
+	if err == nil && strings.HasPrefix(u.Hostname(), "github.com") || strings.HasPrefix(u.Hostname(), "raw.githubusercontent.com") {
+		fileCon, dirCon, err := utils.FetchFromGitHub(u.String())
+		if err != nil {
+			return nil, err
+		}
+		// Check if it's a directory or a single file
+		if len(dirCon) == 0 {
+			// If single file
+			fn := fileCon.Name
+			if err != nil {
+				return nil, err
+			}
+			return []string{*fn}, nil
+		}
+		// If directory
+		for _, files := range dirCon {
+			if files.GetType() == "file" {
+				fileCon, _, err := utils.FetchFromGitHub(files.GetDownloadURL())
+				if err != nil {
+					log.Errorf("Error reading file from GitHub Directory: %v", err)
+					continue
+				}
+				fn := fileCon.Name
+				if err != nil {
+					return nil, err
+				}
+				return []string{*fn}, nil
+			}
+		}
+	} else {
+		resp, err := http.Get(dirPath)
+		if err != nil {
+			return nil, err
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			return nil, fmt.Errorf("failed to fetch directory: %s", resp.Status)
+		}
+
+		// Parse the HTML content
+		doc, err := html.Parse(resp.Body)
+		if err != nil {
+			return nil, err
+		}
+
+		// Extract filenames from the HTML structure
+		var filenames []string
+		var extractFilenames func(*html.Node)
+		extractFilenames = func(n *html.Node) {
+			if n.Type == html.ElementNode && n.Data == "a" {
+				for _, attr := range n.Attr {
+					if attr.Key == "href" {
+						filenames = append(filenames, attr.Val)
+						break
+					}
+				}
+			}
+			for c := n.FirstChild; c != nil; c = c.NextSibling {
+				extractFilenames(c)
+			}
+		}
+
+		extractFilenames(doc)
+
+		return filenames, nil
+	}
+	return nil, errors.New("unsupported file source. Please provide a valid URL or a local file path")
 }
 
 func ExtractModule(dirPath string) (string, error) {
-	moduleFilePath := filepath.Join(dirPath, "cue.mod", "module.cue")
+	relativeFilePath := "cue.mod/module.cue"
+	fileURL := joinURLPath(dirPath, relativeFilePath)
+
 	// Read the module.cue file
-	content, err := os.ReadFile(moduleFilePath)
+	content, err := utils.ReadFile(fileURL)
 	if err != nil {
 		return "", err
 	}
@@ -108,6 +185,17 @@ func ExtractModule(dirPath string) (string, error) {
 
 	// Return the extracted module string
 	return matches[1], nil
+}
+
+func joinURLPath(baseURL, relativePath string) string {
+	base, err := url.Parse(baseURL)
+	if err != nil {
+		panic(err)
+	}
+
+	base.Path = filepath.Join(base.Path, relativePath)
+
+	return base.String()
 }
 
 // GenerateOverlay creates an overlay to store cue schemas from a given directory
@@ -133,7 +221,7 @@ func GenerateOverlay(dirPath string, td string, policies []string) (map[string]l
 		}
 
 		// Read and add the file content to the overlay
-		byts, err := os.ReadFile(p)
+		byts, err := utils.ReadFile(p)
 		if err != nil {
 			return err
 		}
@@ -155,7 +243,7 @@ func GenerateOverlay(dirPath string, td string, policies []string) (map[string]l
 		policyPath := filepath.Join(dirPath, policy)
 
 		// Read the policy file
-		policyBytes, err := os.ReadFile(policyPath)
+		policyBytes, err := utils.ReadFile(policyPath)
 		if err != nil {
 			log.Printf("Error reading policy file: %v", err)
 			return nil, err
