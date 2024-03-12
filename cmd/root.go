@@ -18,6 +18,17 @@ for a wide range of tools, including Dockerfile, Kubernetes manifests, Terraform
 		`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println(`
+
+:'######:::'########:'##::: ##:'##::::'##::::'###::::'##:::::::
+'##... ##:: ##.....:: ###:: ##: ##:::: ##:::'## ##::: ##:::::::
+ ##:::..::: ##::::::: ####: ##: ##:::: ##::'##:. ##:: ##:::::::
+ ##::'####: ######::: ## ## ##: ##:::: ##:'##:::. ##: ##:::::::
+ ##::: ##:: ##...:::: ##. ####:. ##:: ##:: #########: ##:::::::
+ ##::: ##:: ##::::::: ##:. ###::. ## ##::: ##.... ##: ##:::::::
+. ######::: ########: ##::. ##:::. ###:::: ##:::: ##: ########:
+:......::::........::..::::..:::::...:::::..:::::..::........::
+
+
 Genval is a versatile Go utility that simplifies configuration management by Generating and validating cobfig files
 for a wide range of tools, including Dockerfile, Kubernetes manifests, Terraform files, Tekton, ArgoCD and more.
 	`)
