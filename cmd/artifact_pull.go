@@ -25,25 +25,25 @@ which is signed by Cosign in Keyless mode and pull the artifact, and unpack the 
 `,
 	Example: `
 # Verify the Cosign signature and Pull the artifact in Keyless mode
-and unpack the archive in desired path
+  and unpack the archive in desired path
 # https://github.com/sigstore/cosign/blob/main/KEYLESS.md.
 
-./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
+./genval artifact pull --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --path ./output \
 --verify true
 
 # User can also pull the artifact by providing the Cosign generated public-key
-and unpack the archive in desired path
+  and unpack the archive in desired path
 
-./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:no-sign \
+./genval artifact pull --dest oci://ghcr.io/santoshkal/artifacts/genval:no-sign \
 --path ./output \
 --verify true \
 --key ./cosign/cosign.pub
 
 # Uses can also pull the artifact with verifying the signatures of the artifact
-in the container registry and unpack the archive in desired path
+  in the container registry and unpack the archive in desired path
 
-./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
+./genval artifact pull --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --path ./output
 `,
 	RunE: runPullArtifactCmd,
@@ -93,12 +93,14 @@ func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
 
 		spin.Stop()
 	}
+	spin := utils.StartSpinner("Pulling Artifact...")
+	defer spin.Stop()
 
 	if err := oci.PullArtifact(context.Background(), pullArgs.dest, pullArgs.path); err != nil {
 		color.Red("Error pulling artifact from remote : %v", err)
 		return err
 	}
-
+	spin.Stop()
 	color.Green("Artifact from %s pulled and stored in :%s", pullArgs.dest, pullArgs.path)
 	return nil
 }
