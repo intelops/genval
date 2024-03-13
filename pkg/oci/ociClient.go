@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -32,12 +31,13 @@ func ParseAnnotations(args []string) (map[string]string, error) {
 	return annotations, nil
 }
 
-// createTarball creates a tarball from a file or directory.
+// CreateTarball creates a tarball from a file or directory.
 func CreateTarball(sourcePath, outputPath string) error {
 	outputFile, err := os.Create(outputPath)
 	if err != nil {
 		return err
 	}
+	defer outputFile.Close()
 
 	gzipWriter := gzip.NewWriter(outputFile)
 	defer gzipWriter.Close()
@@ -45,54 +45,78 @@ func CreateTarball(sourcePath, outputPath string) error {
 	tarWriter := tar.NewWriter(gzipWriter)
 	defer tarWriter.Close()
 
-	if err := filepath.WalkDir(sourcePath, func(path string, d fs.DirEntry, err error) error {
+	// Get the list of files and directories to be included in the tarball
+	var fileList []string
+	var topLevelDir string
+	fileInfo, err := os.Stat(sourcePath)
+	if err != nil {
+		return err
+	}
+	if fileInfo.IsDir() {
+		// If sourcePath is a directory, recursively get all files in the directory
+		topLevelDir = filepath.Base(sourcePath)
+		err := filepath.WalkDir(sourcePath, func(path string, d fs.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			fileList = append(fileList, path)
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+	} else {
+		// If sourcePath is a file, add the file to the fileList
+		fileList = append(fileList, sourcePath)
+		topLevelDir = ""
+	}
+
+	// Iterate over each file to add it to the tarball
+	for _, filePath := range fileList {
+		// Calculate the relative path of the file within the source directory
+		relPath, err := filepath.Rel(sourcePath, filePath)
+		if err != nil {
+			return err
+		}
+		// Fix path separator for tarball (always use forward slashes)
+		relPath = strings.ReplaceAll(relPath, `\`, "/")
+
+		fileInfo, err := os.Stat(filePath)
 		if err != nil {
 			return err
 		}
 
-		info, err := d.Info()
+		header, err := tar.FileInfoHeader(fileInfo, "")
 		if err != nil {
 			return err
 		}
 
-		header, err := tar.FileInfoHeader(info, "")
-		if err != nil {
-			return err
+		// Update the name field in the header to preserve directory structure
+		if topLevelDir != "" {
+			header.Name = filepath.Join(topLevelDir, relPath)
+		} else {
+			header.Name = relPath
 		}
-
-		// Strip environment-specific data from file headers
-		header.Gid = 0
-		header.Uid = 0
-		header.Uname = ""
-		header.Gname = ""
-		header.ModTime = time.Time{}
-		header.AccessTime = time.Time{}
-		header.ChangeTime = time.Time{}
 
 		if err := tarWriter.WriteHeader(header); err != nil {
 			return err
 		}
 
-		if info.IsDir() {
-			return nil
-		}
+		if !fileInfo.IsDir() {
+			file, err := os.Open(filePath)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
 
-		file, err := os.Open(path)
-		if err != nil {
-			return err
+			// Copy file content to tarball
+			if _, err := io.Copy(tarWriter, file); err != nil {
+				return err
+			}
 		}
-		defer file.Close()
-
-		// Copy file content to tarball
-		_, err = io.Copy(tarWriter, file)
-		return err
-	}); err != nil {
-		outputFile.Close()
-		gzipWriter.Close()
-		tarWriter.Close()
-		return nil
 	}
-	return err
+
+	return nil
 }
 
 func ParseOCIURL(ociURL string) (name.Reference, error) {
@@ -118,8 +142,13 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 		log.Errorf("Invalid Output path: %s requires a directory", err)
 		return err
 	}
+	ref, err := ParseOCIURL(dest)
+	if err != nil {
+		log.Errorf("Invalid URL: %v", err)
+		return err
+	}
 
-	parts := strings.Split(dest, ":")
+	parts := strings.Split(ref.String(), ":")
 	url := parts[0]
 	desiredTag := parts[1]
 
@@ -145,12 +174,7 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 		return err
 	}
 
-	ref, err := name.ParseReference(dest)
-	if err != nil {
-		log.Error("Invalid URL")
-		return err
-	}
-
+	log.Printf("REF: %v", ref)
 	// Pull the image from the repository
 	img, err := crane.Pull(ref.String())
 	if err != nil {

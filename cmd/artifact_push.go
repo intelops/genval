@@ -60,7 +60,7 @@ type pushFlags struct {
 var pushArgs pushFlags
 
 func init() {
-	pushCmd.Flags().StringVarP(&pushArgs.reqinput, "reqinput", "r", "", "path to the artifact (tar.gz) source files to push")
+	pushCmd.Flags().StringVarP(&pushArgs.reqinput, "reqinput", "r", "", "path to the source files to push")
 	if err := pushCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
