@@ -27,11 +27,11 @@ func init() {
 	if err := celCmd.MarkFlagRequired("policy"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
-	rootCmd.AddCommand(celCmd)
+	celvalCmd.AddCommand(celCmd)
 }
 
 var celCmd = &cobra.Command{
-	Use:   "cel",
+	Use:   "infrafile",
 	Short: "Validate Kubernetes and related manifests using Common Expression Language (CEL) policies",
 	Long: `A user need to pass the Kubernetes manifest in YAML/JSON format as reqinput and a set of CEL policies
 as a policy file for validation.
@@ -43,18 +43,18 @@ or from remote URL's such as those hosted on GitHub (e.g., https://github.com)
 # Validate Kubernetes manifest with Common Expression Language (CEL) policies
 # Passing the required files from local
 
-	./genval cel --reqinput=input.json \
+	./genval celval infrafile --reqinput=input.json \
   --policy=<path/to/policy.rego file>
 
 # Provide the required files from remote URL's
 
-./genval cel --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/input-templates/k8s/deployment.json \
+./genval celval infrafile --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/input-templates/k8s/deployment.json \
 --policy https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/default-policies/cel/k8s_cel
 
 # We need to authenticate with GitHub if we intend to pass the required file stired in the GitHub repo
 export GITHUB_TOKEN=<your GitHub PAT>
 
-./genval cel --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/k8s/deployment.json \
+./genval celval infrafile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/k8s/deployment.json \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/cel/k8s_cel
 	`,
 
