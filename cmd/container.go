@@ -12,37 +12,37 @@ import (
 	"github.com/spf13/cobra"
 )
 
-type containerFlags struct {
+type dockerfileFlags struct {
 	reqinput     string
 	output       string
 	inputPolicy  string
 	outputPolicy string
 }
 
-var containerArgs containerFlags
+var dockerfileArgs dockerfileFlags
 
 func init() {
-	containerCmd.Flags().StringVarP(&containerArgs.reqinput, "reqinput", "r", "", "Input JSON for generating Dockerfile")
-	if err := containerCmd.MarkFlagRequired("reqinput"); err != nil {
+	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.reqinput, "reqinput", "r", "", "Input JSON for generating Dockerfile")
+	if err := dockerfileCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
-	containerCmd.Flags().StringVarP(&containerArgs.output, "output", "p", "", "Path to write the Generated Dockefile")
-	if err := containerCmd.MarkFlagRequired("output"); err != nil {
+	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.output, "output", "p", "", "Path to write the Generated Dockefile")
+	if err := dockerfileCmd.MarkFlagRequired("output"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
-	containerCmd.Flags().StringVarP(&containerArgs.inputPolicy, "inputpolicy", "i", "", "Path for the Input policyin Rego, input-policy can be passed from either Local or from remote URL")
-	if err := containerCmd.MarkFlagRequired("inputpolicy"); err != nil {
+	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.inputPolicy, "inputpolicy", "i", "", "Path for the Input policyin Rego, input-policy can be passed from either Local or from remote URL")
+	if err := dockerfileCmd.MarkFlagRequired("inputpolicy"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
-	containerCmd.Flags().StringVarP(&containerArgs.outputPolicy, "outputpolicy", "o", "", "Path for Out policy in Rego, Output-policy can be passed from either Local or from remote URL")
-	if err := containerCmd.MarkFlagRequired("outputpolicy"); err != nil {
+	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.outputPolicy, "outputpolicy", "o", "", "Path for Out policy in Rego, Output-policy can be passed from either Local or from remote URL")
+	if err := dockerfileCmd.MarkFlagRequired("outputpolicy"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
-	rootCmd.AddCommand(containerCmd)
+	rootCmd.AddCommand(dockerfileCmd)
 }
 
-var containerCmd = &cobra.Command{
-	Use:   "container",
+var dockerfileCmd = &cobra.Command{
+	Use:   "dockerfile",
 	Short: "Generate and Validate Dockerfile",
 	Long: `
 A user can pass in a JSON file to genval, the passed input will be first evaluated based on input policies,
@@ -54,7 +54,7 @@ Genval supports both local file paths or remote URLs, such as those hosted on Gi
 `,
 	Example: `
 # Generating and validating Dockerfile with local files
-./genval container --reqinput=input.json \
+./genval dockerfile --reqinput=input.json \
 --output=output.Dockerfile \
 --inputpolicy=<path/to/input.rego policy> \
 --outputpolicy=<path/to/output.rego file>
@@ -62,7 +62,7 @@ Genval supports both local file paths or remote URLs, such as those hosted on Gi
 # Generating and validating Dockewrfile by passing input template and security policies from remote URL's
 # like for example https://github.com
 
-./genval container --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/input-templates/dockerfile_input/clang_input.json \
+./genval dockerfile --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/input-templates/dockerfile_input/clang_input.json \
 --output ./output/Dockerfile-cobra \
 --inputpolicy https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/default-policies/rego/inputfile_policies.rego \
 --outputpolicy https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/default-policies/rego/dockerfile_policies.rego
@@ -70,19 +70,19 @@ Genval supports both local file paths or remote URLs, such as those hosted on Gi
 # For authenticating with GitHub.com, set the env variable GITHUB_TOKEN
 # export GITHUB_TOKEN=<Your GitHub PAT>
 
-./genval container --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/dockerfile_input/clang_input.json \
+./genval dockerfile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/dockerfile_input/clang_input.json \
 --output ./output/Dockefile-cobra \
 --inputpolicy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/inputfile_policies.rego \
 --outputpolicy  https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
 	`,
-	RunE: runContainerCmd,
+	RunE: rundockerfileCmd,
 }
 
-func runContainerCmd(cmd *cobra.Command, args []string) error {
-	inputPath := containerArgs.reqinput
-	outputPath := containerArgs.output
-	inputPolicyFile := containerArgs.inputPolicy
-	outputPolicyFile := containerArgs.outputPolicy
+func rundockerfileCmd(cmd *cobra.Command, args []string) error {
+	inputPath := dockerfileArgs.reqinput
+	outputPath := dockerfileArgs.output
+	inputPolicyFile := dockerfileArgs.inputPolicy
+	outputPolicyFile := dockerfileArgs.outputPolicy
 
 	// Use ParseInputFile to read and unmarshal the input file
 	var data generate.DockerfileContent
