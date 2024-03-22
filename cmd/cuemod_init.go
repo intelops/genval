@@ -81,12 +81,6 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 		log.Errorf("Error initializing workspace files %s: %v", initArgs.tool, err)
 		return err
 	}
-	// extractPath := filepath.Join(workspacePath, "extracted_content")
-	// err = os.Mkdir(extractPath, 0755)
-	// if err != nil {
-	// 	log.Errorf("Error creating workspace files for %s: %v", desiredTool, err)
-	// 	return err
-	// }
 
 	reader, err := os.Open(tarballPath)
 	if err != nil {
