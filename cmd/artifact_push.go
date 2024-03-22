@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
@@ -102,7 +103,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	}
 	log.Println("✔ Artifact created successfully")
 
-	ref, err := oci.ParseOCIURL(source)
+	ref, err := name.ParseReference(source)
 	if err != nil {
 		log.Printf("Error parsing source: %v", err)
 	}

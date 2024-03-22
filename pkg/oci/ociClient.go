@@ -119,20 +119,6 @@ func CreateTarball(sourcePath, outputPath string) error {
 	return nil
 }
 
-func ParseOCIURL(ociURL string) (name.Reference, error) {
-	if !strings.HasPrefix(ociURL, URLPrefix) {
-		return nil, fmt.Errorf("URL must be in format 'oci://<domain>/<org>/<repo>'")
-	}
-
-	url := strings.TrimPrefix(ociURL, URLPrefix)
-	ref, err := name.ParseReference(url)
-	if err != nil {
-		return nil, fmt.Errorf("'%s' invalid URL: %w", ociURL, err)
-	}
-
-	return ref, nil
-}
-
 // PullArtifact checks if tag exists and pull's the artifact from remote repository and writes to disk
 func PullArtifact(ctx context.Context, dest, path string) error {
 	if dest == "" {
@@ -142,7 +128,7 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 		log.Errorf("Invalid Output path: %s requires a directory", err)
 		return err
 	}
-	ref, err := ParseOCIURL(dest)
+	ref, err := name.ParseReference(dest)
 	if err != nil {
 		log.Errorf("Invalid URL: %v", err)
 		return err
@@ -174,7 +160,6 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 		return err
 	}
 
-	log.Printf("REF: %v", ref)
 	// Pull the image from the repository
 	img, err := crane.Pull(ref.String())
 	if err != nil {
