@@ -29,7 +29,7 @@ jobs:
       - name: Run tests
         run: go test ./... -coverprofile=coverage.out -coverpkg=./... -covermode=atomic
 
-      - uses: sigstore/cosign-installer@v3.1.2         # installs cosign
+      - uses: sigstore/cosign-installer@v3.4.0        # installs cosign
       - uses: anchore/sbom-action/download-syft@v0.14.3 # installs syft
       - uses: goreleaser/goreleaser-action@v5          # run goreleaser
         id: goreleaser
@@ -41,15 +41,7 @@ jobs:
 
       - name: verify release
         run: |
-          COMMIT=$(git rev-list --tags --max-count=1)
-          TAG=$(git describe --tags ${COMMIT})
-          wget https://github.com/intelops/genval/releases/download/${TAG}/checksums.txt
-          cosign verify-blob \
-            --certificate-identity "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/${TAG}" \
-            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-            --cert "https://github.com/intelops/genval/releases/download/${TAG}/checksums.txt.pem" \
-            --signature "https://github.com/intelops/genval/releases/download/${TAG}/checksums.txt.sig" \
-            ./checksums.txt
+          bash ./.github/workflows/verify.sh
 
 
 
