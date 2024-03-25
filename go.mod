@@ -8,7 +8,7 @@ require (
 	github.com/google/cel-go v0.20.1
 	github.com/google/go-github/v57 v57.0.0
 	github.com/hashicorp/hcl/v2 v2.20.0
-	github.com/jedib0t/go-pretty/v6 v6.5.4
+	github.com/jedib0t/go-pretty/v6 v6.5.6
 	github.com/open-policy-agent/opa v0.62.1
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
