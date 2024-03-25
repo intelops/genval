@@ -59,8 +59,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("Error prsing provided tool %s: %v", initArgs.tool, err)
 	}
-
-	archivePath, err := cuecore.CreateArchiveWorkspace(initArgs.tool)
+	archivePath, err := cuecore.CreatePath(initArgs.tool, "archive")
 	if err != nil {
 		log.Errorf("Error initializing archive %s: %v", initArgs.tool, err)
 		return err
@@ -76,7 +75,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 	if err := cuecore.CheckTagAndPullArchive(ociURL, desiredTool, destTar); err != nil {
 		log.Errorf("Error pulling module for %s from %v: %v", desiredTool, destTar, err)
 	}
-	extractPath, err := cuecore.CreateExtractWorkspace(initArgs.tool)
+	extractPath, err := cuecore.CreatePath(initArgs.tool, "extracted-content")
 	if err != nil {
 		log.Errorf("Error initializing workspace files %s: %v", initArgs.tool, err)
 		return err
