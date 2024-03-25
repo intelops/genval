@@ -88,8 +88,8 @@ func CheckTagAndPullArchive(url, tool string, archivePath *os.File) error {
 	return nil
 }
 
-func CreateArchiveWorkspace(tool string) (string, error) {
-	path := filepath.Join(tool, "archive")
+func CreatePath(tool, subDir string) (string, error) {
+	path := filepath.Join(tool, subDir)
 	dir := filepath.Dir(path)
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err := os.MkdirAll(dir, 0o755) // Create parent directories if they don't exist
@@ -102,18 +102,6 @@ func CreateArchiveWorkspace(tool string) (string, error) {
 		err := os.Mkdir(path, 0o755)
 		if err != nil {
 			return "", fmt.Errorf("error initializing archive workspace: %v", err)
-		}
-	}
-	return path, nil
-}
-
-func CreateExtractWorkspace(tool string) (string, error) {
-	// path := filepath.Join(tool, "extracted_contents")
-	path := tool + "-extracted"
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		err := os.MkdirAll(path, 0o755)
-		if err != nil {
-			return "", fmt.Errorf("error creating extracted content workspace: %v", err)
 		}
 	}
 	return path, nil
