@@ -1,0 +1,2 @@
+Name: Deny global ingress
+input.resource.all(res,!has(res.aws_security_group.allow_tls.ingress) && res.aws_security_group.allow_tls.ingress.all(ing,ing.cidr_blocks.all(cb,cb != '0.0.0.0/0')))
