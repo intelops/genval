@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"os"
 
+	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 	"github.com/jedib0t/go-pretty/v6/table"
@@ -63,15 +65,22 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 	input := celDockerfileValArgs.reqinput
 	policy := celDockerfileValArgs.policy
 
-	dockerfilefileContent, err := utils.ReadFile(input)
+	dockerfileContent, err := utils.ReadFile(input)
 	if err != nil {
 		log.Errorf("Error reading Dockerfile: %v, validation failed: %s\n", input, err)
+	}
+
+	dockerInst := parser.ParseDockerfileContent(string(dockerfileContent))
+	dockerfileJSON, err := json.Marshal(dockerInst)
+	if err != nil {
+		log.Errorf("Error marshaling Dockerfile: %v", err)
+		return err
 	}
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Policy Name", "Result"})
 
-	err = validate.EvaluateCELPolicies(policy, string(dockerfilefileContent), t)
+	err = validate.EvaluateCELPolicies(policy, string(dockerfileJSON), t)
 	if err != nil {
 		log.Fatalf("Error evaluating policies: %v", err)
 	}

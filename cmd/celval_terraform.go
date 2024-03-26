@@ -42,19 +42,18 @@ such as those hosted on GitHub (e.g., https://github.com)
 	Example: `
 # Validate Terraform files with CEL policies by providing the required args from local file system
 
-./genval celval terraform --reqinput=input.json \
---policy=<'path/to/CEL policy file>
+./genval celval terraform --reqinput ./templates/inputs/terraform/sec_group.tf \
+--policy=--policy ./templates/defaultpolicies/cel/terraform_cel
 
 # Provide the required files from remote URL's
-
-./genval celval terraform --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfilefile-sample \
---policy TODO:
+./genval celval terraform celval terraform --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/input-templates/terraform/sec_group.tf \
+--policy https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/default-policies/cel/terraform_cel
 
 # We need to authenticate with GitHub if we intend to pass the required file stired in the GitHub repo
 export GITHUB_TOKEN=<your GitHub PAT>
 
-./genval celval terraform --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfilefile-sample \
---policy TODO:
+./genval celval terraform --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/terraform/sec_group.tf \
+--policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/cel/terraform_cel
 	`,
 	RunE: runCelTerraformvalCmd,
 }
