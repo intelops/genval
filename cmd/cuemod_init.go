@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	"archive/tar"
+	"bufio"
+	"context"
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 
 	"github.com/intelops/genval/pkg/cuecore"
 	"github.com/intelops/genval/pkg/oci"
@@ -59,41 +59,42 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("Error prsing provided tool %s: %v", initArgs.tool, err)
 	}
-	archivePath, err := cuecore.CreatePath(initArgs.tool, "archive")
+	key := ""
+	verified, err := oci.VerifyArifact(context.Background(), ociURL, key)
 	if err != nil {
-		log.Errorf("Error initializing archive %s: %v", initArgs.tool, err)
-		return err
+		return fmt.Errorf("error varifying artifact: %v", err)
 	}
+	log.Printf("Verified artifact: %v", verified)
+	if !verified {
+		fmt.Println("The artifact is not verified.")
+		fmt.Println("Would you like to proceed? If yes, press 'y', else press 'n'.")
 
-	tarballPath := filepath.Join(archivePath, "cuemod-"+initArgs.tool+".tar.gz")
-	destTar, err := os.Create(tarballPath)
-	if err != nil {
-		return fmt.Errorf("error creating workpace archive %s: %v", tarballPath, err)
+		reader := bufio.NewReader(os.Stdin)
+		input, err := reader.ReadString('\n')
+		if err != nil {
+			return fmt.Errorf("error reading input: %s", err)
+		}
+
+		input = trimNewline(input)
+		if input == "y" {
+			fmt.Println("Proceeding...")
+
+			if err := oci.CreateWorkspace(initArgs.tool, desiredTool, ociURL); err != nil {
+				log.Errorf("Error creating workspace: %v", err)
+			}
+			log.Infof("Workspace verified and created")
+		} else if input == "n" {
+			fmt.Println("Operation cancelled.")
+			// Place your code here for what should happen if the user chooses not to proceed
+		} else {
+			fmt.Println("Invalid input. Please enter 'y' or 'n'.")
+		}
+	} else if err := oci.CreateWorkspace(initArgs.tool, desiredTool, ociURL); err != nil {
+		log.Errorf("Error creating workspace: %v", err)
 	}
-	defer destTar.Close()
-
-	if err := cuecore.CheckTagAndPullArchive(ociURL, desiredTool, destTar); err != nil {
-		log.Errorf("Error pulling module for %s from %v: %v", desiredTool, destTar, err)
-	}
-	extractPath, err := cuecore.CreatePath(initArgs.tool, "extracted-content")
-	if err != nil {
-		log.Errorf("Error initializing workspace files %s: %v", initArgs.tool, err)
-		return err
-	}
-
-	reader, err := os.Open(tarballPath)
-	if err != nil {
-		log.Error("error opening archive:")
-		return err
-	}
-	defer reader.Close()
-
-	tarReader := tar.NewReader(reader)
-
-	if err := oci.ExtractTarContents(tarReader, extractPath); err != nil {
-		log.Errorf("error extracting archive:")
-		return err
-	}
-
 	return nil
+}
+
+func trimNewline(s string) string {
+	return s[:len(s)-1]
 }

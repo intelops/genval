@@ -15,6 +15,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/intelops/genval/pkg/cuecore"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -239,4 +240,39 @@ func GetCreds() (authn.Authenticator, error) {
 		Username: user,
 		Password: pass,
 	}), nil
+}
+
+func CreateWorkspace(tool, desiredTool, ociURL string) error {
+	archivePath, err := cuecore.CreatePath(tool, "archive")
+	if err != nil {
+		return fmt.Errorf("error initializing archive %s: %v", tool, err)
+	}
+
+	tarballPath := filepath.Join(archivePath, "cuemod-"+tool+".tar.gz")
+	destTar, err := os.Create(tarballPath)
+	if err != nil {
+		return fmt.Errorf("error creating workpace archive %s: %v", tarballPath, err)
+	}
+	defer destTar.Close()
+
+	if err := cuecore.CheckTagAndPullArchive(ociURL, desiredTool, destTar); err != nil {
+		log.Errorf("Error pulling module for %s from %v: %v", desiredTool, destTar, err)
+	}
+	extractPath, err := cuecore.CreatePath(tool, "extracted-content")
+	if err != nil {
+		return fmt.Errorf("error initializing workspace files %s: %v", tool, err)
+	}
+
+	reader, err := os.Open(tarballPath)
+	if err != nil {
+		return fmt.Errorf("error opening archive %s: %v", tarballPath, err)
+	}
+	defer reader.Close()
+
+	tarReader := tar.NewReader(reader)
+
+	if err := ExtractTarContents(tarReader, extractPath); err != nil {
+		return fmt.Errorf("error extracting archive: %s", err)
+	}
+	return nil
 }
