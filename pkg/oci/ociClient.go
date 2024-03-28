@@ -138,9 +138,24 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	url := parts[0]
 	desiredTag := parts[1]
 
-	opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
+	opts := make([]crane.Option, 0)
 
-	tags, err := crane.ListTags(url, opts)
+	// Try to use crane.WithAuthFromKeychain(authn.DefaultKeychain)
+	keychainOpts := []crane.Option{crane.WithAuthFromKeychain(authn.DefaultKeychain)}
+	if _, err := crane.ListTags(url, keychainOpts...); err == nil {
+		opts = append(opts, keychainOpts...)
+	} else {
+		log.Warn("Default keychain authentication not available, falling back to explicit credentials")
+		// Fallback to using credentials provided as ENV variable with crane.WithAuth(auth)
+		var auth authn.Authenticator
+
+		auth, err = GetCreds()
+		if err != nil {
+			return fmt.Errorf("error reading credentials: %v", err)
+		}
+		opts = append(opts, crane.WithAuth(auth))
+	}
+	tags, err := crane.ListTags(url, opts...)
 	if err != nil {
 		log.Error("Error fetching tags from remote")
 		return err
@@ -161,7 +176,7 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	}
 
 	// Pull the image from the repository
-	img, err := crane.Pull(ref.String())
+	img, err := crane.Pull(ref.String(), opts...)
 	if err != nil {
 		log.Error("error pulling artifact:")
 		return err
@@ -204,4 +219,25 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	}
 
 	return nil
+}
+
+func GetCreds() (authn.Authenticator, error) {
+	user, ok := os.LookupEnv("ARTIFACT_REGISTRY_USERNAME")
+	if !ok {
+		return nil, errors.New("ARTIFACT_REGISTRY_USERNAME environment variable not set")
+	}
+
+	pass, ok := os.LookupEnv("ARTIFACT_REGISTRY_PASS")
+	if !ok {
+		return nil, errors.New("ARTIFACT_REGISTRY_PASS environment variable not set")
+	}
+
+	if user == "" || pass == "" {
+		return nil, errors.New("username or password is empty")
+	}
+
+	return authn.FromConfig(authn.AuthConfig{
+		Username: user,
+		Password: pass,
+	}), nil
 }
