@@ -50,13 +50,13 @@ such as those hosted on GitHub (e.g., https://github.com)
 # Provide the required files from remote URL's
 
 ./genval celval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfilefile-sample \
---policy TODO:
+--policy #TODO:
 
 # We need to authenticate with GitHub if we intend to pass the required file stired in the GitHub repo
 export GITHUB_TOKEN=<your GitHub PAT>
 
 ./genval celval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfilefile-sample \
---policy TODO:
+--policy #TODO:
 	`,
 	RunE: runCelDockerfileValCmd,
 }
@@ -79,7 +79,7 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Policy Name", "Result"})
-
+	// fmt.Printf("DOCLEREFILE JSON: %v\n", string(dockerfileJSON))
 	err = validate.EvaluateCELPolicies(policy, string(dockerfileJSON), t)
 	if err != nil {
 		log.Fatalf("Error evaluating policies: %v", err)

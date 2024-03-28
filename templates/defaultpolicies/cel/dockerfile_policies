@@ -1,2 +1,4 @@
+import test.json
 Name: Check base-image in Dockerfiles
-input.value.startsWith("cgr.dev")
+input.all(c,has(c.cmd))
+
