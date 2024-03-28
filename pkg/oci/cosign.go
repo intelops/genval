@@ -74,7 +74,7 @@ func processCosignIO(cosignCmd *exec.Cmd) error {
 func VerifyArifact(ctx context.Context, url, key string) (verified bool, err error) {
 	ref, err := name.ParseReference(url)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error parsing url: %w", err)
 	}
 
 	chopts := &cosign.CheckOpts{
@@ -83,12 +83,12 @@ func VerifyArifact(ctx context.Context, url, key string) (verified bool, err err
 
 	chopts.RekorClient, err = rekor.NewClient(options.DefaultRekorURL)
 	if err != nil {
-		panic(fmt.Sprintf("creating Rekor client: %v", err))
+		return false, fmt.Errorf("creating Rekor client: %v", err)
 	}
 
 	chopts.RootCerts, err = fulcio.GetRoots()
 	if err != nil {
-		panic(fmt.Sprintf("getting Fulcio root certs: %v", err))
+		return false, fmt.Errorf("getting Fulcio root certs: %v", err)
 	}
 
 	ro := options.RegistryOptions{}
@@ -99,16 +99,14 @@ func VerifyArifact(ctx context.Context, url, key string) (verified bool, err err
 
 	chopts.IntermediateCerts, err = fulcio.GetIntermediates()
 	if err != nil {
-		log.Errorf("unable to get Fulcio intermediate certs: %s", err)
-		return
+		return false, fmt.Errorf("unable to get Fulcio intermediate certs: %s", err)
 	}
 
 	// Check if PubKey is supplied
 	if key != "" {
 		pub, err := sig.LoadPublicKey(ctx, key)
 		if err != nil {
-			log.Errorf("Error loading Pub Key: %v", err)
-			return false, err
+			return false, fmt.Errorf("error loading Pub Key: %v", err)
 		}
 		chopts.SigVerifier = pub
 	}
@@ -116,17 +114,15 @@ func VerifyArifact(ctx context.Context, url, key string) (verified bool, err err
 
 	chopts.RekorPubKeys, err = cosign.GetRekorPubs(ctx)
 	if err != nil {
-		log.Printf("unable to get Rekor public keys: %s", err)
-		return false, err
+		return false, fmt.Errorf("unable to get Rekor public keys: %s", err)
 	}
 	chopts.CTLogPubKeys, err = cosign.GetCTLogPubs(ctx)
 	if err != nil {
-		log.Printf("unable to get CTLog public keys: %s", err)
-		return false, err
+		return false, fmt.Errorf("unable to get CTLog public keys: %s", err)
 	}
 	sigs, bundleVerified, err := cosign.VerifyImageSignatures(context.Background(), ref, chopts)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error verifying artifact signatures: %s", err)
 	}
 
 	if bundleVerified {

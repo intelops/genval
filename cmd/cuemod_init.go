@@ -41,12 +41,14 @@ for validating and generating the Kubernetes resources.
 
 type initFlags struct {
 	tool string
+	key  string
 }
 
 var initArgs initFlags
 
 func init() {
 	initCmd.Flags().StringVarP(&initArgs.tool, "tool", "t", "", "relevant tool for which the cue workspace should be created")
+	initCmd.Flags().StringVarP(&initArgs.key, "key", "k", "", "Cosign public key for verification of artifact signature")
 
 	cuemodCmd.AddCommand(initCmd)
 }
@@ -59,12 +61,12 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("Error prsing provided tool %s: %v", initArgs.tool, err)
 	}
-	key := ""
-	verified, err := oci.VerifyArifact(context.Background(), ociURL, key)
+	// key := ""
+	verified, err := oci.VerifyArifact(context.Background(), ociURL, initArgs.key)
+	log.Printf("Verified artifact: %v", verified)
 	if err != nil {
 		return fmt.Errorf("error varifying artifact: %v", err)
 	}
-	log.Printf("Verified artifact: %v", verified)
 	if !verified {
 		fmt.Println("The artifact is not verified.")
 		fmt.Println("Would you like to proceed? If yes, press 'y', else press 'n'.")
