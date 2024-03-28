@@ -140,9 +140,25 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	}
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
-	opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
+	opts := make([]crane.Option, 0)
 
-	if err := crane.Push(img, ref.String(), opts); err != nil {
+	// Try to use crane.WithAuthFromKeychain(authn.DefaultKeychain)
+	defaultKeychainOpts := []crane.Option{crane.WithAuthFromKeychain(authn.DefaultKeychain)}
+	opts = append(opts, defaultKeychainOpts...)
+	if err := crane.Push(img, ref.String(), defaultKeychainOpts...); err != nil {
+		log.Fatalf("Error pushing artifact: %v", err)
+	} else {
+		log.Warn("Default keychain authentication not available, falling back to explicit credentials")
+		// Fallback to using explicit credentials provided as ENV variable with crane.WithAuth(auth)
+		var auth authn.Authenticator
+		auth, err = oci.GetCreds()
+		if err != nil {
+			return fmt.Errorf("error reading credentials: %v", err)
+		}
+		opts = append(opts, crane.WithAuth(auth))
+	}
+
+	if err := crane.Push(img, ref.String(), opts...); err != nil {
 		log.Fatalf("Error pushing artifact: %v", err)
 	}
 	spin.Stop()

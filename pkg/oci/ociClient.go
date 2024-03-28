@@ -145,7 +145,6 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	if _, err := crane.ListTags(url, keychainOpts...); err == nil {
 		opts = append(opts, keychainOpts...)
 	} else {
-		log.Warn("Default keychain authentication not available, falling back to explicit credentials")
 		// Fallback to using credentials provided as ENV variable with crane.WithAuth(auth)
 		var auth authn.Authenticator
 
