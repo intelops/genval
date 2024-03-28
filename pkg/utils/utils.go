@@ -122,8 +122,8 @@ func CompileFromLocal(path string) (map[string]cue.Value, error) {
 }
 
 // compileAndAddFile reads, compiles a file, and appends it to the dataMap.
-func compileAndAddFile(filePath string, dataMap map[string]cue.Value) error {
-	fileContent, err := os.ReadFile(filePath)
+func compileAndAddFile(fileName string, dataMap map[string]cue.Value) error {
+	fileContent, err := os.ReadFile(fileName)
 	if err != nil {
 		return err
 	}
@@ -131,7 +131,7 @@ func compileAndAddFile(filePath string, dataMap map[string]cue.Value) error {
 	ctx := cuecontext.New()
 
 	// Check if the file has a YAML extension
-	if isYAMLFile(filePath) {
+	if isYAMLFile(fileName) {
 		// Convert YAML to JSON
 		jsonContent, err := yamlToJSON(fileContent)
 		if err != nil {
@@ -141,14 +141,14 @@ func compileAndAddFile(filePath string, dataMap map[string]cue.Value) error {
 		if compiledData.Err() != nil {
 			return compiledData.Err()
 		}
-		dataMap[filepath.Base(filePath)] = compiledData
+		dataMap[filepath.Base(fileName)] = compiledData
 	} else {
 		// For other extensions, directly compile the content
 		compiledData := ctx.CompileBytes(fileContent)
 		if compiledData.Err() != nil {
 			return compiledData.Err()
 		}
-		dataMap[filepath.Base(filePath)] = compiledData
+		dataMap[filepath.Base(fileName)] = compiledData
 	}
 
 	return nil
