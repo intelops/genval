@@ -56,7 +56,7 @@ Managing configurations across different tools can be a daunting task. Ensuring 
 
 
 
-### Managing Kubernetes and CRD Manifests
+### Managing Kubernetes Manifests
 
 
 
@@ -94,20 +94,27 @@ Genval's release process signs binaries using Cosign's keyless signing mode. To 
 
 ```shell
 
-# Example commands to verify a binary
+# Example commands to verify a binary for linux_amd64
 
-$ wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt
-$ wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.pem
-$ wget  https://github.com/intelops/genval/releases/download/v0.0.1/checksums.txt.sig
+COMMIT=$(git rev-list --tags --max-count=1)
+version=$(git describe --tags ${COMMIT})
+version="${version#v}"
+
+# get the artifact
+$ wget  https://github.com/santoshkal/genval-fork/releases/download/v${version}/genval_$version}_linux_amd64.tar.gz
+# fetch the signature
+$ wget  https://github.com/santoshkal/genval-fork/releases/download/v${version}/genval_${version}_linux_amd64.tar.gz.sig
+# Get the certificate
+$ wget  https://github.com/santoshkal/genval-fork/releases/download/v${version}/genval_${version}_linux_amd64.tar.gz.crt
 
 
 
 cosign  verify-blob  \
---certificate-identity  "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/v0.0.1"  \
+--certificate-identity  "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/${version}"  \
 --certificate-oidc-issuer  "https://token.actions.githubusercontent.com"  \
---cert  ./checksums.txt.pem  \
---signature  ./checksums.txt.sig  \
-./checksums.txt
+--cert  ./genval_${version}_linux_amd64.tar.gz.crt  \
+--signature  genval_${version}_linux_amd64.tar.gz.sig \
+./genval_${version}_linux_amd64.tar.gz
 ```
 If verification is successful, you'll see "**Verified OK.**"
 
@@ -152,10 +159,10 @@ The generated binary, genval, will be available in the current working directory
 Genval offers four modes which can be accessed through Genval's main commands :
 
 
-- `dockerfile`: for generating and validaing of Dockefiles - uses [Rego](#TODO: Link Rego page) for validation of generated Dockerfiles
+- `dockerfile`: for generating and validaing of Dockefiles - uses [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) for validation of generated Dockerfiles
 -  `regoval` for validation of Dockerfiles, Kubernetes manifests, and  Terraform files with Rego policies
--  `celval` for validation of Dockerfiles, Kubernetes manifests, and Terraform files with [Common Expression Language (CEL)](#TODO: link CEL page) policies
--  `cue` for generation and validation of Kubernetes and related config files levereging [Cuelang aka CUE](#TODO: link CUE page)
+-  `celval` for validation of Dockerfiles, Kubernetes manifests, and Terraform files with [Common Expression Language (CEL)](https://cel.dev/overview/cel-overview)) policies
+-  `cue` for generation and validation of Kubernetes and related config files levereging [Cuelang aka CUE](https://cuelang.org/docs/))
 - `artifact` for managing pusing and pulling the built artifacts from the OCI complient container registries
 
 A helper mode `showjson` is available for user to view the **JSON** representation of the input files passed to Genval. In `--mode showjson` a user can pass the input file, for example a Dockerfile, Terraform file or a Kubernetes YAML manifests and get the JSON representation of that specific input. As most of the policies are written based on input in a JSON structured format. This would enable user to refer this JSON document to write their custom policies in **Rego** and **CEL**.
