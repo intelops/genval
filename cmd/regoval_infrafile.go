@@ -29,7 +29,7 @@ func init() {
 
 var infrafileCmd = &cobra.Command{
 	Use:   "infrafile",
-	Short: "Validate Kubernetes and related manidests using Rego policies",
+	Short: "Validate various infra tools related files which are YAML/JSON using Rego policies",
 	Long: `A user needs to pass the Kubernetes manifest in YAML/JSON format as reqinput and a set of Rego policies
 as a policy file for validation.
 

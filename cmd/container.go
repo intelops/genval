@@ -43,7 +43,7 @@ func init() {
 
 var dockerfileCmd = &cobra.Command{
 	Use:   "dockerfile",
-	Short: "Generate and Validate Dockerfile",
+	Short: "Generate the Dockerfile based on user provided input and then Validate the same using Rego policies",
 	Long: `
 A user can pass in a JSON file to genval, the passed input will be first evaluated based on input policies,
 once input is validated, a Dockerfile will be generated and the generated Dockerfile will be further validated using

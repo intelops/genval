@@ -20,7 +20,7 @@ import (
 
 var cueCmd = &cobra.Command{
 	Use:   "cue",
-	Short: "The cue command validates and generates Kubernetes manifests",
+	Short: "The cue command validates and/or generates Kubernetes manifests",
 	Long: `
 The Cue command enables the validation and generation of Kubernetes and related manifests.
 Developers can provide an input manifest in either JSON or YAML format. This input is then validated

@@ -35,7 +35,7 @@ and pushes them into a OCI complient container registry
 # Through this workflow, user needs to open th redirectoin link and authorize with OIDC token
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
+--url --dest ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 
 # TODO: Add fucntionality for signing with Cosign genrated pvt key
@@ -43,7 +43,7 @@ and pushes them into a OCI complient container registry
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
+--url --dest ghcr.io/santoshkal/artifacts/genval:test \
 --annotations  foo=bar
 
 `,

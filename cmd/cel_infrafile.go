@@ -32,7 +32,7 @@ func init() {
 
 var celCmd = &cobra.Command{
 	Use:   "infrafile",
-	Short: "Validate Kubernetes and related manifests using Common Expression Language (CEL) policies",
+	Short: "Validate different infra tools related files which are YAML/JSON using CEL policies",
 	Long: `A user need to pass the Kubernetes manifest in YAML/JSON format as reqinput and a set of CEL policies
 as a policy file for validation.
 
