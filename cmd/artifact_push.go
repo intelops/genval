@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -140,9 +139,12 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	}
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
-	opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
-
-	if err := crane.Push(img, ref.String(), opts); err != nil {
+	// opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
+	opts, err := oci.GetCreds()
+	if err != nil {
+		return fmt.Errorf("getting credentials credentials: %v", err)
+	}
+	if err := crane.Push(img, ref.String(), opts...); err != nil {
 		log.Fatalf("Error pushing artifact: %v", err)
 	}
 	spin.Stop()

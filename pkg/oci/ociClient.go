@@ -147,13 +147,11 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 		opts = append(opts, keychainOpts...)
 	} else {
 		// Fallback to using credentials provided as ENV variable with crane.WithAuth(auth)
-		var auth authn.Authenticator
 
-		auth, err = GetCreds()
+		opts, err = GetCreds()
 		if err != nil {
 			return fmt.Errorf("error reading credentials: %v", err)
 		}
-		opts = append(opts, crane.WithAuth(auth))
 	}
 	tags, err := crane.ListTags(url, opts...)
 	if err != nil {
@@ -221,25 +219,44 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	return nil
 }
 
-func GetCreds() (authn.Authenticator, error) {
-	user, ok := os.LookupEnv("ARTIFACT_REGISTRY_USERNAME")
-	if !ok {
-		return nil, errors.New("ARTIFACT_REGISTRY_USERNAME environment variable not set")
+func GetCreds() ([]crane.Option, error) {
+	opts := []crane.Option{}
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return nil, fmt.Errorf("error getting user's home directory: %v", err)
+	}
+	credPath := filepath.Join(homeDir, ".docker", "config.json")
+	_, err = os.Stat(credPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			// Docker config file doesn't exist, check environment variables
+			user, ok := os.LookupEnv("ARTIFACT_REGISTRY_USERNAME")
+			if !ok {
+				return nil, errors.New("ARTIFACT_REGISTRY_USERNAME environment variable not set")
+			}
+
+			pass, ok := os.LookupEnv("ARTIFACT_REGISTRY_PASS")
+			if !ok {
+				return nil, errors.New("ARTIFACT_REGISTRY_PASS environment variable not set")
+			}
+
+			if user == "" || pass == "" {
+				return nil, errors.New("username or password is empty")
+			}
+
+			// Create authentication config
+			authConfig := authn.AuthConfig{Username: user, Password: pass}
+			opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
+		} else {
+			// Other error occurred while checking for Docker config file
+			return nil, fmt.Errorf("error checking Docker config at %s: %v", credPath, err)
+		}
+	} else {
+		// Docker config file exists, use default keychain
+		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
-	pass, ok := os.LookupEnv("ARTIFACT_REGISTRY_PASS")
-	if !ok {
-		return nil, errors.New("ARTIFACT_REGISTRY_PASS environment variable not set")
-	}
-
-	if user == "" || pass == "" {
-		return nil, errors.New("username or password is empty")
-	}
-
-	return authn.FromConfig(authn.AuthConfig{
-		Username: user,
-		Password: pass,
-	}), nil
+	return opts, nil
 }
 
 func CreateWorkspace(tool, desiredTool, ociURL string) error {
