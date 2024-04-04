@@ -150,28 +150,25 @@ To build genval from source:
 
 The generated binary, genval, will be available in the current working directory. You can move it to your PATH or use it from the current directory.
 
-# Using Genval
+# Welcome to Genval
 
-Genval offers following modes which can be accessed through Genval's main commands :
-
-
-- `dockerfile`: for generating and validaing of Dockefiles - uses [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) for validation of generated Dockerfiles
--  `regoval` for validation of Dockerfiles, Kubernetes manifests, and  Terraform files with Rego policies
--  `celval` for validation of Dockerfiles, Kubernetes manifests, and Terraform files with [Common Expression Language (CEL)](https://cel.dev/overview/cel-overview)) policies
--  `cue` for generation and validation of Kubernetes and related config files levereging [Cuelang aka CUE](https://cuelang.org/docs/)
--  `cuemod` for creating workspace for generation and validation of Kubernetes and related config files
-- `artifact` for managing pusing and pulling the built artifacts from the OCI complient container registries
-
-A helper mode `showjson` is available for user to view the **JSON** representation of the input files passed to Genval. In `--mode showjson` a user can pass the input file, for example a Dockerfile, Terraform file or a Kubernetes YAML manifests and get the JSON representation of that specific input. As most of the policies are written based on input in a JSON structured format. This would enable user to refer this JSON document to write their custom policies in **Rego** and **CEL**.
+Genval provides a range of powerful modes for generating and validating configuration files across various technologies. Each mode serves specific purposes and can be accessed through Genval's main commands:
 
 
-> All the modes accept inputs that include local files and files from a remote URL, such as those from a Git repositoryin raw format. If you want to query the files from the `https://github.com`. You need to authenticate to GitHub by providing your Personal Access Token. You can do this by creating and an enviornment variable named. Here's how to do it: `export GITHUB_TOKEN=<Your...PAT>`
+- `dockerfile`: Generate and validate Dockerfiles, utilizing [Rego](https://www.openpolicyagent.org/docs/latest/policy-language/) for validation of Dockerfile
+-  `regoval` Validate Dockerfiles, Kubernetes manifests, and Terraform files using Rego policies
+-  `celval` Validate Dockerfiles, Kubernetes manifests, and Terraform files with [Common Expression Language (CEL)](https://cel.dev/overview/cel-overview) policies
+-  `cue` Generate and validate Kubernetes and related config files leveraging [Cuelang aka CUE](https://cuelang.org/docs/)
+-  `cuemod` Create a workspace for generating and validating Kubernetes and related config files.
+- `artifact` Manage pushing and pulling built artifacts from OCI compliant container registries.
+
+AAdditionally, a helpful command called `showjson` allows users to view the JSON representation of input files passed to Genval. By using this command, users can specify an input file, such as a **Dockerfile**, **Terraform file** and obtain its corresponding JSON representation. Since many policies are written based on JSON structured input, this feature facilitates users in developing custom policies in **Rego** and **CEL**.
+
+> All commands accept inputs from both local files and remote URLs, such as those from a Git repository in raw format. If you wish to query files from https://github.com, authentication to GitHub via a Personal Access Token (PAT) is required. To set this up, create an environment variable named GITHUB_TOKEN and assign it your PAT. Here's how to do it: export GITHUB_TOKEN=<Your...PAT>.
 
 
 ### Dockerfile Validation and Generation:
-
-
-Run Genval with the `dockerfile` command, providing the path to your input JSON or YAML file using the `--reqinput` flag and specifying the desired output path for the generated Dockerfile along with `--inputpolicy` and `--outputpolicy` Rego policy files for validating the input JSON and the generated Dockerfile respectively. Genval will take care of the rest.
+To validate and generate Dockerfiles using Genval, use the `dockerfile` command. Provide the path to your input JSON or YAML file using the `--reqinput` flag. Specify the desired output path for the generated Dockerfile along with the `--inputpolicy` and `--outputpolicy` Rego policy files for validating the input JSON and the generated Dockerfile respectively. Genval will handle the validation process seamlessly.
 
 Example:
 
@@ -182,9 +179,9 @@ $ genval dockerfile --reqinput=./templates/inputs/dockerfile_input/golang_input.
 --outputpolicy ./templates/defaultpolicies/rego/dockerfile_policies.rego
  ```
 
-> Replace the values provided in the flags with your custom input file and Rego policies.
-
-> All the arguments to the `--reqinput`, `inputpolicy`, and `outputpolicy` can be supplied from a remote URL's, such as those hosted on GitHub (e.g., https://github.com).
+> Customize the values provided in the flags according to your specific input file and Rego policies.
+>
+> You can supply all arguments to the --reqinput, inputpolicy, and outputpolicy flags from remote URLs, such as those hosted on GitHub (e.g., https://github.com).
 
 > For authenticating with GitHub.com, set the env variable GITHUB_TOKEN:
 `export GITHUB_TOKEN=<Your GitHub PAT>`
@@ -247,22 +244,19 @@ genval celval dockerfileval --reqinput=input.json \
 
 ### Validation and Generation of Kubernetes configurations
 
-The validation and generation of Kubernetes and CRD manifests are facilitated through the use of [cuelang](https://cuelang.org/docs/). When using Genval for validating and generating Kubernetes and related manifests, make use of the Genval tool in `cue` mode. This mode necessitates JSON/YAML input provided via the `--reqinput` flag. Furthermore, you should specify a `resource` flag, indicating the the top level label defined in the Cue policies. Finally, we need to provide the Cue policies ( Cue definitions) for validation and generation. The `--policy` arg accepts a directory that contains a `cue.mod` directory, which contains the upstream APIs in `.cue` format for assisting in validating the provided config file with upstream APIs. The directory provided to the `--policy` argument also contains a policy (CUE definition) for validation and generation.
+Genval leverages [cuelang](https://cuelang.org/docs/)for the validation and generation of Kubernetes and CRD manifests. When utilizing Genval for these tasks, employ the cue mode. This mode requires JSON/YAML input via the `--reqinput` flag. Additionally, specify a resource flag, indicating the top-level label defined in the Cue policies. Lastly, provide the Cue policies (Cue definitions) for validation and generation. The `--policy` argument accepts a directory containing a cue.mod directory, which holds the upstream APIs in .cue format for assisting in validating the provided config file. The same directory also contains a policy (Cue definition) for validation and generation.
 
-To help users with creation of workspaces enriched with the required directory structure to be provided to the `--policy` argument. Genaval also provides a command `cuemod init`. This commands accepts one argument, namely `--tool` this argument accepts the technology we require. Currently Genval supports following tools:
+To aid users in creating workspaces enriched with the required directory structure for the `--policy` argument, Genval offers the [`cuemod init` command](#creating-workspace-for-working-with-cue-mode). This command takes one argument, -`-tool`, which specifies the desired technology. Genval currently supports the following tools:
 
-- `k8s`: To deal with validating and/or generating manifests for Kubernetes
-- `argocd`: To deal with validating and/or generating manifests for ArgoCD
-- `tekton`: To deal with validating and/or generating manifests for Tekton
-- `crossplane`: To deal with validating and/or generating manifests for Crossplane
-
-
-You have the flexibility to provide multiple `.cue` policies within the workspace directory, allowing you to supply distinct `.cue` definitions as needed. For instance, your DevSecOps/Platform engineering team can furnish a schema that enforces security best practices for a specific environment, encompassing all the pertinent mandatory fields. This approach leaves room for custom fields like `metadata`, `image`, `replicas`, specific to a **Deployment**, to be provided by the development teams. In the `cue` mode, development teams can then contribute their customized policies for validation and generation, tailoring the configurations to suit their particular environments.
+- `k8s`: For validating and/or generating manifests for Kubernetes.
+- `argocd`: For validating and/or generating manifests for ArgoCD
+- `tekton`: For validating and/or generating manifests for Tekton
+- `crossplane`: TFor validating and/or generating manifests for Crossplane
 
 
+Users can provide multiple `.cue` policies within the workspace directory, enabling the supply of distinct `.cue` definitions as needed. For example, a DevSecOps/Platform engineering team may provide a schema enforcing security best practices for a specific environment, while development teams can customize policies for validation and generation, tailoring configurations to their particular environments.
 
 Example:
-
 
 ```shell
 $ genval cue --reqinput https://github.com/santoshkal/cuemod-demo/tree/main/k8s \
@@ -270,9 +264,9 @@ $ genval cue --reqinput https://github.com/santoshkal/cuemod-demo/tree/main/k8s 
 --policy ./policy
 ```
 
-The above command will validate a Deployment manifests using the provided `.cue` schema definitions provided as policies from the `policy` directory and generate the final YAML manifet in the **output** directory in the `cwd`.
+This command validates Deployment manifests using the provided `.cue` schema definitions from the `policy` directory and generates the final YAML manifest in the output directory in the current working directory.
 
-> The `--resource` flag in `cue` mode top level flag labeld in the Cue definitions, like in above example "Application" labels defines a Kubernetes Deployment and a Service resource.
+>The `--resource` flag in **cue** mode labels the top-level flag in the Cue definitions. In the above example, "Application" defines a Kubernetes Deployment and a Service resource.
 
 
 For a detailed workflow illustrating the capabilities of Cue and Genval for validating and generating Kubernetes configurations, you can refer to [this document](./cmd/cueval/example.md).
@@ -280,13 +274,13 @@ The workflow for adding a Cue schema for Kubernetes CRDs is failry easy, and dem
 
 ### Creating workspace for working with cue mode
 
-As outlined above, the cue command requires a directory to be provided to the `--policy` flag, this directory **must** contain a `cue.mod` directory containing upstream configuration for the required tool we are trying to evaluate against and one or more `.cue` Cue definitions.
+In order to utilize the **cue command** effectively, a directory must be provided to the `--policy` flag. This directory is essential and **must** contain a cue.mod directory with upstream configurations for the relevant tool being evaluated, along with one or more `.cue` definitions.
 
-Genval assists in creating such a workflow for some of the technologies, like Kubernetes, ArgoCD, TektonCD, Crossplane.
+Genval streamlines the creation of such a workspace for several technologies, including Kubernetes, ArgoCD, TektonCD, and Crossplane.
 
-To create a workspace, we need to use the `cuemod init` command and provide a technolgy we need the worskspace configuration created to the `--tool` flag:
+To initiate a workspace, utilize the `cuemod init` command and specify the desired technology using the `--tool` flag
 
-`cuemod init` command is sort of a helper command the creates all the required files for working in the cue mode. It mainly verifies and pulls all the required files from the OCI registry and places them on the disk to be used with `cue` command.
+The `cuemod init` command acts as a helper command, facilitating the creation of all necessary files for working in the *cue mode*. It validates and retrieves all required files from the OCI registry, placing them on disk for use with the cue command.
 
 ```shell
 $ genval cuemod init --tool=k8s`
@@ -310,18 +304,28 @@ following will be the structure of the `extracted-content` sub-directory:
 └── README.md
 ```
 
+User needs to update the `policy.cue` file with relevant Cue definitions and if necessary add mode Cue definition files to this directory. This worksapcew would be now ready to be passed to the `--policy` argument when working with [`cue` command](#validation-and-generation-of-kubernetes-configurations).
+
+For example:
+
+```shell
+$ genval cue --reqinput https://github.com/santoshkal/cuemod-demo/tree/main/k8s \
+--resource Application \
+--policy ./k8s:1.29/extracted-contents/cuemod-k8s:v1.29
+```
+
 
 
 
 ### Managing the generated and Validated configuration files
 
-Genval provides the ability to manage the configuration files that are generated and/validated by building them as OCI artifacts and storing them in OCI complient container registry and also pulling the same config files from the registry when required.
+Genval offers comprehensive management capabilities for the configuration files generated and validated. It allows users to build these files as OCI artifacts and store them in OCI-compliant container registries. Additionally, Genval supports pulling the same configuration files from the registry when needed.
 
-To enhance the supply chain security workflow, Genval also enables users to sign the artifacts after storing them in the registry. Similary while pulling any artifact Genval also provides functionality to verify the signatures of the artifacts. This feature leverges [Sigstore's Cosign] keyless mode of signing and verifying the artifacts. However, users may also user their own private and public keys for sgning and verifying the artifacts respectively.
+To bolster supply chain security workflows, Genval enables users to sign the artifacts after storing them in the registry. Similarly, when pulling any artifact, Genval provides functionality to verify the signatures of the artifacts. This feature leverages **Sigstore's Cosign keyless mode** of signing and verifying artifacts. However, users can also utilize their own private and public keys for signing and verifying the artifacts respectively.
 
 #### Building, pushing, and signing generated and/or verified config files and OCI artifacts
 
-The following command builds and pushes the OCI artifact (genval:test) to GitHub container registry - ghcr.io and duly signs the artifact with Cosign in Keyless mode.
+The following command demonstrates building and pushing the OCI artifact (genval:test) to GitHub Container Registry (ghcr.io) while signing the artifact with Cosign in Keyless mode:
 
 ```shell
 $ ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
@@ -330,8 +334,7 @@ $ ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
 ```
 
 #### Pulling tghe stored artifact from the container registry and verifying the signatures
-The following command demostrates pulling an artifact (genval:test) stored in the container registry - ghcr.io, verifying the artifacts
-signatures, and finally storing the contents of the artifact in the `./output` directory.
+The following command illustrates pulling an artifact (genval:test) stored in the container registry (ghcr.io), verifying the artifact's signatures, and finally storing the contents of the artifact in the ./output directory:
 
 ```shell
 ./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
