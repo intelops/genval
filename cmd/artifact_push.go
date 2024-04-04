@@ -27,6 +27,11 @@ var pushCmd = &cobra.Command{
 	Long: `
 The artifact push command takes in a tar.gz bundle of configuration files generated/validated by Genval
 and pushes them into a OCI complient container registry
+
+To facilitate authentication with container registries, Genval initially searches for the "./docker/config.json"
+file in the user's $HOME directory. If this file is found, Genval utilizes it for authentication.
+However, if the file is not present, users must set the ARTIFACT_REGISTRY_USERNAME and ARTIFACT_REGISTRY_PASSWORD
+environment variables to authenticate with the container registry.
 `,
 	Example: `
 # Build and push the provided file/files as OCI artifact to registry

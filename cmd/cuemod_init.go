@@ -20,6 +20,11 @@ var initCmd = &cobra.Command{
 The init comand is used to initialize the workspace to work with the cue command, It creates all the
 required files and directories in the workspace and makes it ready for writing Cue policies and then finally applying them.
 
+To facilitate authentication with container registries, Genval initially searches for the "./docker/config.json"
+file in the user's $HOME directory. If this file is found, Genval utilizes it for authentication.
+However, if the file is not present, users must set the ARTIFACT_REGISTRY_USERNAME and ARTIFACT_REGISTRY_PASSWORD
+environment variables to authenticate with the container registry.
+
 `,
 	Example: `
 	# Users can initialize the Cue workspace with the following commands to write policies for Kubernetes manifests

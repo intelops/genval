@@ -235,9 +235,9 @@ func GetCreds() ([]crane.Option, error) {
 				return nil, errors.New("ARTIFACT_REGISTRY_USERNAME environment variable not set")
 			}
 
-			pass, ok := os.LookupEnv("ARTIFACT_REGISTRY_PASS")
+			pass, ok := os.LookupEnv("ARTIFACT_REGISTRY_PASSWORD")
 			if !ok {
-				return nil, errors.New("ARTIFACT_REGISTRY_PASS environment variable not set")
+				return nil, errors.New("ARTIFACT_REGISTRY_PASSWORD environment variable not set")
 			}
 
 			if user == "" || pass == "" {

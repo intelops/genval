@@ -22,6 +22,12 @@ The artifact pull command pull the artifact stored in the remote container regis
 If --verify flag is set to true (false by default), Genval will verify the artifact's signature
 which is signed by Cosign in Keyless mode and pull the artifact, and unpack the tar.gz archive in desired path.
 
+To facilitate authentication with container registries, Genval initially searches for the "./docker/config.json"
+file in the user's $HOME directory. If this file is found, Genval utilizes it for authentication.
+However, if the file is not present, users must set the ARTIFACT_REGISTRY_USERNAME and ARTIFACT_REGISTRY_PASSWORD
+environment variables to authenticate with the container registry.
+
+
 `,
 	Example: `
 # Verify the Cosign signature and Pull the artifact in Keyless mode
