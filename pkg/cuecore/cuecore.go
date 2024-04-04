@@ -74,7 +74,7 @@ func ReadAndCompileData(dataPath string) (map[string]cue.Value, error) {
 	return utils.CompileFromLocal(dataPath)
 }
 
-// GetDefinitions reads the files names of teh Cue definitions from the provided path and returns a []filenames and an error
+// GetDefinitions reads the files names of the Cue definitions from the provided path and returns a []filenames and an error
 func GetDefinitions(dirPath string) ([]string, error) {
 	var filenames []string
 	var err error

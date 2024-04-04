@@ -39,7 +39,7 @@ and pushes them into a OCI complient container registry
 --url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 
-# TODO: Add fucntionality for signing with Cosign genrated pvt key
+# TODO: Add functionality for signing with Cosign genrated pvt key
 
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 

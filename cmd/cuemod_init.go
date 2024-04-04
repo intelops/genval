@@ -29,7 +29,7 @@ required files and directories in the workspace and makes it ready for writing C
 	The above command will create all the required files and directories in the workspace for users to write the policies
 for validating and generating the Kubernetes resources.
 
-# Similary avaliable flags for cuemod init are:
+# Similarly available flags for cuemod init are:
 --tool=k8s:1.29
 --tool=argocd:2.10.4
 --tool=tektoncd0.58.0
