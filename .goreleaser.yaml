@@ -28,7 +28,7 @@ source:
 # signs the artifacts
 signs:
 - cmd: cosign
-  certificate: '${artifact}.pem'
+  certificate: '${artifact}.crt'
   args:
     - sign-blob
     - '--output-certificate=${certificate}'
