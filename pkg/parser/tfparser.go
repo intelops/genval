@@ -18,8 +18,10 @@ import (
 	ctyjson "github.com/zclconf/go-cty/cty/json"
 )
 
-type jsonObj map[string]interface{}
-type lineObj map[string]interface{}
+type (
+	jsonObj map[string]interface{}
+	lineObj map[string]interface{}
+)
 
 type converter struct {
 	bytes []byte
@@ -30,7 +32,6 @@ func (c *converter) rangeSource(r hcl.Range) string {
 }
 
 func (c *converter) convertBody(body *hclsyntax.Body) (jsonObj, lineObj, error) {
-
 	var (
 		err  error
 		cfg  = make(jsonObj) // resource config

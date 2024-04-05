@@ -62,7 +62,7 @@ In this example, we map the #Deployment definition to the apps.#Deployment objec
 $ genval --mode cue --reqinput ./templates/inputs/cue/deploy.json \ # input to be validated
     --resource Deployment   # a Kind of resource we are trying to validate and generate, needs a valid Kind
     --policy ./templates/defaultpolicies/cue/deployment.cue # Our Cue schema/policy for Deployment
-    --policy ./templates/defaultpolicies/cue/metadata.cue  # We can pass multiple policies/schemas referring them in   the main policy `deployment.cue`.  
+    --policy ./templates/defaultpolicies/cue/metadata.cue  # We can pass multiple policies/schemas referring them in   the main policy `deployment.cue`.
 ```
   - `--reqinput`: Specifies the input to be validated. The `reqinput` accepts a single Cue Definition or a directory containing multiple Definitions.
   - `--resource`: Defines the Kubernetes resource kind to validate and generate. It must correspond to a valid Kind.

@@ -62,6 +62,7 @@ func GenerateDockerfileContent(data *DockerfileContent) string {
 
 	return dockerfileContent.String()
 }
+
 func formatInstruction(key string, value interface{}) []string {
 	var result []string
 

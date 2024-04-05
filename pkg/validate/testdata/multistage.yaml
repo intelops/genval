@@ -1,7 +1,7 @@
 dockerfile:
 - stage: 0
   instructions:
-  - from: 
+  - from:
     - "cgr.dev/chainguard/python:latest-dev as builder"
   - env:
     - "APP_HOME=/app"
@@ -12,7 +12,7 @@ dockerfile:
     - pip install --upgrade pip wheel
   - copy:
     - requirements.txt .
-  - run:  
+  - run:
     - "pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -r requirements.txt"
 
 - stage: 1
@@ -21,7 +21,7 @@ dockerfile:
     - "cgr.dev/chainguard/python:latest"
   - label:
     - maintainer="your-email@example.com"
-    - description="Secure Multi-stage RUST Alpine Image" 
+    - description="Secure Multi-stage RUST Alpine Image"
   - env:
     - "APP_USER=myappuser"
     - "APP_HOME=/app"
@@ -29,7 +29,7 @@ dockerfile:
     - "$APP_HOME"
   - copy:
     - "--from=builder /usr/src/myapp/target/release/myapp /usr/local/bin/"
-  - run: 
+  - run:
     - adduser -D $APP_USER
   - user:
     - "$APP_USER"

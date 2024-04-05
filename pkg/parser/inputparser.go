@@ -36,9 +36,7 @@ func ParseDockerfileInput(filename string, data interface{}) error {
 	fileExtension := filepath.Ext(filename)
 	fileExtension = strings.TrimPrefix(fileExtension, ".")
 
-	// TODO Change funct name for utils.ReadPOlicyFile
 	inputContent, err := utils.ReadFile(filename)
-	// log.Infof("INPUT CONTENT: %v", string(inputContent))
 	if err != nil {
 		log.Fatalf("Unable to read input: %v", err)
 	}

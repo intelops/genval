@@ -15,7 +15,6 @@ import (
 )
 
 func ValidateWithRego(inputContent string, regoPolicy string) error {
-
 	// read input is a file
 	jsonData, err := parser.ProcessInput(inputContent)
 	if err != nil {

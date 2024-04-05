@@ -25,12 +25,7 @@ checksum:
 source:
   enabled: true
 
-sboms:
-  - artifacts: archive
-  - id: source # Two different sbom configurations need two different IDs
-    artifacts: source
-
-# signs the checksum file
+# signs the artifacts
 signs:
 - cmd: cosign
   certificate: '${artifact}.pem'
@@ -39,7 +34,8 @@ signs:
     - '--output-certificate=${certificate}'
     - '--output-signature=${signature}'
     - '${artifact}'
-    - "--yes" 
-  artifacts: checksum
+    - "--yes"
+  # artifacts: checksum
+  artifacts: all
   output: true
 

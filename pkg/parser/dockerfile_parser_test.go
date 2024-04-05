@@ -33,7 +33,7 @@ LABEL version="1.0"
 	assert.Equal(t, instructions, unmarshaled)
 
 	edgeCaseDockerfile := `
-FROM 
+FROM
 LABEL
 SINGLE_WORD
 `
