@@ -94,11 +94,11 @@ version=$(git describe --tags ${COMMIT})
 version="${version#v}"
 
 # get the artifact
-$ wget  https://github.com/santoshkal/genval-fork/releases/download/v${version}/genval_$version}_linux_amd64.tar.gz
+$ wget  https://github.com/intelops/genval/releases/download/v${version}/genval_$version}_linux_amd64.tar.gz
 # get the signature
-$ wget  https://github.com/santoshkal/genval-fork/releases/download/v${version}/genval_${version}_linux_amd64.tar.gz.sig
+$ wget  https://github.com/intelops/genval/releases/download/v${version}/genval_${version}_linux_amd64.tar.gz.sig
 # Get the certificate
-$ wget  https://github.com/santoshkal/genval-fork/releases/download/v${version}/genval_${version}_linux_amd64.tar.gz.crt
+$ wget  https://github.com/intelops/genval/releases/download/v${version}/genval_${version}_linux_amd64.tar.gz.crt
 
 
 
