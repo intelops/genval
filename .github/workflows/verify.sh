@@ -16,7 +16,7 @@ version="${version#v}"
 
 for arch in "${archs[@]}"; do
     # Define the base URL for the release files
-    base_url="https://github.com/santoshkal/genval-fork/releases/download/v${version}/genval_${version}_${arch}.tar.gz"
+    base_url="https://github.com/intelops/genval/releases/download/v${version}/genval_${version}_${arch}.tar.gz"
 
     # Download the main release file
     curl -L -O "${base_url}" >/dev/null 2>&1
