@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -41,7 +40,7 @@ environment variables to authenticate with the container registry.
 # Through this workflow, user needs to open th redirectoin link and authorize with OIDC token
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
+--dest ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 
 # TODO: Add functionality for signing with Cosign genrated pvt key
@@ -49,7 +48,7 @@ environment variables to authenticate with the container registry.
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
+--dest ghcr.io/santoshkal/artifacts/genval:test \
 --annotations  foo=bar
 
 `,
@@ -143,11 +142,15 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("appending content to artifact failed: %v", err)
 	}
+	// TODO: Add userAgent header for HTTP requests made to OCI registry
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
-	opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
+	opts, err := oci.GetCreds()
+	if err != nil {
+		log.Errorf("Error reading credentials: %v", err)
+	}
 
-	if err := crane.Push(img, ref.String(), opts); err != nil {
+	if err := crane.Push(img, ref.String(), opts...); err != nil {
 		log.Fatalf("Error pushing artifact: %v", err)
 	}
 	spin.Stop()

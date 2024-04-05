@@ -139,19 +139,11 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	url := parts[0]
 	desiredTag := parts[1]
 
-	opts := make([]crane.Option, 0)
+	// TODO: Add userAgent header for HTTP requests made to OCI registry
 
-	// Try to use crane.WithAuthFromKeychain(authn.DefaultKeychain)
-	keychainOpts := []crane.Option{crane.WithAuthFromKeychain(authn.DefaultKeychain)}
-	if _, err := crane.ListTags(url, keychainOpts...); err == nil {
-		opts = append(opts, keychainOpts...)
-	} else {
-		// Fallback to using credentials provided as ENV variable with crane.WithAuth(auth)
-
-		opts, err = GetCreds()
-		if err != nil {
-			return fmt.Errorf("error reading credentials: %v", err)
-		}
+	opts, err := GetCreds()
+	if err != nil {
+		return fmt.Errorf("error getting credentials: %v", err)
 	}
 	tags, err := crane.ListTags(url, opts...)
 	if err != nil {

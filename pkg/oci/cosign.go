@@ -120,10 +120,10 @@ func VerifyArifact(ctx context.Context, url, key string) (verified bool, err err
 	if err != nil {
 		return false, fmt.Errorf("unable to get CTLog public keys: %s", err)
 	}
-	sigs, bundleVerified, err := cosign.VerifyImageSignatures(context.Background(), ref, chopts)
-	if err != nil {
-		return false, fmt.Errorf("error verifying artifact signatures: %s", err)
-	}
+	sigs, bundleVerified, _ := cosign.VerifyImageSignatures(context.Background(), ref, chopts)
+	// if err != nil {
+	// 	return false, fmt.Errorf("error verifying artifact signatures: %s", err)
+	// }
 
 	if bundleVerified {
 		verify.PrintVerificationHeader(ctx, ref.String(), chopts, bundleVerified, fulcioVerified)
