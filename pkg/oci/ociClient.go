@@ -251,13 +251,13 @@ func GetCreds() ([]crane.Option, error) {
 	return opts, nil
 }
 
-func CreateWorkspace(tool, desiredTool, ociURL string) error {
-	archivePath, err := cuecore.CreatePath(tool, "archive")
+func CreateWorkspace(desiredTool, ociURL string) error {
+	archivePath, err := cuecore.CreatePath(desiredTool, "archive")
 	if err != nil {
-		return fmt.Errorf("error initializing archive %s: %v", tool, err)
+		return fmt.Errorf("error initializing archive %s: %v", desiredTool, err)
 	}
 
-	tarballPath := filepath.Join(archivePath, "cuemod-"+tool+".tar.gz")
+	tarballPath := filepath.Join(archivePath, "cuemod-"+desiredTool+".tar.gz")
 	destTar, err := os.Create(tarballPath)
 	if err != nil {
 		return fmt.Errorf("error creating workpace archive %s: %v", tarballPath, err)
@@ -267,9 +267,9 @@ func CreateWorkspace(tool, desiredTool, ociURL string) error {
 	if err := cuecore.CheckTagAndPullArchive(ociURL, desiredTool, destTar); err != nil {
 		log.Errorf("Error pulling module for %s from %v: %v", desiredTool, destTar, err)
 	}
-	extractPath, err := cuecore.CreatePath(tool, "extracted-content")
+	extractPath, err := cuecore.CreatePath(desiredTool, "extracted-content")
 	if err != nil {
-		return fmt.Errorf("error initializing workspace files %s: %v", tool, err)
+		return fmt.Errorf("error initializing workspace files %s: %v", desiredTool, err)
 	}
 
 	reader, err := os.Open(tarballPath)

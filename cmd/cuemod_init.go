@@ -37,7 +37,7 @@ for validating and generating the Kubernetes resources.
 # Similarly available flags for cuemod init are:
 --tool=k8s:1.29
 --tool=argocd:2.10.4
---tool=tektoncd0.58.0
+--tool=tektoncd:0.58.0
 --too=crosplane:1.15.0
 --tool=clusterapi:<version without v>
 `,
@@ -68,7 +68,6 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 	}
 	// key := ""
 	verified, err := oci.VerifyArifact(context.Background(), ociURL, initArgs.key)
-	log.Printf("Verified artifact: %v", verified)
 	if err != nil {
 		return fmt.Errorf("error varifying artifact: %v", err)
 	}
@@ -86,7 +85,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 		if input == "y" {
 			fmt.Println("Proceeding...")
 
-			if err := oci.CreateWorkspace(initArgs.tool, desiredTool, ociURL); err != nil {
+			if err := oci.CreateWorkspace(desiredTool, ociURL); err != nil {
 				log.Errorf("Error creating workspace: %v", err)
 			}
 			log.Infof("Workspace verified and created")
@@ -96,7 +95,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Println("Invalid input. Please enter 'y' or 'n'.")
 		}
-	} else if err := oci.CreateWorkspace(initArgs.tool, desiredTool, ociURL); err != nil {
+	} else if err := oci.CreateWorkspace(desiredTool, ociURL); err != nil {
 		log.Errorf("Error creating workspace: %v", err)
 	}
 	return nil
