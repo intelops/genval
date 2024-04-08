@@ -14,7 +14,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/open-policy-agent/opa v0.63.0
 	github.com/sigstore/cosign/v2 v2.2.3
-	github.com/sigstore/sigstore v1.8.1
+	github.com/sigstore/sigstore v1.8.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.9.0
