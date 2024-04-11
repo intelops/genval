@@ -288,7 +288,7 @@ Currently, the supported tools for initializing `cuemods` are `k8s`, `tektoncd`,
 $ genval cuemod init --tool=k8s
 ```
 
-> Note: If a workspace for a tool that is not availabe in the above list of supported tools. Genval also supports pulling a custom workspace built and stored by users in OCI registries. The only requirement while building and pushing the workspace to OCI registry, is the the directory structure, which should exactly be in the following order:
+> Note: If a workspace for a tool that is not available in the above list of supported tools. Genval also supports pulling a custom workspace built and stored by users in OCI registries. The only requirement while building and pushing the workspace to OCI registry, is the the directory structure, which should exactly be in the following order:
 ```shell
 .
 ├── cue.mod # This directory may contain all Kubernetes types in cue format, generated with "cue get go k8s.io/apis/..." cue command.

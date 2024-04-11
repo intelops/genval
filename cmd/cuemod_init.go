@@ -43,7 +43,7 @@ for validating and generating the Kubernetes resources.
 --too=crosplane:1.15.0
 --tool=clusterapi:<version without v>
 
-In case, a user requires a workspace for a tool that is not availabe in the above list. Genval also supports pulling a custom workspace
+In case, a user requires a workspace for a tool that is not available in the above list. Genval also supports pulling a custom workspace
 created and stored by users in OCI registries. The only requirement while building the workspace is the the directory structure should
 exactly be in the following order:
 
