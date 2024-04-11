@@ -44,7 +44,7 @@ environment variables to authenticate with the container registry.
 ./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:no-sign \
 --path ./output \
 --verify true \
---key ./cosign/cosign.pub
+--pub-key ./cosign/cosign.pub
 
 # Uses can also pull the artifact with verifying the signatures of the artifact
   in the container registry and unpack the archive in desired path
@@ -68,7 +68,7 @@ func init() {
 	pullCmd.Flags().StringVarP(&pullArgs.path, "path", "p", "", "path for storing the pulled artifact")
 	pullCmd.Flags().StringVarP(&pullArgs.dest, "dest", "d", "", "destination URL for pulling the artifact from")
 	pullCmd.Flags().BoolVarP(&pullArgs.verify, "verify", "v", false, "Set signature verification of the artifact using Sigstore cosign")
-	pullCmd.Flags().StringVarP(&pullArgs.cosignKey, "key", "k", "", "Cosign public key for varifying the artifact")
+	pullCmd.Flags().StringVarP(&pullArgs.cosignKey, "pub-key", "k", "", "Cosign public key for varifying the artifact")
 
 	artifactCmd.AddCommand(pullCmd)
 }

@@ -51,7 +51,7 @@ exactly be in the following order:
 ├── cue.mod # This directory may contain all Kubernetes types in cue format, generated with "cue get go k8s.io/apis/..."
 └── policy.cue
 
-It shoulkd contain a cue.mod directory created by Cuelang and a .cue file as a Cue definition.
+It should contain a cue.mod directory created by Cuelang and a .cue file as a Cue definition.
 
 To generate a cue.mod directory, users may use "cue get go <API Path>" command from the cue CLI as described
 here: https://github.com/cue-labs/cue-by-example/tree/main/003_kubernetes_tutorial#arrow_right-generate-kubernetes-cue-schemata

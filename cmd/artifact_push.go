@@ -43,7 +43,12 @@ environment variables to authenticate with the container registry.
 --dest ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 
-# TODO: Add functionality for signing with Cosign genrated pvt key
+# Alternatively, users may provide the Cosign generated private key for signing the artifact
+
+./genval artifact push --reqinput ./templates/defaultpolicies/rego \
+--dest ghcr.io/santoshkal/artifacts/genval:test \
+--sign true
+--cosign-key <Path to Cosign private Key>
 
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 
@@ -60,6 +65,7 @@ type pushFlags struct {
 	dest        string
 	annotations []string
 	sign        bool
+	cosignKey   string
 }
 
 var pushArgs pushFlags
@@ -75,6 +81,7 @@ func init() {
 	}
 	pushCmd.Flags().StringArrayVarP(&pushArgs.annotations, "annotations", "a", nil, "Set custom annotation in <key>=<value> format")
 	pushCmd.Flags().BoolVarP(&pushArgs.sign, "sign", "s", false, "If set to true, signs the artifact with cosign in keyless mode")
+	pushCmd.Flags().StringVarP(&pushArgs.cosignKey, "cosign-key", "k", "", "path to cosign private key")
 	artifactCmd.AddCommand(pushCmd)
 }
 
@@ -162,7 +169,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	digestURL := ref.Context().Digest(digest.String()).String()
 
 	if pushArgs.sign {
-		err := oci.SignCosign(digestURL)
+		err := oci.SignCosign(digestURL, pushArgs.cosignKey)
 		if err != nil {
 			return err
 		}
