@@ -27,19 +27,34 @@ environment variables to authenticate with the container registry.
 
 `,
 	Example: `
-	# Users can initialize the Cue workspace with the following commands to write policies for Kubernetes manifests
+	# Users can initialize the Cue workspace with the following commands to write policies for Kubernetes manifests and CRD's
+and provide the directory to --policy flag in cue command.
 
 	./genval cuemod init --tool=k8s
+
 
 	The above command will create all the required files and directories in the workspace for users to write the policies
 for validating and generating the Kubernetes resources.
 
-# Similarly available flags for cuemod init are:
+# Curently, available flags for cuemod init are:
 --tool=k8s:1.29
 --tool=argocd:2.10.4
 --tool=tektoncd:0.58.0
 --too=crosplane:1.15.0
 --tool=clusterapi:<version without v>
+
+In case, a user requires a workspace for a tool that is not availabe in the above list. Genval also supports pulling a custom workspace
+created and stored by users in OCI registries. The only requirement while building the workspace is the the directory structure should
+exactly be in the following order:
+
+.
+├── cue.mod # This directory may contain all Kubernetes types in cue format, generated with "cue get go k8s.io/apis/..."
+└── policy.cue
+
+It shoulkd contain a cue.mod directory created by Cuelang and a .cue file as a Cue definition.
+
+To generate a cue.mod directory, users may use "cue get go <API Path>" command from the cue CLI as described
+here: https://github.com/cue-labs/cue-by-example/tree/main/003_kubernetes_tutorial#arrow_right-generate-kubernetes-cue-schemata
 `,
 	RunE: runInitCmd,
 }
