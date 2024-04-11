@@ -280,13 +280,21 @@ Genval streamlines the creation of such a workspace for several technologies, in
 
 To initiate a workspace, utilize the `cuemod init` command and specify the desired technology using the `--tool` flag
 
-The `cuemod init` command acts as a helper command, facilitating the creation of all necessary files for working in the *cue mode*. It validates and retrieves all required files from the OCI registry, placing them on disk for use with the cue command.
+The `cuemod init` command acts as a helper command, facilitating the creation of all necessary files for working with the `cue` command. It validates and retrieves all required dir/files from the OCI registry, placing them on disk for use with the `cue` command.
+
+Currently, the supported tools for initializing `cuemods` are `k8s`, `tektoncd`, `argocd`. `crossplane`, and `clusterAPI`.
 
 ```shell
-$ genval cuemod init --tool=k8s`
+$ genval cuemod init --tool=k8s
 ```
 
-This command will create a new directory in users current working directory with name `cuemod-k8s:1.29` with following structure:
+> Note: If a workspace for a tool that is not availabe in the above list of supported tools. Genval also supports pulling a custom workspace built and stored by users in OCI registries. The only requirement while building and pushing the workspace to OCI registry, is the the directory structure, which should exactly be in the following order:
+```shell
+.
+├── cue.mod # This directory may contain all Kubernetes types in cue format, generated with "cue get go k8s.io/apis/..." cue command.
+└── policy.cue # This is a .cue file containing the Cue definitions/policies
+```
+`genval cuemod init --tool k8s` command will create a new directory in users current working directory with name `cuemod-k8s:1.29` with following structure:
 
 ```shell
 ./k8s:1.29/
