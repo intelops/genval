@@ -10,7 +10,7 @@ require (
 	github.com/google/go-containerregistry v0.19.1
 	github.com/google/go-github/v57 v57.0.0
 	github.com/hashicorp/hcl/v2 v2.20.1
-	github.com/jedib0t/go-pretty/v6 v6.5.6
+	github.com/jedib0t/go-pretty/v6 v6.5.8
 	github.com/joho/godotenv v1.5.1
 	github.com/open-policy-agent/opa v0.63.0
 	github.com/sigstore/cosign/v2 v2.2.3
