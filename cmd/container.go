@@ -49,8 +49,8 @@ A user can pass in a JSON file to genval, the passed input will be first evaluat
 once input is validated, a Dockerfile will be generated and the generated Dockerfile will be further validated using
 the output policies.
 
-Provides flexibility of supplying input files in YAML or JSON formats, as well as policy files for input and output policies.
-Genval supports both local file paths or remote URLs, such as those hosted on GitHub (e.g., https://github.com)
+Genval Provides flexibility of supplying input files in YAML or JSON formats.All the required input and  policy files
+for input and output policies can be supplied from local file paths or remote URLs, such as those hosted on GitHub (e.g., https://github.com)
 `,
 	Example: `
 # Generating and validating Dockerfile with local files

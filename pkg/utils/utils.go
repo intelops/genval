@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -406,4 +407,13 @@ func StartSpinner(msg string) *spinner.Spinner {
 	s.Suffix = " " + msg
 	s.Start()
 	return s
+}
+
+func GetVersion() (string, error) {
+	cmd := exec.Command("git", "describe", "--tags", "--abbrev=0")
+	version, err := cmd.Output()
+	if err != nil {
+		return "", fmt.Errorf("error fetching git tags: %v", err)
+	}
+	return strings.TrimSpace("Genval: " + string(version)), nil
 }

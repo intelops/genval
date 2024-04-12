@@ -16,6 +16,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/intelops/genval/pkg/cuecore"
+	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -30,6 +31,54 @@ func ParseAnnotations(args []string) (map[string]string, error) {
 	}
 
 	return annotations, nil
+}
+
+// CheckTagAndPullArchive checks for provided tag to be available in the remote, if available pulls the archive
+// and stores it in the specified directory and retuens an error if encountered.
+func CheckTagAndPullArchive(url, tool string, archivePath *os.File) error {
+	ref, err := name.ParseReference(url)
+	if err != nil {
+		return fmt.Errorf("error parsing url %s: %v", url, err)
+	}
+
+	parts := strings.Split(ref.String(), ":")
+	ociref := parts[0]
+	desiredTag := parts[1]
+
+	opts, err := GetCreds()
+	if err != nil {
+		log.Errorf("Error reading credentials: %v", err)
+	}
+
+	tags, err := crane.ListTags(ociref, opts...)
+	if err != nil {
+		return fmt.Errorf("error fetching tags from remote %s: %v	", ociref, err)
+	}
+
+	// Check if the desired tag is present in the remote tags
+	found := false
+	for _, tag := range tags {
+		if tag == desiredTag {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("provided version '%s' of tool not found in remote: %v", desiredTag, err)
+	}
+
+	// Pull the image from the repository
+	img, err := crane.Pull(ref.String())
+	if err != nil {
+		return fmt.Errorf("error pulling artifact from %s: %v", ref.String(), err)
+	}
+
+	// Export the image to the tarball file
+	if err := crane.Export(img, archivePath); err != nil {
+		return fmt.Errorf("error exporting artifact")
+	}
+	return nil
 }
 
 // CreateTarball creates a tarball from a file or directory.
@@ -139,20 +188,13 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	url := parts[0]
 	desiredTag := parts[1]
 
-	opts := make([]crane.Option, 0)
+	// TODO: Add userAgent header for HTTP requests made to OCI registry
 
-	// Try to use crane.WithAuthFromKeychain(authn.DefaultKeychain)
-	keychainOpts := []crane.Option{crane.WithAuthFromKeychain(authn.DefaultKeychain)}
-	if _, err := crane.ListTags(url, keychainOpts...); err == nil {
-		opts = append(opts, keychainOpts...)
-	} else {
-		// Fallback to using credentials provided as ENV variable with crane.WithAuth(auth)
-
-		opts, err = GetCreds()
-		if err != nil {
-			return fmt.Errorf("error reading credentials: %v", err)
-		}
+	opts, err := GetCreds()
+	if err != nil {
+		return fmt.Errorf("error getting credentials: %v", err)
 	}
+
 	tags, err := crane.ListTags(url, opts...)
 	if err != nil {
 		log.Error("Error fetching tags from remote")
@@ -256,28 +298,34 @@ func GetCreds() ([]crane.Option, error) {
 		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
+	userAgent, err := utils.GetVersion()
+	if err != nil {
+		log.Errorf("Error fetching version info: %v", err)
+	}
+	opts = append(opts, crane.WithUserAgent(userAgent))
+
 	return opts, nil
 }
 
-func CreateWorkspace(tool, desiredTool, ociURL string) error {
-	archivePath, err := cuecore.CreatePath(tool, "archive")
+func CreateWorkspace(desiredTool, ociURL string) error {
+	archivePath, err := cuecore.CreatePath(desiredTool, "archive")
 	if err != nil {
-		return fmt.Errorf("error initializing archive %s: %v", tool, err)
+		return fmt.Errorf("error initializing archive %s: %v", desiredTool, err)
 	}
 
-	tarballPath := filepath.Join(archivePath, "cuemod-"+tool+".tar.gz")
+	tarballPath := filepath.Join(archivePath, "cuemod-"+desiredTool+".tar.gz")
 	destTar, err := os.Create(tarballPath)
 	if err != nil {
 		return fmt.Errorf("error creating workpace archive %s: %v", tarballPath, err)
 	}
 	defer destTar.Close()
 
-	if err := cuecore.CheckTagAndPullArchive(ociURL, desiredTool, destTar); err != nil {
+	if err := CheckTagAndPullArchive(ociURL, desiredTool, destTar); err != nil {
 		log.Errorf("Error pulling module for %s from %v: %v", desiredTool, destTar, err)
 	}
-	extractPath, err := cuecore.CreatePath(tool, "extracted-content")
+	extractPath, err := cuecore.CreatePath(desiredTool, "extracted-content")
 	if err != nil {
-		return fmt.Errorf("error initializing workspace files %s: %v", tool, err)
+		return fmt.Errorf("error initializing workspace files %s: %v", desiredTool, err)
 	}
 
 	reader, err := os.Open(tarballPath)

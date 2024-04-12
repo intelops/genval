@@ -30,7 +30,7 @@ func init() {
 var dockerfilevalCmd = &cobra.Command{
 	Use:   "dockerfileval",
 	Short: "Validate Dockerfile with Rego policies",
-	Long: `Using dockerfileval, a user can validate Dockerfilefiles. Provide a Dockerfile thet needs to be validated
+	Long: `Using dockerfileval, a user can validate Dockerfiles. Provide a Dockerfile thet needs to be validated
 to the --reqinput arg and a set of Rego policies in the --policy arg.
 
 The required input Dockerfile and  Rego policy files can be either be passed through local file paths or remote URLs,
@@ -44,14 +44,14 @@ such as those hosted on GitHub (e.g., https://github.com)
 
 # Provide the required files from remote URL's
 
-./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfilefile-sample \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfilefile_policies.rego
+./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
+--policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
 
 # We need to authenticate with GitHub if we intend to pass the required file stired in the GitHub repo
 export GITHUB_TOKEN=<your GitHub PAT>
 
-./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfilefile-sample \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfilefile_policies.rego
+./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
+--policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
 	`,
 	RunE: runDockerfilevalCmd,
 }

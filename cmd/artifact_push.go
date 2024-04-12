@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -41,15 +40,20 @@ environment variables to authenticate with the container registry.
 # Through this workflow, user needs to open th redirectoin link and authorize with OIDC token
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
+--dest ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 
-# TODO: Add functionality for signing with Cosign genrated pvt key
+# Alternatively, users may provide the Cosign generated private key for signing the artifact
+
+./genval artifact push --reqinput ./templates/defaultpolicies/rego \
+--dest ghcr.io/santoshkal/artifacts/genval:test \
+--sign true
+--cosign-key <Path to Cosign private Key>
 
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---url --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
+--dest ghcr.io/santoshkal/artifacts/genval:test \
 --annotations  foo=bar
 
 `,
@@ -61,6 +65,7 @@ type pushFlags struct {
 	dest        string
 	annotations []string
 	sign        bool
+	cosignKey   string
 }
 
 var pushArgs pushFlags
@@ -76,6 +81,7 @@ func init() {
 	}
 	pushCmd.Flags().StringArrayVarP(&pushArgs.annotations, "annotations", "a", nil, "Set custom annotation in <key>=<value> format")
 	pushCmd.Flags().BoolVarP(&pushArgs.sign, "sign", "s", false, "If set to true, signs the artifact with cosign in keyless mode")
+	pushCmd.Flags().StringVarP(&pushArgs.cosignKey, "cosign-key", "k", "", "path to cosign private key")
 	artifactCmd.AddCommand(pushCmd)
 }
 
@@ -143,11 +149,15 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("appending content to artifact failed: %v", err)
 	}
+	// TODO: Add userAgent header for HTTP requests made to OCI registry
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
-	opts := crane.WithAuthFromKeychain((authn.DefaultKeychain))
+	opts, err := oci.GetCreds()
+	if err != nil {
+		log.Errorf("Error reading credentials: %v", err)
+	}
 
-	if err := crane.Push(img, ref.String(), opts); err != nil {
+	if err := crane.Push(img, ref.String(), opts...); err != nil {
 		log.Fatalf("Error pushing artifact: %v", err)
 	}
 	spin.Stop()
@@ -159,7 +169,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	digestURL := ref.Context().Digest(digest.String()).String()
 
 	if pushArgs.sign {
-		err := oci.SignCosign(digestURL)
+		err := oci.SignCosign(digestURL, pushArgs.cosignKey)
 		if err != nil {
 			return err
 		}

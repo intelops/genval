@@ -8,5 +8,5 @@ input_dockerfile.json
 Dockerfile*
 genval
 cosign
-.idea
+.todo
 
