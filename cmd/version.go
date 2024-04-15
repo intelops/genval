@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"fmt"
-
+	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -10,14 +9,14 @@ import (
 
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Print the version number of Genval",
+	Short: "Prints Genval version information",
 	Long:  `All software has versions. This is Genval's`,
 	Run: func(cmd *cobra.Command, args []string) {
 		Version, err := utils.GetVersion()
 		if err != nil {
 			log.Errorf("Error fetching version info: %v", err)
 		}
-		fmt.Println(Version)
+		color.New(color.FgHiCyan, color.Bold).Println(Version)
 	},
 }
 
