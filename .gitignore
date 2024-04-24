@@ -9,4 +9,4 @@ Dockerfile*
 genval
 cosign
 .todo
-
+!.devcontainer/Dockerfile
