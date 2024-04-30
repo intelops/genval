@@ -6,7 +6,7 @@ import (
 
 var cuemodCmd = &cobra.Command{
 	Use:   "cuemod",
-	Short: "cuemod commands manages workspace for interacting with Cue valoidation and generation",
+	Short: "cuemod command manages workspace for interacting with Cue valoidation and generation",
 }
 
 func init() {
