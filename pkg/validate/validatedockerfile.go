@@ -6,11 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
@@ -19,13 +21,12 @@ import (
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 	dockerPolicy, err := utils.ReadFile(regoPolicyPath)
 	if err != nil {
-		log.WithError(err).Error("Error reading the policy file.")
-		return errors.New("error reading the policy file")
+		return fmt.Errorf("error reading the policy file %v: %v", regoPolicyPath, err)
 	}
 
 	pkg, err := utils.ExtractPackageName(dockerPolicy)
 	if err != nil {
-		log.Fatalf("Unable to fetch package name: %v", err)
+		return fmt.Errorf("errr fetching package name from polcy %v: %v", dockerPolicy, err)
 	}
 
 	// Prepare Rego input data
@@ -33,31 +34,45 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 
 	jsonData, err := json.Marshal(dockerfileInstructions)
 	if err != nil {
-		log.WithError(err).Error("Error converting to JSON:", err)
-		return errors.New("error converting to JSON")
+		return fmt.Errorf("error marshalling %v, to JSON: %v", dockerfileInstructions, err)
 	}
+
+	policyName := filepath.Base(regoPolicyPath)
 
 	var commands []map[string]string
 	err = json.Unmarshal([]byte(jsonData), &commands)
 	if err != nil {
-		errWithContext := fmt.Errorf("error converting JSON to map: %v", err)
-		log.WithError(err).Error(errWithContext.Error())
-		return errWithContext
+		return fmt.Errorf("error converting JSON to map: %v", err)
 	}
 
 	ctx := context.Background()
 
+	compiler, err := ast.CompileModules(map[string]string{
+		policyName: string(dockerPolicy),
+	})
+	if err != nil {
+		log.Fatal(err)
+		return fmt.Errorf("failed to compile rego policy: %w", err)
+	}
 	// Create regoQuery for evaluation
 	regoQuery := rego.New(
 		rego.Query("data."+pkg),
-		rego.Module(regoPolicyPath, string(dockerPolicy)),
+		rego.Compiler(compiler),
 		rego.Input(commands),
 	)
 
 	// Evaluate the Rego query
 	rs, err := regoQuery.Eval(ctx)
 	if err != nil {
-		log.Fatal("Error evaluating query:", err)
+		switch err := err.(type) {
+		case ast.Errors:
+			for _, e := range err {
+				fmt.Printf("code: %v", e.Code)
+				fmt.Printf("row: %v", e.Location.Row)
+				fmt.Printf("filename: %v", e.Location.File)
+			}
+			log.Fatal("Error evaluating query:", err)
+		}
 	}
 
 	t := table.NewWriter()
@@ -80,11 +95,24 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 					// If value is a string, assign it to desc
 					desc = v
 				}
-				if value != true {
-					t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA"})
-					policyError = errors.New("policy evaluation failed: " + key)
+
+				// Perform type assertion to check if value is a slice
+				if slice, ok := value.([]interface{}); ok {
+					// Check if the slice is empty
+					if len(slice) > 0 {
+						t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc})
+					} else {
+						t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA"})
+						policyError = errors.New("policy evaluation failed: " + key)
+					}
 				} else {
-					t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc})
+					// Handle other types of values (non-slice)
+					if value != nil {
+						t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc})
+					} else {
+						t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA"})
+						policyError = errors.New("policy evaluation failed: " + key)
+					}
 				}
 			}
 		} else {
