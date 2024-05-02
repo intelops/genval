@@ -62,18 +62,29 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Policy", "Status"})
+	t.AppendHeader(table.Row{"Policy", "Status", "Description"})
 	var policyError error
-
+	var desc string
 	for _, result := range rs {
 		if len(result.Expressions) > 0 {
 			keys := result.Expressions[0].Value.(map[string]interface{})
 			for key, value := range keys {
+				switch v := value.(type) {
+				case []interface{}:
+					// Check if the slice is not empty
+					if len(v) > 0 {
+						// If it's not empty, take the first element
+						desc = fmt.Sprintf("%v", v[0])
+					}
+				case string:
+					// If value is a string, assign it to desc
+					desc = v
+				}
 				if value != true {
-					t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed")})
+					t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA"})
 					policyError = errors.New("policy evaluation failed: " + key)
 				} else {
-					t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed")})
+					t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc})
 				}
 			}
 		} else {
