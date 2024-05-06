@@ -3,15 +3,11 @@ package validate
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 
-	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
@@ -75,57 +71,8 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 		}
 	}
 
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Policy", "Status", "Description"})
-	var policyError error
-	var desc string
-	for _, result := range rs {
-		if len(result.Expressions) > 0 {
-			keys := result.Expressions[0].Value.(map[string]interface{})
-			for key, value := range keys {
-				switch v := value.(type) {
-				case []interface{}:
-					// Check if the slice is not empty
-					if len(v) > 0 {
-						// If it's not empty, take the first element
-						desc = fmt.Sprintf("%v", v[0])
-					}
-				case string:
-					// If value is a string, assign it to desc
-					desc = v
-				}
-
-				// Perform type assertion to check if value is a slice
-				if slice, ok := value.([]interface{}); ok {
-					// Check if the slice is empty
-					if len(slice) > 0 {
-						t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc})
-					} else {
-						t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA"})
-						policyError = errors.New("policy evaluation failed: " + key)
-					}
-				} else {
-					// Handle other types of values (non-slice)
-					if value != nil {
-						t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc})
-					} else {
-						t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA"})
-						policyError = errors.New("policy evaluation failed: " + key)
-					}
-				}
-			}
-		} else {
-			log.Error("No policies passed")
-			policyError = errors.New("no policies passed")
-		}
+	if err := PrintResults(rs); err != nil {
+		return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 	}
-
-	t.Render()
-
-	if err != nil {
-		return errors.New("error evaluating Rego")
-	}
-
-	return policyError
+	return nil
 }

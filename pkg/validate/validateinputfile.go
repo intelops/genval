@@ -3,14 +3,10 @@ package validate
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"os"
 
-	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
@@ -57,33 +53,8 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 		return fmt.Errorf("error evaluating Rego: %v", err)
 	}
 
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Policy", "Status"})
-	var policyError error
-
-	for _, result := range rs {
-		if len(result.Expressions) > 0 {
-			keys := result.Expressions[0].Value.(map[string]interface{})
-			for key, value := range keys {
-				if value != true {
-					t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed")})
-					policyError = errors.New("policy evaluation failed: " + key)
-				} else {
-					t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed")})
-				}
-			}
-		} else {
-			log.Error("No policies passed")
-			policyError = errors.New("no policies passed")
-		}
+	if err := PrintResults(rs); err != nil {
+		return fmt.Errorf("error evaluating rego results fron policy %s: %v", regoPolicyPath, err)
 	}
-
-	t.Render()
-
-	if err != nil {
-		return errors.New("error evaluating Rego")
-	}
-
-	return policyError
+	return nil
 }

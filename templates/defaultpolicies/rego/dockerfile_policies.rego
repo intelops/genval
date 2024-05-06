@@ -51,10 +51,10 @@ deny_add contains msg if {
 }
 
 # Ensure update/upgrade instructions are not used in the Dockerfile - CIS 4.7
-deny_package_update_instructions contains msg if {
-  blacklist := [" update "," upgrade "]
-  input[i].cmd == "run"
-  val := concat(" ", input[i].value)
-  not contains(val, blacklist[i])
-  msg:= "Ensure update/upgrade instructions are not used in the Dockerfile - CIS 4.7"
-}
+# deny_package_update_instructions contains msg if {
+#   blacklist := [" update "," upgrade "]
+#   input[i].cmd == "run"
+#   val := concat(" ", input[i].value)
+#   not contains(val, blacklist[i])
+#   msg:= "Ensure update/upgrade instructions are not used in the Dockerfile - CIS 4.7"
+# }

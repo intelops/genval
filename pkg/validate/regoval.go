@@ -3,13 +3,10 @@ package validate
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"os"
+	"fmt"
 
-	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
@@ -54,26 +51,8 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 		return err
 	}
 
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Policy", "Status"})
-
-	for _, result := range rs {
-		if len(result.Expressions) > 0 {
-			keys := result.Expressions[0].Value.(map[string]interface{})
-			for key, value := range keys {
-				if value != true {
-					t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed")})
-				} else {
-					t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed")})
-				}
-			}
-		} else {
-			log.Error("No policies passed")
-			return errors.New("no policies passed")
-		}
+	if err := PrintResults(rs); err != nil {
+		return fmt.Errorf("error evaluating rego results fron policy %s: %v", regoPolicy, err)
 	}
-
-	t.Render()
 	return nil
 }
