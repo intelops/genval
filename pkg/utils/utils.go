@@ -437,5 +437,5 @@ func GetVersion() (string, error) {
 
 	genval is a CLI tool to generate and validate configuration files
 
-	Genval: %s`, strings.TrimSpace(string(version))), nil
+				Genval: %s`, strings.TrimSpace(string(version))), nil
 }
