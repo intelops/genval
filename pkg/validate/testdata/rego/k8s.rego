@@ -1,14 +1,13 @@
 package validate_k8s
 
-import future.keywords
-
-default deny_latest = false
+import rego.v1
 
 
-deny_latest{
+deny_latest contains msg if {
 input.kind ==	"Deployment"
 c:= input.spec.template.spec.containers[i].image
 not endswith(c, "latest")
+msg:= "Image does not have latest tag"
 }
 
 

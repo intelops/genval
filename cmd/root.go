@@ -10,7 +10,7 @@ import (
 // rootCommand returns a cobra command for genvalctl CLI tool
 var rootCmd = &cobra.Command{
 	Use:   "genval",
-	Short: "genval is a CLI tool to generate and validate configuration files",
+	Short: "	",
 	Long: `
 	Genval is a versatile Go utility that simplifies configuration management by generating and validating configuration files
 	for a wide range of tools. It supports various file types, including Dockerfile, Kubernetes manifests,
@@ -19,17 +19,8 @@ var rootCmd = &cobra.Command{
 }
 
 func init() {
-	color.New(color.FgHiCyan, color.Bold).Println(`
-
-	:'######:::'########:'##::: ##:'##::::'##::::'###::::'##:::::::
-	'##... ##:: ##.....:: ###:: ##: ##:::: ##:::'## ##::: ##:::::::
-	 ##:::..::: ##::::::: ####: ##: ##:::: ##::'##:. ##:: ##:::::::
-	 ##::'####: ######::: ## ## ##: ##:::: ##:'##:::. ##: ##:::::::
-	 ##::: ##:: ##...:::: ##. ####:. ##:: ##:: #########: ##:::::::
-	 ##::: ##:: ##::::::: ##:. ###::. ## ##::: ##.... ##: ##:::::::
-	. ######::: ########: ##::. ##:::. ###:::: ##:::: ##: ########:
-	:......::::........::..::::..:::::...:::::..:::::..::........::
-		`)
+	rootCmd.SetOut(color.Output)
+	rootCmd.SetErr(color.Error)
 }
 
 func Execute() {

@@ -425,5 +425,17 @@ func GetVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error running git describe: %v", err)
 	}
-	return strings.TrimSpace("Genval: " + string(version)), nil
+	return fmt.Sprintf(`
+	:'######:::'########:'##::: ##:'##::::'##::::'###::::'##:::::::
+	'##... ##:: ##.....:: ###:: ##: ##:::: ##:::'## ##::: ##:::::::
+	 ##:::..::: ##::::::: ####: ##: ##:::: ##::'##:. ##:: ##:::::::
+	 ##::'####: ######::: ## ## ##: ##:::: ##:'##:::. ##: ##:::::::
+	 ##::: ##:: ##...:::: ##. ####:. ##:: ##:: #########: ##:::::::
+	 ##::: ##:: ##::::::: ##:. ###::. ## ##::: ##.... ##: ##:::::::
+	. ######::: ########: ##::. ##:::. ###:::: ##:::: ##: ########:
+	:......::::........::..::::..:::::...:::::..:::::..::........::
+
+	genval is a CLI tool to generate and validate configuration files
+
+	Genval: %s`, strings.TrimSpace(string(version))), nil
 }
