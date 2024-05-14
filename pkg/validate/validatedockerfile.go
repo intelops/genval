@@ -24,11 +24,6 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 	if err != nil {
 		return fmt.Errorf("errr fetching package name from polcy %v: %v", dockerPolicy, err)
 	}
-	bm, err := fetchMetadataFromPolicyFile(regoPolicyPath)
-	if err != nil {
-		return fmt.Errorf("error fetching benchmarks from policy file %s: %v", regoPolicyPath, err)
-	}
-	// fmt.Printf("Benchmarks: %v", bm)
 
 	// Prepare Rego input data
 	dockerfileInstructions := parser.ParseDockerfileContent(dockerfileContent)
@@ -76,7 +71,7 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 		}
 	}
 
-	if err := PrintResults(bm, rs); err != nil {
+	if err := PrintResults(rs); err != nil {
 		return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 	}
 	return nil
