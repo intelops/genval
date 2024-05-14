@@ -28,7 +28,7 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 	if err != nil {
 		return fmt.Errorf("error fetching benchmarks from policy file %s: %v", regoPolicyPath, err)
 	}
-	fmt.Printf("Benchmarks: %v", bm)
+	// fmt.Printf("Benchmarks: %v", bm)
 
 	// Prepare Rego input data
 	dockerfileInstructions := parser.ParseDockerfileContent(dockerfileContent)

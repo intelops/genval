@@ -19,50 +19,49 @@ func PrintResults(benchmark []string, result rego.ResultSet) error {
 	t.AppendHeader(table.Row{"Policy", "Status", "Description", "Benchmark"})
 	var policyError error
 	var desc string
-
 	// Create a map to associate policies with their benchmarks
 	policyToBenchmark := map[string]string{}
+
 	for i, r := range result {
 		if i < len(benchmark) {
-			keys := r.Expressions[0].Value.(map[string]interface{})
-			for key := range keys {
-				policyToBenchmark[key] = benchmark[i]
-			}
-		}
-	}
+			if len(r.Expressions) > 0 {
+				keys := r.Expressions[0].Value.(map[string]interface{})
+				for key, value := range keys {
+					policyToBenchmark[key] = benchmark[i]
+					fmt.Println(key)
+					for _, ben := range benchmark {
+						fmt.Println(ben)
+					}
 
-	for _, r := range result {
-		if len(r.Expressions) > 0 {
-			keys := r.Expressions[0].Value.(map[string]interface{})
-			for key, value := range keys {
-				switch v := value.(type) {
-				case []interface{}:
-					if len(v) > 0 {
-						desc = fmt.Sprintf("%v", v[0])
+					switch v := value.(type) {
+					case []interface{}:
+						if len(v) > 0 {
+							desc = fmt.Sprintf("%v", v[0])
+						}
+					case string:
+						desc = v
 					}
-				case string:
-					desc = v
-				}
 
-				if slice, ok := value.([]interface{}); ok {
-					if len(slice) > 0 {
-						t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc, policyToBenchmark[key]})
+					if slice, ok := value.([]interface{}); ok {
+						if len(slice) > 0 {
+							t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc, policyToBenchmark[key]})
+						} else {
+							t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA", "NA"})
+							policyError = errors.New("policy evaluation failed: " + key)
+						}
 					} else {
-						t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA", "NA"})
-						policyError = errors.New("policy evaluation failed: " + key)
-					}
-				} else {
-					if value != nil {
-						t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc, policyToBenchmark[key]})
-					} else {
-						t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA", "NA"})
-						policyError = errors.New("policy evaluation failed: " + key)
+						if value != nil {
+							t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed"), desc, policyToBenchmark[key]})
+						} else {
+							t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed"), "NA", "NA"})
+							policyError = errors.New("policy evaluation failed: " + key)
+						}
 					}
 				}
+			} else {
+				log.Error("No policies passed")
+				policyError = errors.New("no policies passed")
 			}
-		} else {
-			log.Error("No policies passed")
-			policyError = errors.New("no policies passed")
 		}
 	}
 
