@@ -28,7 +28,11 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 		log.Fatalf("Unable to fetch package name: %v", err)
 		return err
 	}
-
+	bm, err := fetchMetadataFromPolicyFile(regoPolicy)
+	if err != nil {
+		return fmt.Errorf("error fetching benchmarks from policy file %s: %v", regoPolicy, err)
+	}
+	fmt.Printf("Benchmarks: %v", bm)
 	var commands map[string]interface{}
 	err = json.Unmarshal(jsonData, &commands)
 	if err != nil {
@@ -51,7 +55,7 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 		return err
 	}
 
-	if err := PrintResults(rs); err != nil {
+	if err := PrintResults(bm, rs); err != nil {
 		return fmt.Errorf("error evaluating rego results fron policy %s: %v", regoPolicy, err)
 	}
 	return nil

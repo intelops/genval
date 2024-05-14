@@ -34,6 +34,11 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	if err != nil {
 		return fmt.Errorf("error reading Rego policy: %v", err)
 	}
+	bm, err := fetchMetadataFromPolicyFile(regoPolicyPath)
+	if err != nil {
+		return fmt.Errorf("error fetching benchmarks from policy file %s: %v", regoPolicyPath, err)
+	}
+	fmt.Printf("Benchmarks: %v", bm)
 
 	pkg, err := utils.ExtractPackageName(regoContent)
 	if err != nil {
@@ -53,7 +58,7 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 		return fmt.Errorf("error evaluating Rego: %v", err)
 	}
 
-	if err := PrintResults(rs); err != nil {
+	if err := PrintResults(bm, rs); err != nil {
 		return fmt.Errorf("error evaluating rego results fron policy %s: %v", regoPolicyPath, err)
 	}
 	return nil
