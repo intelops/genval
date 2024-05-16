@@ -29,8 +29,18 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	}
 	ctx := context.Background()
 
+	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
+	if err != nil {
+		return err
+	}
+
+	var regoFile string
+	for _, v := range regoPolicy {
+		regoFile = v
+	}
+
 	// Read the Rego policy from the given path
-	regoContent, err := utils.ReadFile(regoPolicyPath)
+	regoContent, err := utils.ReadFile(regoFile)
 	if err != nil {
 		return fmt.Errorf("error reading Rego policy: %v", err)
 	}
@@ -43,7 +53,7 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	// Create Rego for query and evaluation
 	regoQuery := rego.New(
 		rego.Query("data."+pkg),
-		rego.Module(regoPolicyPath, string(regoContent)),
+		rego.Module(regoFile, string(regoContent)),
 		rego.Input(inputMap),
 	)
 
@@ -53,8 +63,19 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 		return fmt.Errorf("error evaluating Rego: %v", err)
 	}
 
-	if err := PrintResults(rs); err != nil {
-		return fmt.Errorf("error evaluating rego results fron policy %s: %v", regoPolicyPath, err)
+	// filePaths, err := FecthRegoMetadata(metadataDir, metaExt)
+	// if err != nil {
+	// 	return fmt.Errorf("error fetching metadata files:", err)
+
+	// }
+	// Load metadata from JSON files
+	metas, err := LoadRegoMetadata(metaFiles)
+	if err != nil {
+		return fmt.Errorf("error loading policy metadata: %v", err)
+	}
+
+	if err := PrintResults(rs, metas); err != nil {
+		return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 	}
 	return nil
 }

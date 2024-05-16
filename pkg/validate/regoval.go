@@ -11,14 +11,23 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-func ValidateWithRego(inputContent string, regoPolicy string) error {
+func ValidateWithRego(inputContent string, regoPolicyPath string) error {
 	// read input is a file
 	jsonData, err := parser.ProcessInput(inputContent)
 	if err != nil {
 		log.Errorf("Error reading input content file: %v", err)
 	}
 
-	k8sPolicy, err := utils.ReadFile(regoPolicy)
+	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
+	if err != nil {
+		return err
+	}
+	var regoFile string
+	for _, v := range regoPolicy {
+		regoFile = v
+	}
+
+	k8sPolicy, err := utils.ReadFile(regoFile)
 	if err != nil {
 		log.WithError(err).Error("Error reading the policy file")
 		return err
@@ -40,7 +49,7 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 	// Create regoQuery for evaluation
 	regoQuery := rego.New(
 		rego.Query("data."+pkg),
-		rego.Module(regoPolicy, string(k8sPolicy)),
+		rego.Module(regoFile, string(k8sPolicy)),
 		rego.Input(commands),
 	)
 
@@ -51,8 +60,14 @@ func ValidateWithRego(inputContent string, regoPolicy string) error {
 		return err
 	}
 
-	if err := PrintResults(rs); err != nil {
-		return fmt.Errorf("error evaluating rego results fron policy %s: %v", regoPolicy, err)
+	// Load metadata from JSON files
+	metas, err := LoadRegoMetadata(metaFiles)
+	if err != nil {
+		return fmt.Errorf("error loading policy metadata: %v", err)
+	}
+
+	if err := PrintResults(rs, metas); err != nil {
+		return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 	}
 	return nil
 }

@@ -14,65 +14,89 @@ import (
 )
 
 // ValidateDockerfileUsingRego validates a Dockerfile using Rego.
+// ValidateDockerfileUsingRego validates a Dockerfile using Rego.
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
-	dockerPolicy, err := utils.ReadFile(regoPolicyPath)
+	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
 	if err != nil {
-		return fmt.Errorf("error reading the policy file %v: %v", regoPolicyPath, err)
+		return err
 	}
 
-	pkg, err := utils.ExtractPackageName(dockerPolicy)
+	// Load metadata from JSON files
+	metas, err := LoadRegoMetadata(metaFiles)
 	if err != nil {
-		return fmt.Errorf("errr fetching package name from polcy %v: %v", dockerPolicy, err)
+		return fmt.Errorf("error loading policy metadata: %v", err)
 	}
 
-	// Prepare Rego input data
-	dockerfileInstructions := parser.ParseDockerfileContent(dockerfileContent)
+	// Declare a slice to store the results of each policy evaluation
+	var allResults []rego.ResultSet
 
-	jsonData, err := json.Marshal(dockerfileInstructions)
-	if err != nil {
-		return fmt.Errorf("error marshalling %v, to JSON: %v", dockerfileInstructions, err)
-	}
+	for _, regoFile := range regoPolicy {
+		dockerPolicy, err := utils.ReadFile(regoFile)
+		if err != nil {
+			return fmt.Errorf("error reading the policy file %v: %v", regoPolicy, err)
+		}
 
-	policyName := filepath.Base(regoPolicyPath)
+		pkg, err := utils.ExtractPackageName(dockerPolicy)
+		if err != nil {
+			return fmt.Errorf("errr fetching package name from polcy %v: %v", dockerPolicy, err)
+		}
 
-	var commands []map[string]string
-	err = json.Unmarshal([]byte(jsonData), &commands)
-	if err != nil {
-		return fmt.Errorf("error converting JSON to map: %v", err)
-	}
+		// Prepare Rego input data
+		dockerfileInstructions := parser.ParseDockerfileContent(dockerfileContent)
 
-	ctx := context.Background()
+		jsonData, err := json.Marshal(dockerfileInstructions)
+		if err != nil {
+			return fmt.Errorf("error marshalling %v, to JSON: %v", dockerfileInstructions, err)
+		}
 
-	compiler, err := ast.CompileModules(map[string]string{
-		policyName: string(dockerPolicy),
-	})
-	if err != nil {
-		log.Fatal(err)
-		return fmt.Errorf("failed to compile rego policy: %w", err)
-	}
-	// Create regoQuery for evaluation
-	regoQuery := rego.New(
-		rego.Query("data."+pkg),
-		rego.Compiler(compiler),
-		rego.Input(commands),
-	)
+		policyName := filepath.Base(regoFile)
 
-	// Evaluate the Rego query
-	rs, err := regoQuery.Eval(ctx)
-	if err != nil {
-		switch err := err.(type) {
-		case ast.Errors:
-			for _, e := range err {
-				fmt.Printf("code: %v", e.Code)
-				fmt.Printf("row: %v", e.Location.Row)
-				fmt.Printf("filename: %v", e.Location.File)
+		var commands []map[string]string
+		err = json.Unmarshal([]byte(jsonData), &commands)
+		if err != nil {
+			return fmt.Errorf("error converting JSON to map: %v", err)
+		}
+
+		ctx := context.Background()
+
+		compiler, err := ast.CompileModules(map[string]string{
+			policyName: string(dockerPolicy),
+		})
+		if err != nil {
+			log.Fatal(err)
+			return fmt.Errorf("failed to compile rego policy: %w", err)
+		}
+		// Create regoQuery for evaluation
+		regoQuery := rego.New(
+			rego.Query("data."+pkg),
+			rego.Compiler(compiler),
+			rego.Input(commands),
+		)
+
+		// Evaluate the Rego query
+		rs, err := regoQuery.Eval(ctx)
+		if err != nil {
+			switch err := err.(type) {
+			case ast.Errors:
+				for _, e := range err {
+					fmt.Printf("code: %v", e.Code)
+					fmt.Printf("row: %v", e.Location.Row)
+					fmt.Printf("filename: %v", e.Location.File)
+				}
+				log.Fatal("Error evaluating query:", err)
 			}
-			log.Fatal("Error evaluating query:", err)
+		}
+
+		// Store the results in the slice
+		allResults = append(allResults, rs)
+	}
+
+	// Print all results accumulated from each policy evaluation
+	for _, rs := range allResults {
+		if err := PrintResults(rs, metas); err != nil {
+			return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 		}
 	}
 
-	if err := PrintResults(rs); err != nil {
-		return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
-	}
 	return nil
 }
