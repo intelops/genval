@@ -68,7 +68,7 @@ func runCelTerraformvalCmd(cmd *cobra.Command, args []string) error {
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Policy Name", "Result"})
+	t.AppendHeader(table.Row{"Policy Name", "Result", "Description", "Severity", "Benchmark"})
 
 	err = validate.EvaluateCELPolicies(policy, string(inputJSON), t)
 	if err != nil {

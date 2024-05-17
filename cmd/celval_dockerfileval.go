@@ -78,8 +78,8 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 	}
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Policy Name", "Result"})
-	// fmt.Printf("DOCLEREFILE JSON: %v\n", string(dockerfileJSON))
+	t.AppendHeader(table.Row{"Policy Name", "Result", "Description", "Severity", "Benchmark"})
+
 	err = validate.EvaluateCELPolicies(policy, string(dockerfileJSON), t)
 	if err != nil {
 		log.Fatalf("Error evaluating policies: %v", err)

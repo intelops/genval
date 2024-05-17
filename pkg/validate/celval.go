@@ -52,16 +52,27 @@ func evaluateCEL(input string, celPolicy string) (string, error) {
 }
 
 func EvaluateCELPolicies(policyFile string, inputFile string, t table.Writer) error {
-	// set colors for evaluation result
+	// Set colors for evaluation result
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()
+
+	// Read the policy file
 	policyContent, err := utils.ReadFile(policyFile)
 	if err != nil {
 		log.Fatalf("Unable to read Policy file: %v", err)
 	}
 
 	scanner := bufio.NewScanner(strings.NewReader(string(policyContent)))
-	var policyName, policy string
+	var policyName, policy, description, benchmark, severity string
+	resetPolicy := func() {
+		policyName = ""
+		policy = ""
+		description = ""
+		benchmark = ""
+		severity = ""
+	}
+	resetPolicy()
+
 	for scanner.Scan() {
 		line := scanner.Text()
 		if strings.HasPrefix(line, "Name:") {
@@ -77,10 +88,17 @@ func EvaluateCELPolicies(policyFile string, inputFile string, t table.Writer) er
 				} else {
 					resultColorized = red(result)
 				}
-				t.AppendRow([]interface{}{policyName, resultColorized})
+				t.AppendRow([]interface{}{policyName, resultColorized, description, severity, benchmark})
 			}
+			// Start a new policy
+			resetPolicy()
 			policyName = strings.TrimSpace(strings.TrimPrefix(line, "Name:"))
-			policy = ""
+		} else if strings.HasPrefix(line, "Description:") {
+			description = strings.TrimSpace(strings.TrimPrefix(line, "Description:"))
+		} else if strings.HasPrefix(line, "Benchmark:") {
+			benchmark = strings.TrimSpace(strings.TrimPrefix(line, "Benchmark:"))
+		} else if strings.HasPrefix(line, "Severity:") {
+			severity = strings.TrimSpace(strings.TrimPrefix(line, "Severity:"))
 		} else {
 			policy += line + "\n"
 		}
@@ -98,7 +116,7 @@ func EvaluateCELPolicies(policyFile string, inputFile string, t table.Writer) er
 		} else {
 			resultColorized = red(result)
 		}
-		t.AppendRow([]interface{}{policyName, resultColorized})
+		t.AppendRow([]interface{}{policyName, resultColorized, description, severity, benchmark})
 	}
 
 	if err := scanner.Err(); err != nil {
