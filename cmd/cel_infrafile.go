@@ -76,12 +76,19 @@ func runCelCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Fatalf("Error marshaling manifest data to JSON: %v", err)
 	}
+	policies, err := validate.ParseYAMLPolicies(policy)
+	if err != nil {
+		log.Fatalf("Error parsing YAML policies: %v", err)
+	}
+
+	// fmt.Printf("Policies: %v\n", policies)
+	// fmt.Printf("Policy: %v\n", policy)
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Policy Name", "Result", "Description", "Severity", "Benchmark"})
 
-	err = validate.EvaluateCELPolicies(policy, string(jsonManifest), t)
+	err = validate.EvaluateCELPolicies(policies, string(jsonManifest), t)
 	if err != nil {
 		log.Fatalf("Error evaluating policies: %v", err)
 	}

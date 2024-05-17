@@ -14,3 +14,12 @@ const (
 	metaExt   = ".json"
 	policyExt = ".rego"
 )
+
+type CELPolicy struct {
+	APIVersion  string `yaml:"apiVersion"`
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Severity    string `yaml:"severity"`
+	Benchmark   string `yaml:"benchmark"`
+	Rule        string `yaml:"rule"`
+}

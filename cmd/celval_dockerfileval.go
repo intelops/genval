@@ -76,11 +76,16 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 		log.Errorf("Error marshaling Dockerfile: %v", err)
 		return err
 	}
+	policies, err := validate.ParseYAMLPolicies(policy)
+	if err != nil {
+		log.Fatalf("Error parsing YAML policies: %v", err)
+	}
+
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Policy Name", "Result", "Description", "Severity", "Benchmark"})
 
-	err = validate.EvaluateCELPolicies(policy, string(dockerfileJSON), t)
+	err = validate.EvaluateCELPolicies(policies, string(dockerfileJSON), t)
 	if err != nil {
 		log.Fatalf("Error evaluating policies: %v", err)
 	}
