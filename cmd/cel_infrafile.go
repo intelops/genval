@@ -23,7 +23,7 @@ func init() {
 	if err := celCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
-	celCmd.Flags().StringVarP(&celArgs.policy, "policy", "p", "", "Path for the CEL policy file, polciy can be passed from either Local or from remote URL")
+	celCmd.Flags().StringVarP(&celArgs.policy, "policy", "p", "", "Path for the CEL policy file in YAML format, polciy can be passed from either Local or from remote URL")
 	if err := celCmd.MarkFlagRequired("policy"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
@@ -44,18 +44,18 @@ or from remote URL's such as those hosted on GitHub (e.g., https://github.com)
 # Passing the required files from local
 
 	./genval celval infrafile --reqinput=input.json \
-  --policy=<path/to/policy.rego file>
+  --policy=<path/to/CELPolicy.Yaml file>
 
 # Provide the required files from remote URL's
 
 ./genval celval infrafile --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/input-templates/k8s/deployment.json \
---policy https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/default-policies/cel/k8s_cel
+--policy https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/default-policies/cel/k8s_cel.yaml
 
 # We need to authenticate with GitHub if we intend to pass the required file stired in the GitHub repo
 export GITHUB_TOKEN=<your GitHub PAT>
 
 ./genval celval infrafile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/k8s/deployment.json \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/cel/k8s_cel
+--policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/cel/k8s_cel.yaml
 	`,
 
 	RunE: runCelCmd,
@@ -80,9 +80,6 @@ func runCelCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Fatalf("Error parsing YAML policies: %v", err)
 	}
-
-	// fmt.Printf("Policies: %v\n", policies)
-	// fmt.Printf("Policy: %v\n", policy)
 
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)

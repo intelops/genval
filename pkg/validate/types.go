@@ -1,5 +1,10 @@
 package validate
 
+const (
+	metaExt   = ".json"
+	policyExt = ".rego"
+)
+
 type regoMetadata struct {
 	Name        string `json:"name"`
 	PolicyName  string `json:"policy_name"`
@@ -10,16 +15,20 @@ type regoMetadata struct {
 	Category    string `json:"category"`
 }
 
-const (
-	metaExt   = ".json"
-	policyExt = ".rego"
-)
-
-type CELPolicy struct {
-	APIVersion  string `yaml:"apiVersion"`
+type Metadata struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 	Severity    string `yaml:"severity"`
 	Benchmark   string `yaml:"benchmark"`
-	Rule        string `yaml:"rule"`
+}
+
+type CELPolicy struct {
+	APIVersion string   `yaml:"apiVersion"`
+	Kind       string   `yaml:"kind"`
+	Metadata   Metadata `yaml:"metadata"`
+	Rule       string   `yaml:"rule"`
+}
+
+type CELPolicyFile struct {
+	Policies []CELPolicy `yaml:"policies"`
 }

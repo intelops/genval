@@ -58,14 +58,20 @@ func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer)
 		result, err := evaluateCEL(inputFile, policy.Rule)
 		var resultColorized string
 		if err != nil {
-			log.Printf("Error evaluating policy '%s': %v\n", policy.Name, err)
+			log.Printf("Error evaluating policy '%s': %v\n", policy.Metadata.Name, err)
 			resultColorized = red("Error")
 		} else if result == "Passed" {
 			resultColorized = green(result)
 		} else {
 			resultColorized = red(result)
 		}
-		t.AppendRow([]interface{}{policy.Name, resultColorized, policy.Description, policy.Severity, policy.Benchmark})
+		t.AppendRow(table.Row{
+			policy.Metadata.Name,
+			resultColorized,
+			policy.Metadata.Description,
+			policy.Metadata.Severity,
+			policy.Metadata.Benchmark,
+		})
 	}
 
 	return nil
@@ -81,21 +87,11 @@ func ParseYAMLPolicies(policyFile string) ([]CELPolicy, error) {
 		return nil, fmt.Errorf("unable to read policy file: %v", err)
 	}
 
-	var policies []CELPolicy
 	var policyFileData PolicyFile
 
 	err = yaml.Unmarshal(data, &policyFileData)
 	if err != nil {
-		var singlePolicy CELPolicy
-		err = yaml.Unmarshal(data, &singlePolicy)
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshalling YAML: %v", err)
-		}
-
-		policies = append(policies, singlePolicy)
-	} else {
-		policies = policyFileData.Policies
+		return nil, fmt.Errorf("error unmarshalling YAML: %v", err)
 	}
-
-	return policies, nil
+	return policyFileData.Policies, nil
 }
