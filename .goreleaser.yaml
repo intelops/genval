@@ -25,6 +25,18 @@ checksum:
 source:
   enabled: true
 
+# Adds Changelog to the release
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^Upgrade:"
+      - "^WIP:"
+      - '^.*?Bump(\([[:word:]]+\))?.+$'
+      - '^.*?[Bot](\([[:word:]]+\))?.+$'
+
 # signs the artifacts
 signs:
 - cmd: cosign
