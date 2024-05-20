@@ -1,0 +1,24 @@
+policies:
+- apiVersion: v1alpha1
+  kind: CELPolicy
+  metadata:
+    name: Deny global ingress
+    description: Deny ingress from global IP ranges
+    severity: Critical
+    benchmark: XYZ
+  rule: |
+	input.resource.all(res,has(res.aws_security_group.allow_tls.ingress)
+	  && res.aws_security_group.allow_tls.ingress.
+		all(ing,ing.cidr_blocks.all(cb,cb != '0.0.0.0/0')))
+
+- apiVersion: v1alpha1
+  kind: CELPolicy
+  metadata:
+    name: Deny global egress
+    description: Ensure Outgoing traffic is restricted by denying global egress
+    severity: High
+    benchmark: ABC
+  rule: |
+	input.resource.all(res,has(res.aws_security_group.allow_tls.egress)
+	  && res.aws_security_group.allow_tls.egress.
+		all(eg,eg.cidr_blocks.all(cb,cb != '0.0.0.0/0')))
