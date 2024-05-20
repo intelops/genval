@@ -20,7 +20,7 @@ func TestValidateWithRego(t *testing.T) {
 		{
 			name:          "valid input and policy",
 			inputContent:  "deployment.json",
-			regoPolicy:    "/rego/k8s.rego",
+			regoPolicy:    "/rego/test",
 			expectedError: false,
 		},
 		{
