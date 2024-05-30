@@ -409,33 +409,37 @@ func StartSpinner(msg string) *spinner.Spinner {
 	return s
 }
 
-func GetVersion() (string, error) {
-	// Create the command to list all tag
+func FetchVersionInfo() (string, string, string, error) {
+	// Create the command to list all tags and get the latest one
 	cmdGitRevList := exec.Command("git", "rev-list", "--tags", "--max-count=1")
 	var out bytes.Buffer
 	cmdGitRevList.Stdout = &out
 	if err := cmdGitRevList.Run(); err != nil {
-		return "", fmt.Errorf("error running git rev-list: %v", err)
+		return "", "", "", fmt.Errorf("error running git rev-list: %v", err)
 	}
-	latestTag := strings.TrimSpace(out.String())
+	latestTagCommit := strings.TrimSpace(out.String())
 
-	// Create the command to fetc the latest tag
-	cmdGitDescribe := exec.Command("git", "describe", "--tags", latestTag)
-	version, err := cmdGitDescribe.Output()
+	// Create the command to fetch the latest tag using the commit hash
+	cmdGitDescribe := exec.Command("git", "describe", "--tags", latestTagCommit)
+	versionOutput, err := cmdGitDescribe.Output()
 	if err != nil {
-		return "", fmt.Errorf("error running git describe: %v", err)
+		return "", "", "", fmt.Errorf("error running git describe: %v", err)
 	}
-	return fmt.Sprintf(`
-	:'######:::'########:'##::: ##:'##::::'##::::'###::::'##:::::::
-	'##... ##:: ##.....:: ###:: ##: ##:::: ##:::'## ##::: ##:::::::
-	 ##:::..::: ##::::::: ####: ##: ##:::: ##::'##:. ##:: ##:::::::
-	 ##::'####: ######::: ## ## ##: ##:::: ##:'##:::. ##: ##:::::::
-	 ##::: ##:: ##...:::: ##. ####:. ##:: ##:: #########: ##:::::::
-	 ##::: ##:: ##::::::: ##:. ###::. ## ##::: ##.... ##: ##:::::::
-	. ######::: ########: ##::. ##:::. ###:::: ##:::: ##: ########:
-	:......::::........::..::::..:::::...:::::..:::::..::........::
+	latestTag := strings.TrimSpace(string(versionOutput))
 
-	genval is a CLI tool to generate and validate configuration files
+	// Get the commit date for the latest tag
+	cmdGitLog := exec.Command("git", "log", "-1", "--format=%cI", latestTagCommit)
+	dateOutput, err := cmdGitLog.Output()
+	if err != nil {
+		return "", "", "", fmt.Errorf("error running git log: %v", err)
+	}
+	commitDateRaw := strings.TrimSpace(string(dateOutput))
+	// Parse the commit date and format it using time.ANSIC
+	commitDate, err := time.Parse(time.RFC3339, commitDateRaw)
+	if err != nil {
+		return "", "", "", fmt.Errorf("error parsing commit date: %v", err)
+	}
+	formattedCommitDate := commitDate.Format(time.ANSIC)
 
-	Genval: %s`, strings.TrimSpace(string(version))), nil
+	return latestTag, latestTagCommit, formattedCommitDate, nil
 }

@@ -298,7 +298,7 @@ func GetCreds() ([]crane.Option, error) {
 		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
-	userAgent, err := utils.GetVersion()
+	userAgent, _, _, err := utils.FetchVersionInfo()
 	if err != nil {
 		log.Errorf("Error fetching version info: %v", err)
 	}

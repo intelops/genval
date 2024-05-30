@@ -5,6 +5,7 @@ go 1.21
 require (
 	cuelang.org/go v0.8.2
 	github.com/briandowns/spinner v1.23.0
+	github.com/containerd/containerd v1.7.15
 	github.com/fatih/color v1.16.0
 	github.com/google/cel-go v0.20.1
 	github.com/google/go-containerregistry v0.19.1
@@ -43,6 +44,7 @@ require (
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
+	github.com/Microsoft/hcsshim v0.11.4 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c // indirect
 	github.com/ThalesIgnite/crypto11 v1.2.5 // indirect
@@ -89,6 +91,7 @@ require (
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/cockroachdb/apd/v3 v3.2.1 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
+	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.14.3 // indirect
 	github.com/coreos/go-oidc/v3 v3.10.0 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20231011164504-785e29786b46 // indirect
