@@ -6,7 +6,7 @@ require (
 	cuelang.org/go v0.8.2
 	github.com/briandowns/spinner v1.23.0
 	github.com/containerd/containerd v1.7.15
-	github.com/fatih/color v1.16.0
+	github.com/fatih/color v1.17.0
 	github.com/google/cel-go v0.20.1
 	github.com/google/go-containerregistry v0.19.1
 	github.com/google/go-github/v57 v57.0.0
