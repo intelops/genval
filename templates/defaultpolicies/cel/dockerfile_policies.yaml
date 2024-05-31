@@ -1,0 +1,3 @@
+policies:
+- note: Write Dockerfile CEL policies
+  todo: update this

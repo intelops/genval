@@ -175,8 +175,8 @@ Example:
 ```
 $ genval dockerfile --reqinput=./templates/inputs/dockerfile_input/golang_input.json \
 --output Dockerfile \
---inputpolicy ./templates/defaultpolicies/ rego/inputfile_policies.rego \
---outputpolicy ./templates/defaultpolicies/rego/dockerfile_policies.rego
+--inputpolicy ./templates/defaultpolicies/rego/input_policies \
+--outputpolicy ./templates/defaultpolicies/rego/dockerfile_policies
  ```
 
 > Customize the values provided in the flags according to your specific input file and Rego policies.
@@ -185,6 +185,9 @@ $ genval dockerfile --reqinput=./templates/inputs/dockerfile_input/golang_input.
 
 > For authenticating with GitHub.com, set the env variable GITHUB_TOKEN:
 `export GITHUB_TOKEN=<Your GitHub PAT>`
+
+All the rego policies are housed in a hirearchy containing a `rego` policy and a `JSON` file containing all the metadata related to policy. A user needs to pass the directory containing boththe `.rego` and `.json` files. Genval also accpets a top leval directory containing multiple sub-directories containing multiple rego and accompanied JSON files for validating with more than one policy.
+
 
 **Review Feedback**: Genval provides feedback based on best practice validation. Use this feedback to refine your Dockerfile.
 
@@ -196,13 +199,13 @@ Genval manages validation with Rego polcies with `regoval` command and for valid
 
 ```shell
 genval regoval dockerfileval --reqinput ./templates/inputs/Dockerfile \
---policy ./templates/defaultpolicies/dockerfile_policies.rego
+--policy ./templates/defaultpolicies/dockerfile_policies
 ```
 
 #### Validation of Kubernetes manifests using Rego policies
 
 ```shell
-genval infrafile --reqinput ./templates/inputs/k8s/deployment.json \
+genval regoval infrafile --reqinput ./templates/inputs/k8s/deployment.json \
 --policy ./templates/defaultpolicies/k8s.rego
 ```
 
@@ -210,7 +213,7 @@ genval infrafile --reqinput ./templates/inputs/k8s/deployment.json \
 
 > Users can directly provide the `.tf` file to genval along with a policy written in Rego for validatin the Terraform file
 ```shell
-genval regoval --reqinput ./templates/inputs/terraform/sec_group.tf \
+genval regoval terraform --reqinput ./templates/inputs/terraform/sec_group.tf \
 --policy ./templates/defaultpolicies/terraform.rego
 ```
 
@@ -218,6 +221,22 @@ genval regoval --reqinput ./templates/inputs/terraform/sec_group.tf \
 ### Validation of the Dockerfile, Kubernetes manifests and Terraform files using CEL policies
 
 `celval` is the main command that manages validation of Dockerfiles, Kubernetes manifests, and Terraform files using Common Expression Language (CEL).
+The structure for CEL policies is described below:
+
+```yaml
+policies:
+- apiVersion: v1alpha1
+  kind: CELPolicy
+  metadata:
+    name: Check image with latest tag
+    description: Deny Images with latest tag
+    severity: Critical
+    benchmark: XYZ
+  rule: |
+    !input.spec.template.spec.containers[0].
+    image.endsWith('latest')
+```
+The `metadata` block contains all the details about the policy, like its name, description, severity and its benchmark of the rule is based on. The `rules` field specifies the CEL expression to be evaluated. For above example, the `rule` will validate and ensure the image in a `Deployments` does not use the `latest ` tag.
 
 #### Validation of Dockerfiles with CEL policies
 
@@ -229,8 +248,8 @@ genval celval dockerfileval --reqinput=input.json \
 #### Validation of Kubernetes manifests using Rego policies
 
 ```shell
-./genval celval infrafile --reqinput=input.json \
---policy=<path/to/policy.rego file>
+./genval celval infrafile --reqinput=./templates/inputs/k8s/deployment.json \
+--policy=./templates/defaultpolicies/cel/k8s.yaml
 ```
 
 
@@ -238,7 +257,7 @@ genval celval dockerfileval --reqinput=input.json \
 
 ```shell
 ./genval celval terraform --reqinput ./templates/inputs/terraform/sec_group.tf \
---policy=--policy ./templates/defaultpolicies/cel/terraform_cel
+--policy=--policy ./templates/defaultpolicies/cel/terraform.yaml
 ```
 
 

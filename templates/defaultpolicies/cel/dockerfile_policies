@@ -1,4 +1,0 @@
-import test.json
-Name: Check base-image in Dockerfiles
-input.all(c,has(c.cmd))
-

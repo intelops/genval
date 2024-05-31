@@ -12,7 +12,7 @@ func TestValidYAMLInput(t *testing.T) {
 	yamlContent := "./testdata/multistage.yaml"
 
 	// Mock rego policy path
-	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
+	regoPolicyPath := "./testdata/rego/multi_stage"
 
 	// Mock expected output
 	expectedError := error(nil)
@@ -29,7 +29,7 @@ func TestValidJSONInput(t *testing.T) {
 	// Mock input
 	jsonContent := "./testdata/multistage.json"
 	// Mock rego policy path
-	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
+	regoPolicyPath := "./testdata/rego/multi_stage"
 
 	// Mock expected output
 	expectedError := error(nil)
@@ -47,7 +47,7 @@ func TestValidJSONInputFromYAML(t *testing.T) {
 	yamlContent := "./testdata/multistage.json"
 
 	// Mock rego policy path
-	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
+	regoPolicyPath := "./testdata/rego/multi_stage"
 
 	// Mock expected output
 	expectedError := error(nil)
@@ -65,7 +65,7 @@ func TestInvalidInputFormat(t *testing.T) {
 	invalidContent := "this is not valid JSON or YAML"
 
 	// Mock rego policy path
-	regoPolicyPath := "./testdata/rego/inputfile_policies.rego"
+	regoPolicyPath := "./testdata/rego/multi_stage"
 
 	// Mock expected output
 	expectedErrorMessage := "open this is not valid JSON or YAML: no such file or directory"
