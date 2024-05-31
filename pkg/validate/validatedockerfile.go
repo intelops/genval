@@ -14,7 +14,6 @@ import (
 )
 
 // ValidateDockerfileUsingRego validates a Dockerfile using Rego.
-// ValidateDockerfileUsingRego validates a Dockerfile using Rego.
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
 	if err != nil {
@@ -28,7 +27,7 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 	}
 
 	// Declare a slice to store the results of each policy evaluation
-	var allResults []rego.ResultSet
+	var allResults rego.ResultSet
 
 	for _, regoFile := range regoPolicy {
 		dockerPolicy, err := utils.ReadFile(regoFile)
@@ -38,7 +37,7 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 
 		pkg, err := utils.ExtractPackageName(dockerPolicy)
 		if err != nil {
-			return fmt.Errorf("errr fetching package name from polcy %v: %v", dockerPolicy, err)
+			return fmt.Errorf("error fetching package name from policy %v: %v", dockerPolicy, err)
 		}
 
 		// Prepare Rego input data
@@ -88,14 +87,12 @@ func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 		}
 
 		// Store the results in the slice
-		allResults = append(allResults, rs)
+		allResults = append(allResults, rs...)
 	}
 
 	// Print all results accumulated from each policy evaluation
-	for _, rs := range allResults {
-		if err := PrintResults(rs, metas); err != nil {
-			return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
-		}
+	if err := PrintResults(allResults, metas); err != nil {
+		return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 	}
 
 	return nil

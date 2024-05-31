@@ -19,16 +19,15 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 
 	var policyError error
 
-	// Match policy metadata outside the loop
-	matchedKey, meta, err := MatchPolicyMetadata(metas, result)
-	if err != nil {
-		return fmt.Errorf("error matching key and metadata name: %v", err)
-	}
-
 	for _, r := range result {
 		if len(r.Expressions) > 0 {
 			keys := r.Expressions[0].Value.(map[string]interface{})
 			for key, value := range keys {
+				// Match policy metadata for each key
+				matchedKey, meta, err := MatchPolicyMetadata(metas, key)
+				if err != nil {
+					return fmt.Errorf("error matching key and metadata name: %v", err)
+				}
 				// Construct rows using the matched metadata
 				if key == matchedKey {
 					var status string
@@ -58,8 +57,22 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 		}
 	}
 
-	// Render the table
 	t.Render()
 
 	return policyError
+}
+
+type Results struct {
+	ID          string `json:"id"`
+	PolicyName  string `json:"policyName"`
+	Resource    string `json:"resourceName"`
+	Status      string `json:"status"`
+	Description string `json:"description"`
+	Severity    string `json:"severity"`
+	Benchmark   string `json:"benchmark"`
+	Category    string `json:"category"`
+}
+
+func (r *Results) SaveResults() error {
+	return nil
 }

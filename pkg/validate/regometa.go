@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/open-policy-agent/opa/rego"
 )
 
 func FetchRegoMetadata(policyDir, metaExt, regoExt string) ([]string, []string, error) {
@@ -60,18 +58,11 @@ func LoadRegoMetadata(filePaths []string) ([]*regoMetadata, error) {
 }
 
 // MatchPolicyMetadata matches the RegoMeta policy names with the Rego evaluation results and returns the matched key
-func MatchPolicyMetadata(metas []*regoMetadata, results rego.ResultSet) (string, *regoMetadata, error) {
-	for _, r := range results {
-		if len(r.Expressions) > 0 {
-			keys := r.Expressions[0].Value.(map[string]interface{})
-			for key := range keys {
-				for _, meta := range metas {
-					if key == meta.PolicyName {
-						return key, meta, nil
-					}
-				}
-			}
+func MatchPolicyMetadata(metas []*regoMetadata, key string) (string, *regoMetadata, error) {
+	for _, meta := range metas {
+		if key == meta.PolicyName {
+			return key, meta, nil
 		}
 	}
-	return "", nil, fmt.Errorf("no matching policy name found")
+	return "", nil, fmt.Errorf("no matching policy name found for key: %s", key)
 }
