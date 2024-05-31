@@ -1,8 +1,10 @@
 package validate
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"github.com/fatih/color"
@@ -18,6 +20,8 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 	t.AppendHeader(table.Row{"Policy Name", "Status", "Description", "Severity", "Benchmark", "Category"})
 
 	var policyError error
+	var allResults []Results
+	var idCounter int
 
 	for _, r := range result {
 		if len(r.Expressions) > 0 {
@@ -49,6 +53,17 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 						}
 					}
 					t.AppendRow([]interface{}{key, status, meta.Description, meta.Severity, meta.Benchmark, meta.Category})
+					idCounter++
+					// Append results to allResults
+					allResults = append(allResults, Results{
+						ID:          fmt.Sprintf("%d", idCounter),
+						PolicyName:  key,
+						Status:      status,
+						Description: meta.Description,
+						Severity:    meta.Severity,
+						Benchmark:   meta.Benchmark,
+						Category:    meta.Category,
+					})
 				}
 			}
 		} else {
@@ -57,15 +72,23 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 		}
 	}
 
+	fmt.Println("Rendering table")
+	// Render the table after processing all results
 	t.Render()
+
+	// Save all results to file as a single JSON array
+	if len(allResults) > 0 {
+		if err := SaveResults("results.json", allResults); err != nil {
+			return fmt.Errorf("error saving results: %v", err)
+		}
+	}
 
 	return policyError
 }
 
-type Results struct {
+type Result struct {
 	ID          string `json:"id"`
 	PolicyName  string `json:"policyName"`
-	Resource    string `json:"resourceName"`
 	Status      string `json:"status"`
 	Description string `json:"description"`
 	Severity    string `json:"severity"`
@@ -73,6 +96,36 @@ type Results struct {
 	Category    string `json:"category"`
 }
 
-func (r *Results) SaveResults() error {
+type Results Result
+
+// SaveResults saves the results to a file as a JSON array
+func SaveResults(filename string, newResults []Results) error {
+	var existingResults []Results
+
+	// Read existing file content
+	data, err := os.ReadFile(filename)
+	if err == nil {
+		// Unmarshal existing JSON content into the slice
+		if err := json.Unmarshal(data, &existingResults); err != nil {
+			return fmt.Errorf("error unmarshalling existing results: %v", err)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("error reading existing file: %v", err)
+	}
+
+	// Append new results to existing results
+	existingResults = append(existingResults, newResults...)
+
+	// Serialize the combined results slice to JSON
+	data, err = json.MarshalIndent(existingResults, "", "  ")
+	if err != nil {
+		return fmt.Errorf("error marshalling results to JSON: %v", err)
+	}
+
+	// Write the JSON data to the file
+	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+		return fmt.Errorf("error writing JSON data to file: %v", err)
+	}
+
 	return nil
 }
