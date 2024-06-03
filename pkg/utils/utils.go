@@ -425,5 +425,6 @@ func GetVersion() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error running git describe: %v", err)
 	}
-	return string(version), nil
+	userAgent := fmt.Sprintf("intelops/genval: %s", string(version))
+	return strings.ReplaceAll(userAgent, "\n", ""), nil
 }
