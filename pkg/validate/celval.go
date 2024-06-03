@@ -54,6 +54,9 @@ func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer)
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()
 
+	var allResults []Results
+	var idCounter int
+
 	for _, policy := range policies {
 		result, err := evaluateCEL(inputFile, policy.Rule)
 		var resultColorized string
@@ -72,6 +75,21 @@ func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer)
 			policy.Metadata.Severity,
 			policy.Metadata.Benchmark,
 		})
+		idCounter++
+		allResults = append(allResults, Results{
+			ID:          fmt.Sprintf("%d", idCounter),
+			PolicyName:  policy.Metadata.Name,
+			Status:      resultColorized,
+			Description: policy.Metadata.Description,
+			Severity:    policy.Metadata.Severity,
+			Benchmark:   policy.Metadata.Benchmark,
+		})
+	}
+
+	if len(allResults) > 0 {
+		if err := SaveResults("results.json", allResults); err != nil {
+			return fmt.Errorf("error saving results: %v", err)
+		}
 	}
 
 	return nil

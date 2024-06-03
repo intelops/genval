@@ -3,7 +3,7 @@
   "policy_file": "deny_latest.rego",
   "policy_name": "deny_latest",
   "severity": "High",
-  "Description": "Ensure images are pinned to a specific version/digest",
+  "Description": "Image does not have latest tag",
   "Benchmark": "CIS-4.2",
   "Category": "Infrastructure security"
 }
