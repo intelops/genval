@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/fatih/color"
@@ -35,19 +34,24 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 				// Construct rows using the matched metadata
 				if key == matchedKey {
 					var status string
+					var saveStatus string
 					if policies, ok := value.([]interface{}); ok {
 						// Check if the slice is empty
 						if len(policies) > 0 {
+							saveStatus = "passed"
 							status = color.New(color.FgGreen).Sprint("passed")
 						} else {
+							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
 							policyError = errors.New("policy evaluation failed: " + key)
 						}
 					} else {
 						// Handle other types of values (non-slice)
 						if value != nil {
+							saveStatus = "passed"
 							status = color.New(color.FgGreen).Sprint("passed")
 						} else {
+							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
 							policyError = errors.New("policy evaluation failed: " + key)
 						}
@@ -58,7 +62,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 					allResults = append(allResults, Results{
 						ID:          fmt.Sprintf("%d", idCounter),
 						PolicyName:  key,
-						Status:      status,
+						Status:      saveStatus,
 						Description: meta.Description,
 						Severity:    meta.Severity,
 						Benchmark:   meta.Benchmark,
@@ -86,7 +90,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 	return policyError
 }
 
-type Result struct {
+type Results struct {
 	ID          string `json:"id"`
 	PolicyName  string `json:"policyName"`
 	Status      string `json:"status"`
@@ -96,34 +100,27 @@ type Result struct {
 	Category    string `json:"category"`
 }
 
-type Results Result
-
 // SaveResults saves the results to a file as a JSON array
 func SaveResults(filename string, newResults []Results) error {
-	var existingResults []Results
-
-	// Read existing file content
-	data, err := os.ReadFile(filename)
-	if err == nil {
-		// Unmarshal existing JSON content into the slice
-		if err := json.Unmarshal(data, &existingResults); err != nil {
-			return fmt.Errorf("error unmarshalling existing results: %v", err)
-		}
-	} else if !os.IsNotExist(err) {
-		return fmt.Errorf("error reading existing file: %v", err)
-	}
-
-	// Append new results to existing results
-	existingResults = append(existingResults, newResults...)
-
-	// Serialize the combined results slice to JSON
-	data, err = json.MarshalIndent(existingResults, "", "  ")
+	// Serialize the results slice to JSON
+	data, err := json.MarshalIndent(newResults, "", "  ")
 	if err != nil {
 		return fmt.Errorf("error marshalling results to JSON: %v", err)
 	}
 
+	// Check if the file exists
+	_, err = os.Stat(filename)
+	if os.IsNotExist(err) {
+		// If the file does not exist, create it
+		file, err := os.Create(filename)
+		if err != nil {
+			return fmt.Errorf("error creating file: %v", err)
+		}
+		defer file.Close()
+	}
+
 	// Write the JSON data to the file
-	if err := ioutil.WriteFile(filename, data, 0644); err != nil {
+	if err := os.WriteFile(filename, data, 0o644); err != nil {
 		return fmt.Errorf("error writing JSON data to file: %v", err)
 	}
 
