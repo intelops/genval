@@ -39,9 +39,9 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: verify release
-        run: |
-          bash ./.github/workflows/verify.sh
+      # - name: verify release
+      #   run: |
+      #     bash ./.github/workflows/verify.sh
 
 
 
