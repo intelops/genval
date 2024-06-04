@@ -19,6 +19,7 @@ metadata:
   labels:
     app: cueTest
 spec:
+  replicas: 5
   selector:
     matchLabels:
       app: cueTest

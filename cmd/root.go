@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/fatih/color"
@@ -11,28 +10,12 @@ import (
 // rootCommand returns a cobra command for genvalctl CLI tool
 var rootCmd = &cobra.Command{
 	Use:   "genval",
-	Short: "genval is a CLI tool to generate and validate files",
+	Short: "	",
 	Long: `
-Genval is a versatile Go utility that simplifies configuration management by Generating and validating cobfig files
-for a wide range of tools, including Dockerfile, Kubernetes manifests, Terraform files, Tekton, ArgoCD and more.
-		`,
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(`
-
-:'######:::'########:'##::: ##:'##::::'##::::'###::::'##:::::::
-'##... ##:: ##.....:: ###:: ##: ##:::: ##:::'## ##::: ##:::::::
- ##:::..::: ##::::::: ####: ##: ##:::: ##::'##:. ##:: ##:::::::
- ##::'####: ######::: ## ## ##: ##:::: ##:'##:::. ##: ##:::::::
- ##::: ##:: ##...:::: ##. ####:. ##:: ##:: #########: ##:::::::
- ##::: ##:: ##::::::: ##:. ###::. ## ##::: ##.... ##: ##:::::::
-. ######::: ########: ##::. ##:::. ###:::: ##:::: ##: ########:
-:......::::........::..::::..:::::...:::::..:::::..::........::
-
-
-Genval is a versatile Go utility that simplifies configuration management by Generating and validating cobfig files
-for a wide range of tools, including Dockerfile, Kubernetes manifests, Terraform files, Tekton, ArgoCD and more.
-	`)
-	},
+	Genval is a versatile Go utility that simplifies configuration management by generating and validating configuration files
+	for a wide range of tools. It supports various file types, including Dockerfile, Kubernetes manifests,
+	custom resource definition (CRD) manifests, Terraform files, and more.
+`,
 }
 
 func init() {

@@ -1,0 +1,9 @@
+{
+  "name": "UseChainguradImage",
+  "policy_file": "deny_latest.rego",
+  "policy_name": "deny_latest",
+  "severity": "High",
+  "Description": "Image does not have latest tag",
+  "Benchmark": "CIS-4.2",
+  "Category": "Infrastructure security"
+}

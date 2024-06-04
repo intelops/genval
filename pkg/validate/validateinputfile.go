@@ -3,14 +3,10 @@ package validate
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"os"
 
-	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
-	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/open-policy-agent/opa/rego"
 	log "github.com/sirupsen/logrus"
 )
@@ -33,8 +29,18 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	}
 	ctx := context.Background()
 
+	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
+	if err != nil {
+		return err
+	}
+
+	var regoFile string
+	for _, v := range regoPolicy {
+		regoFile = v
+	}
+
 	// Read the Rego policy from the given path
-	regoContent, err := utils.ReadFile(regoPolicyPath)
+	regoContent, err := utils.ReadFile(regoFile)
 	if err != nil {
 		return fmt.Errorf("error reading Rego policy: %v", err)
 	}
@@ -47,7 +53,7 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 	// Create Rego for query and evaluation
 	regoQuery := rego.New(
 		rego.Query("data."+pkg),
-		rego.Module(regoPolicyPath, string(regoContent)),
+		rego.Module(regoFile, string(regoContent)),
 		rego.Input(inputMap),
 	)
 
@@ -57,33 +63,19 @@ func ValidateInput(yamlContent string, regoPolicyPath string) error {
 		return fmt.Errorf("error evaluating Rego: %v", err)
 	}
 
-	t := table.NewWriter()
-	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Policy", "Status"})
-	var policyError error
+	// filePaths, err := FecthRegoMetadata(metadataDir, metaExt)
+	// if err != nil {
+	// 	return fmt.Errorf("error fetching metadata files:", err)
 
-	for _, result := range rs {
-		if len(result.Expressions) > 0 {
-			keys := result.Expressions[0].Value.(map[string]interface{})
-			for key, value := range keys {
-				if value != true {
-					t.AppendRow(table.Row{key, color.New(color.FgRed).Sprint("failed")})
-					policyError = errors.New("policy evaluation failed: " + key)
-				} else {
-					t.AppendRow(table.Row{key, color.New(color.FgGreen).Sprint("passed")})
-				}
-			}
-		} else {
-			log.Error("No policies passed")
-			policyError = errors.New("no policies passed")
-		}
-	}
-
-	t.Render()
-
+	// }
+	// Load metadata from JSON files
+	metas, err := LoadRegoMetadata(metaFiles)
 	if err != nil {
-		return errors.New("error evaluating Rego")
+		return fmt.Errorf("error loading policy metadata: %v", err)
 	}
 
-	return policyError
+	if err := PrintResults(rs, metas); err != nil {
+		return fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
+	}
+	return nil
 }

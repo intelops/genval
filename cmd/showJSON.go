@@ -53,7 +53,7 @@ The required input as .tf or a Dockerfile can be either passed through local fil
 # We need to authenticate with GitHub if we intend to pass the required file stired in the GitHub repo
 export GITHUB_TOKEN=<your GitHub PAT>
 
-./genval showJSON --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/Dockerfile-sample
+./genval showJSON --reqinput hhttps://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/terraform/sec_group.tf
 	`,
 	RunE: runshowJSONCmd,
 }

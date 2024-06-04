@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -406,4 +407,24 @@ func StartSpinner(msg string) *spinner.Spinner {
 	s.Suffix = " " + msg
 	s.Start()
 	return s
+}
+
+func GetVersion() (string, error) {
+	// Create the command to list all tag
+	cmdGitRevList := exec.Command("git", "rev-list", "--tags", "--max-count=1")
+	var out bytes.Buffer
+	cmdGitRevList.Stdout = &out
+	if err := cmdGitRevList.Run(); err != nil {
+		return "", fmt.Errorf("error running git rev-list: %v", err)
+	}
+	latestTag := strings.TrimSpace(out.String())
+
+	// Create the command to fetc the latest tag
+	cmdGitDescribe := exec.Command("git", "describe", "--tags", latestTag)
+	version, err := cmdGitDescribe.Output()
+	if err != nil {
+		return "", fmt.Errorf("error running git describe: %v", err)
+	}
+	userAgent := fmt.Sprintf("intelops/genval: %s", string(version))
+	return strings.ReplaceAll(userAgent, "\n", ""), nil
 }

@@ -17,13 +17,31 @@ builds:
     - -trimpath
   ldflags:
   #   # CommitDate makes the release reproducible
-    - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{ .CommitDate }}
+    - -X main.Version={{ .Tag }}
+    - -X .Runtime.Goarch={{ .Arch }}
+    - -X .Runtime.Gooss={{ .Os }}
+    - -X main.Date={{ .CommitDate }}
+    - -X main.Commit={{ .FullCommit }}
+    - -X main.GitTreeState={{ .GitTreeState }}
+
 
 checksum:
   name_template: 'checksums.txt'
 
 source:
   enabled: true
+
+# Adds Changelog to the release
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^Upgrade:"
+      - "^WIP:"
+      - '^.*?Bump(\([[:word:]]+\))?.+$'
+      - '^.*?[Bot](\([[:word:]]+\))?.+$'
 
 # signs the artifacts
 signs:

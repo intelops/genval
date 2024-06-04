@@ -66,11 +66,16 @@ func runCelTerraformvalCmd(cmd *cobra.Command, args []string) error {
 		log.Errorf("Error converting tf file: %v", err)
 	}
 
+	policies, err := validate.ParseYAMLPolicies(policy)
+	if err != nil {
+		log.Fatalf("Error parsing YAML policies: %v", err)
+	}
+
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-	t.AppendHeader(table.Row{"Policy Name", "Result"})
+	t.AppendHeader(table.Row{"Policy Name", "Result", "Description", "Severity", "Benchmark"})
 
-	err = validate.EvaluateCELPolicies(policy, string(inputJSON), t)
+	err = validate.EvaluateCELPolicies(policies, string(inputJSON), t)
 	if err != nil {
 		log.Fatalf("Error evaluating policies: %v", err)
 	}

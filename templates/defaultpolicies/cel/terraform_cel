@@ -1,5 +1,0 @@
-Name: Deny global ingress
-input.resource.all(res,has(res.aws_security_group.allow_tls.ingress) && res.aws_security_group.allow_tls.ingress.all(ing,ing.cidr_blocks.all(cb,cb != '0.0.0.0/0')))
-
-Name: Deny global egress
-input.resource.all(res,has(res.aws_security_group.allow_tls.egress) && res.aws_security_group.allow_tls.egress.all(eg,eg.cidr_blocks.all(cb,cb != '0.0.0.0/0')))

@@ -4,19 +4,21 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/release-utils/version"
 )
 
-var (
-	VERSION    = "0.0.1"
-	versionCmd = &cobra.Command{
-		Use:   "version",
-		Short: "Print the version number of Genval",
-		Long:  `All software has versions. This is Genval's`,
-		Run: func(cmd *cobra.Command, args []string) {
-			fmt.Printf("Genval version: v%v\n", VERSION)
-		},
-	}
-)
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Prints Genval version information",
+	Long:  `All software has versions. This is Genval's`,
+	Run: func(cmd *cobra.Command, args []string) {
+		vCmd := version.Version()
+		err := vCmd.RunE(cmd, args)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
+	},
+}
 
 func init() {
 	rootCmd.AddCommand(versionCmd)
