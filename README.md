@@ -144,7 +144,7 @@ To build genval from source:
 
 - Navigate to the project directory: `cd genval`
 
-- Build Genval: `CGO_ENABLED=0 go build -o ./genval ./cmd`
+- Build Genval: `CGO_ENABLED=0 go build -o ./genval .`
 
 
 
