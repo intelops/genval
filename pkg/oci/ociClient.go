@@ -10,14 +10,15 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/intelops/genval/pkg/cuecore"
-	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
+	"sigs.k8s.io/release-utils/version"
 )
 
 func ParseAnnotations(args []string) (map[string]string, error) {
@@ -298,10 +299,8 @@ func GetCreds() ([]crane.Option, error) {
 		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
-	userAgent, err := utils.GetVersion()
-	if err != nil {
-		log.Errorf("Error fetching version info: %v", err)
-	}
+	userAgent := fmt.Sprintf("cosign/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
+
 	opts = append(opts, crane.WithUserAgent(userAgent))
 
 	return opts, nil
