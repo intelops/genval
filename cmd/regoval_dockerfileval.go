@@ -1,6 +1,9 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
@@ -20,9 +23,9 @@ func init() {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	if err := dockerfilevalCmd.MarkFlagRequired("policy"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
+	// if err := dockerfilevalCmd.MarkFlagRequired("policy"); err != nil {
+	// 	log.Fatalf("Error marking flag as required: %v", err)
+	// }
 
 	regovalCmd.AddCommand(dockerfilevalCmd)
 }
@@ -63,6 +66,23 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	dockerfilefileContent, err := utils.ReadFile(input)
 	if err != nil {
 		log.Errorf("Error reading Dockerfile: %v, validation failed: %s\n", input, err)
+	}
+	tempDir, err := os.MkdirTemp("", "policyDirectory")
+	if err != nil {
+		return fmt.Errorf("error creating policy directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	if policy == "" {
+		defaultRegoPlicies, err := validate.ApplyDefaultPolicies(validate.HubRegoPolicy, tempDir)
+		if err != nil {
+			return fmt.Errorf("error applying default policies: %v", err)
+		}
+
+		err = validate.ValidateDockerfile(string(dockerfilefileContent), defaultRegoPlicies+"")
+		if err != nil {
+			log.Errorf("Dockerfile validation failed: %s\n", err)
+		}
 	}
 
 	err = validate.ValidateDockerfile(string(dockerfilefileContent), policy)
