@@ -17,7 +17,7 @@ import (
 func ValidateDockerfile(dockerfileContent string, regoPolicyPath string) error {
 	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
 	if err != nil {
-		return err
+		return fmt.Errorf("error fetching metadata: %v", err)
 	}
 
 	// Load metadata from JSON files

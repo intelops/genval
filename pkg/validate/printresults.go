@@ -76,7 +76,6 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 		}
 	}
 
-	fmt.Println("Rendering table")
 	// Render the table after processing all results
 	t.Render()
 
