@@ -11,3 +11,4 @@ cosign
 .todo
 !.devcontainer/Dockerfile
 results.json
+.env

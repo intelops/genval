@@ -189,8 +189,6 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	url := parts[0]
 	desiredTag := parts[1]
 
-	// TODO: Add userAgent header for HTTP requests made to OCI registry
-
 	opts, err := GetCreds()
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)

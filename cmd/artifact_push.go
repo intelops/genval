@@ -149,7 +149,6 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("appending content to artifact failed: %v", err)
 	}
-	// TODO: Add userAgent header for HTTP requests made to OCI registry
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
 	opts, err := oci.GetCreds()

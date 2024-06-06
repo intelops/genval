@@ -54,6 +54,9 @@ export GITHUB_TOKEN=<Your GitHub PAT>
 ./genval regoval infrafile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/k8s/deployment.json \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/k8s.rego
 
+TODO: Add examples for validating with default policies
+
+
 `,
 	RunE: runinfrafileCmd,
 }

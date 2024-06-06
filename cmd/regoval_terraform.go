@@ -53,6 +53,9 @@ export GITHUB_TOKEN=<your GitHub PAT>
 
 ./genval regoval terraform --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/terraform/sec_group.tf \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/terraform.rego
+
+TODO: Add examples for validating with default policies
+
 	`,
 	RunE: runTerraformCmd,
 }

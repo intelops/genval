@@ -55,6 +55,8 @@ export GITHUB_TOKEN=<your GitHub PAT>
 
 ./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
+
+TODO: Add examples for validating with default policies
 	`,
 	RunE: runDockerfilevalCmd,
 }
@@ -76,8 +78,16 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error creating policy directory: %v", err)
 		}
 		defer os.RemoveAll(tempDir)
+		if err := validate.ReadEnv(); err != nil {
+			log.Fatalf("Error reading .env file: %v", err)
+		}
 
-		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(validate.HubRegoPolicy, tempDir)
+		policyLoc, err := validate.FetchPolicyFromRegistry(cmd.Name())
+		if err != nil {
+			return fmt.Errorf("error fetching policy from registry: %v", err)
+		}
+
+		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(policyLoc, tempDir)
 		if err != nil {
 			return fmt.Errorf("error applying default policies: %v", err)
 		}
