@@ -3,7 +3,6 @@ package validate
 import (
 	"encoding/json"
 	"fmt"
-
 	"os"
 
 	"github.com/fatih/color"
@@ -43,7 +42,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 						} else {
 							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
-							log.Infof(color.New(color.FgRed).Sprintf("policy evaluation for %s failed", key))
+							log.Infof(color.New(color.FgRed).Sprintf("policy evaluation for '%s' failed", key))
 						}
 					} else {
 						// Handle other types of values (non-slice)
@@ -53,7 +52,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 						} else {
 							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
-							log.Infof(color.New(color.FgRed).Sprintf("policy evaluation for %s failed", key))
+							log.Infof(color.New(color.FgRed).Sprintf("policy evaluation for '%s' failed", key))
 						}
 					}
 					t.AppendRow([]interface{}{key, status, meta.Description, meta.Severity, meta.Benchmark, meta.Category})
@@ -71,7 +70,6 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 				}
 			}
 		} else {
-			fmt.Println("No policies passed")
 			log.Println("no policies passed")
 		}
 	}

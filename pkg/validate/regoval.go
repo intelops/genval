@@ -76,5 +76,3 @@ func ApplyDefaultPolicies(ociURL, path string) (string, error) {
 
 	return path, nil
 }
-
-var HubRegoPolicy = "ghcr.io/santoshkal/genval-security-policies/rego-policies:v0.0.1"
