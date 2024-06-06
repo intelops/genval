@@ -56,7 +56,11 @@ export GITHUB_TOKEN=<your GitHub PAT>
 
 ./genval celval infrafile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/k8s/deployment.json \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/cel/k8s_cel.yaml
-	`,
+
+
+
+
+`,
 
 	RunE: runCelCmd,
 }

@@ -10,7 +10,7 @@ var regovalCmd = &cobra.Command{
 	Long: `
 regoval command maages validation of Kubernetes and related manifests, Terraform files, and Dockerfiles
 using Rego policies.
-.
+
 `,
 }
 
