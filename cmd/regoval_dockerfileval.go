@@ -67,28 +67,34 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("Error reading Dockerfile: %v, validation failed: %s\n", input, err)
 	}
-	tempDir, err := os.MkdirTemp("", "policyDirectory")
-	if err != nil {
-		return fmt.Errorf("error creating policy directory: %v", err)
-	}
-	defer os.RemoveAll(tempDir)
 
 	if policy == "" {
-		defaultRegoPlicies, err := validate.ApplyDefaultPolicies(validate.HubRegoPolicy, tempDir)
+		fmt.Println("\n" + "Validating with default policies...")
+
+		tempDir, err := os.MkdirTemp("", "policyDirectory")
+		if err != nil {
+			return fmt.Errorf("error creating policy directory: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(validate.HubRegoPolicy, tempDir)
 		if err != nil {
 			return fmt.Errorf("error applying default policies: %v", err)
 		}
 
-		err = validate.ValidateDockerfile(string(dockerfilefileContent), defaultRegoPlicies+"")
+		err = validate.ValidateDockerfile(string(dockerfilefileContent), defaultRegoPolicies)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
+		}
+	} else {
+		err := validate.ValidateDockerfile(string(dockerfilefileContent), policy)
+		if err != nil {
+			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
 		}
 	}
 
-	err = validate.ValidateDockerfile(string(dockerfilefileContent), policy)
-	if err != nil {
-		log.Errorf("Dockerfile validation failed: %s\n", err)
-	}
-	log.Infof("Dockerfile: %v validation succeeded!\n", input)
+	log.Infof("Dockerfile: %v validation completed!\n", input)
 	return nil
 }
