@@ -16,13 +16,10 @@ builds:
     # trims path
     - -trimpath
   ldflags:
-  #   # CommitDate makes the release reproducible
-    - -X main.Version={{ .Tag }}
-    - -X .Runtime.Goarch={{ .Arch }}
-    - -X .Runtime.Gooss={{ .Os }}
-    - -X main.Date={{ .CommitDate }}
-    - -X main.Commit={{ .FullCommit }}
-    - -X main.GitTreeState={{ .GitTreeState }}
+  - -X sigs.k8s.io/release-utils/version.gitVersion={{ .Tag }}
+  - -X sigs.k8s.io/release-utils/version.gitCommit={{ .FullCommit }}
+  - -X sigs.k8s.io/release-utils/version.gitTreeState={{ .GitTreeState }}
+  - -X sigs.k8s.io/release-utils/version.buildDate={{ .Date }}
 
 
 checksum:
