@@ -70,7 +70,7 @@ func init() {
 	pullCmd.Flags().StringVarP(&pullArgs.dest, "dest", "d", "", "destination URL for pulling the artifact from")
 	pullCmd.Flags().BoolVarP(&pullArgs.verify, "verify", "v", false, "Set signature verification of the artifact using Sigstore cosign")
 	pullCmd.Flags().StringVarP(&pullArgs.cosignKey, "pub-key", "k", "", "Cosign public key for varifying the artifact")
-	pushCmd.Flags().StringVarP(&pushArgs.creds, "credentials", "c", "", "Credentials to authenticate with OCI registries ")
+	pullCmd.Flags().StringVarP(&pullArgs.creds, "credentials", "c", "", "Credentials to authenticate with OCI registries ")
 	artifactCmd.AddCommand(pullCmd)
 }
 
