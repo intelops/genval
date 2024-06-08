@@ -151,9 +151,9 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("appending content to artifact failed: %v", err)
 	}
-	spin := utils.StartSpinner("pushing artifact")
+	spin := utils.StartSpinner("pushing artifact...")
 	defer spin.Stop()
-	opts, err := oci.GetCreds()
+	opts, err := oci.GenerateCraneOptions()
 	if err != nil {
 		log.Errorf("Error reading credentials: %v", err)
 	}
