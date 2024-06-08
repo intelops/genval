@@ -66,6 +66,7 @@ type pushFlags struct {
 	annotations []string
 	sign        bool
 	cosignKey   string
+	creds       string
 }
 
 var pushArgs pushFlags
@@ -82,6 +83,7 @@ func init() {
 	pushCmd.Flags().StringArrayVarP(&pushArgs.annotations, "annotations", "a", nil, "Set custom annotation in <key>=<value> format")
 	pushCmd.Flags().BoolVarP(&pushArgs.sign, "sign", "s", false, "If set to true, signs the artifact with cosign in keyless mode")
 	pushCmd.Flags().StringVarP(&pushArgs.cosignKey, "cosign-key", "k", "", "path to cosign private key")
+	pushCmd.Flags().StringVarP(&pushArgs.creds, "credentials", "c", "", "Credentials to authenticate with OCI registries ")
 	artifactCmd.AddCommand(pushCmd)
 }
 
@@ -149,7 +151,6 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("appending content to artifact failed: %v", err)
 	}
-	// TODO: Add userAgent header for HTTP requests made to OCI registry
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
 	opts, err := oci.GetCreds()

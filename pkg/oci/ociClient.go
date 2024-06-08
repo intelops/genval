@@ -283,13 +283,21 @@ func GetCreds() ([]crane.Option, error) {
 				return nil, errors.New("ARTIFACT_REGISTRY_PASSWORD environment variable not set")
 			}
 
-			if user == "" || pass == "" {
-				return nil, errors.New("username or password is empty")
-			}
+			token, tokenSet := os.LookupEnv("ARTIFACT_REGISTRY_TOKEN")
 
-			// Create authentication config
-			authConfig := authn.AuthConfig{Username: user, Password: pass}
-			opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
+			if tokenSet || token != "" {
+				// Token is set, use it
+				authConfig := authn.AuthConfig{RegistryToken: token}
+				opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
+			} else {
+				if user == "" || pass == "" {
+					return nil, errors.New("username or password is empty")
+				}
+
+				// Create authentication config
+				authConfig := authn.AuthConfig{Username: user, Password: pass}
+				opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
+			}
 		} else {
 			// Other error occurred while checking for Docker config file
 			return nil, fmt.Errorf("error checking Docker config at %s: %v", credPath, err)
