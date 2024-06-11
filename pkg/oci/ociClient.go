@@ -183,7 +183,7 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 		log.Errorf("Invalid Output path: %s requires a directory", err)
 		return err
 	}
-	ref, err := name.ParseReference(dest)
+	ref, err := ParseOCIURL(dest)
 	if err != nil {
 		log.Errorf("Invalid URL: %v", err)
 		return err
@@ -325,11 +325,13 @@ func GenerateCraneOptions() ([]crane.Option, error) {
 	var retryTransport http.RoundTripper
 	retryTransport = transport.NewRetry(retryTransport,
 		transport.WithRetryStatusCodes(retryOnStatusCodes...),
-		transport.WithRetryBackoff(remote.Backoff{Duration: 1,
-			Factor: 1.0,
-			Jitter: 0.1,
-			Steps:  2,
-			Cap:    3 * time.Minute}))
+		transport.WithRetryBackoff(remote.Backoff{
+			Duration: 1,
+			Factor:   1.0,
+			Jitter:   0.1,
+			Steps:    2,
+			Cap:      3 * time.Minute,
+		}))
 	opts = append(opts, crane.WithTransport(retryTransport))
 
 	userAgent := fmt.Sprintf("cosign/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)

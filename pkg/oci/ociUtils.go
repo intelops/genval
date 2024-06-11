@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/go-containerregistry/pkg/name"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -63,4 +64,18 @@ func GetGitRemoteURL() (string, error) {
 	}
 	remoteURL := strings.TrimSpace(string(output))
 	return remoteURL, nil
+}
+
+func ParseOCIURL(ociURL string) (name.Reference, error) {
+	if !strings.HasPrefix(ociURL, URLPrefix) {
+		return nil, fmt.Errorf("URL must be in format 'oci://<domain>/<org>/<repo>'")
+	}
+
+	url := strings.TrimPrefix(ociURL, URLPrefix)
+	ref, err := name.ParseReference(url)
+	if err != nil {
+		return nil, fmt.Errorf("'%s' invalid URL: %w", ociURL, err)
+	}
+
+	return ref, nil
 }

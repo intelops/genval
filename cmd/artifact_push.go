@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
-	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
@@ -40,20 +39,20 @@ environment variables to authenticate with the container registry.
 # Through this workflow, user needs to open th redirectoin link and authorize with OIDC token
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---dest ghcr.io/santoshkal/artifacts/genval:test \
+--dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 
 # Alternatively, users may provide the Cosign generated private key for signing the artifact
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---dest ghcr.io/santoshkal/artifacts/genval:test \
+--dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 --cosign-key <Path to Cosign private Key>
 
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
---dest ghcr.io/santoshkal/artifacts/genval:test \
+--dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --annotations  foo=bar
 
 `,
@@ -76,7 +75,7 @@ func init() {
 	if err := pushCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
-	pushCmd.Flags().StringVarP(&pushArgs.dest, "dest", "d", ".", "Source URl for the registry")
+	pushCmd.Flags().StringVarP(&pushArgs.dest, "dest", "d", ".", " oci:// prefixed URL for the OCI registry")
 	if err := pushCmd.MarkFlagRequired("dest"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
@@ -92,11 +91,11 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 		log.Printf("Required args mising")
 	}
 
-	inputPath := pushArgs.reqinput
-	source := pushArgs.dest
+	// inputPath := pushArgs.reqinput
+	// source := pushArgs.dest
 
-	if err := utils.CheckPathExists(inputPath); err != nil {
-		log.Errorf("Error reading %s: %v\n", inputPath, err)
+	if err := utils.CheckPathExists(pushArgs.reqinput); err != nil {
+		log.Errorf("Error reading %s: %v\n", pushArgs.reqinput, err)
 		os.Exit(1)
 	}
 
@@ -108,15 +107,15 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 
 	outputPath := filepath.Join(tempDir, "artifact.tar.gz")
 
-	log.Printf("Building artifact from: %v", inputPath)
+	log.Printf("Building artifact from: %v", pushArgs.reqinput)
 
 	// Create a tarball from the input path
-	if err := oci.CreateTarball(inputPath, outputPath); err != nil {
+	if err := oci.CreateTarball(pushArgs.reqinput, outputPath); err != nil {
 		return fmt.Errorf("creating tarball: %w", err)
 	}
 	log.Println("✔ Artifact created successfully")
 
-	ref, err := name.ParseReference(source)
+	ref, err := oci.ParseOCIURL(pushArgs.dest)
 	if err != nil {
 		log.Printf("Error parsing source: %v", err)
 	}
@@ -176,7 +175,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Printf("✔ Artifact pushed successfully to: %v\n, with Digest: %v\n", source, digest)
+	log.Printf("✔ Artifact pushed successfully to: %v\n, with Digest: %v\n", pushArgs.dest, digest)
 	log.Printf("Digest URL: %v\n", digestURL)
 	return nil
 }
