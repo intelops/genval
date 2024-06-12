@@ -2,13 +2,13 @@ package validate
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/open-policy-agent/opa/rego"
+	log "github.com/sirupsen/logrus"
 )
 
 // PrintResults prints the evaluation results along with the metadata
@@ -18,7 +18,6 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Policy Name", "Status", "Description", "Severity", "Benchmark", "Category"})
 
-	var policyError error
 	var allResults []Results
 	var idCounter int
 
@@ -43,7 +42,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 						} else {
 							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
-							policyError = errors.New("policy evaluation failed: " + key)
+							log.Infof(color.New(color.FgRed).Sprintf("policy evaluation for '%s' failed", key))
 						}
 					} else {
 						// Handle other types of values (non-slice)
@@ -53,7 +52,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 						} else {
 							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
-							policyError = errors.New("policy evaluation failed: " + key)
+							log.Infof(color.New(color.FgRed).Sprintf("policy evaluation for '%s' failed", key))
 						}
 					}
 					t.AppendRow([]interface{}{key, status, meta.Description, meta.Severity, meta.Benchmark, meta.Category})
@@ -71,12 +70,10 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 				}
 			}
 		} else {
-			fmt.Println("No policies passed")
-			policyError = errors.New("no policies passed")
+			log.Println("no policies passed")
 		}
 	}
 
-	fmt.Println("Rendering table")
 	// Render the table after processing all results
 	t.Render()
 
@@ -87,7 +84,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 		}
 	}
 
-	return policyError
+	return nil
 }
 
 type Results struct {

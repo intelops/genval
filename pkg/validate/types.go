@@ -1,10 +1,5 @@
 package validate
 
-const (
-	metaExt   = ".json"
-	policyExt = ".rego"
-)
-
 type regoMetadata struct {
 	Name        string `json:"name"`
 	PolicyName  string `json:"policy_name"`

@@ -4,12 +4,16 @@ import (
 	"archive/tar"
 	"fmt"
 	"io"
+	"net/url"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 
+<<<<<<< HEAD
 	"github.com/google/go-containerregistry/pkg/name"
+=======
+	"github.com/go-git/go-git/v5"
+>>>>>>> update-validation
 	log "github.com/sirupsen/logrus"
 )
 
@@ -55,15 +59,42 @@ func ExtractTarContents(tarReader *tar.Reader, destinationDir string) error {
 	return nil
 }
 
-// GetGitRemoteURL fetches the remote url of the project
-func GetGitRemoteURL() (string, error) {
-	cmd := exec.Command("git", "config", "--get", "remote.origin.url")
-	output, err := cmd.Output()
+// GetGitRemoteURL fetches the remote url
+func GetRemoteURL() (string, error) {
+	// Open the existing repository in the current directory
+	repo, err := git.PlainOpen(".")
 	if err != nil {
-		return "", fmt.Errorf("failed to get Git remote URL: %w", err)
+		return "", fmt.Errorf("unable to open the git repository: %w", err)
 	}
-	remoteURL := strings.TrimSpace(string(output))
-	return remoteURL, nil
+
+	remoteName := "origin"
+	remote, err := repo.Remote(remoteName)
+	if err != nil {
+		return "", fmt.Errorf("unable to determine upstream git vcs url: %w", err)
+	}
+
+	remoteConfig := remote.Config()
+	remoteURL := remoteConfig.URLs[0]
+
+	normalizedURL, err := url.Parse(remoteURL)
+	if err != nil {
+		// URL is most likely a git+ssh:// type URL, represented
+		// in the way git itself does so.
+
+		// Take the user@host:repo and turn it into user@host/repo.
+		remoteURL = strings.Replace(remoteURL, ":", "/", 1)
+		remoteURL = fmt.Sprintf("git+ssh://%s", remoteURL)
+
+		normalizedURL, err = url.Parse(remoteURL)
+		if err != nil {
+			return "", fmt.Errorf("unable to parse %s as a git vcs url: %w", remoteURL, err)
+		}
+	}
+
+	// sanitize any user authentication data from the VCS URL
+	normalizedURL.User = nil
+
+	return normalizedURL.String(), nil
 }
 
 func ParseOCIURL(ociURL string) (name.Reference, error) {
