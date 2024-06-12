@@ -322,8 +322,7 @@ func GenerateCraneOptions() ([]crane.Option, error) {
 		// Docker config file exists, use default keychain
 		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
-	var retryTransport http.RoundTripper
-	retryTransport = transport.NewRetry(retryTransport,
+	retryTransport := transport.NewRetry(http.DefaultTransport,
 		transport.WithRetryStatusCodes(retryOnStatusCodes...),
 		transport.WithRetryBackoff(remote.Backoff{
 			Duration: 1,
