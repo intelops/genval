@@ -1,6 +1,6 @@
 {
   "name": "DenyLatest",
-  "policy_file": "k8s.rego",
+  "policy_file": "deny_latest.rego",
   "policy_name": "deny_latest",
   "severity": "High",
   "Description": "Ensure Image does not use 'latest' tag",

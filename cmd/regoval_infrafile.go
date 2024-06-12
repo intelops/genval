@@ -89,7 +89,7 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error applying default policies: %v", err)
 		}
 
-		err = validate.ValidateDockerfile(inputFile, defaultRegoPolicies)
+		err = validate.ValidateWithRego(inputFile, defaultRegoPolicies)
 		if err != nil {
 			return fmt.Errorf("validation infrafiles failed: %s", err)
 		}
