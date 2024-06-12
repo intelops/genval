@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
@@ -56,8 +57,11 @@ export GITHUB_TOKEN=<your GitHub PAT>
 ./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
 
-TODO: Add examples for validating with default policies
-	`,
+
+# Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
+
+./genval regoval dockerfileval --reqinput <Path to Dockerfile>
+`,
 	RunE: runDockerfilevalCmd,
 }
 
@@ -78,11 +82,8 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error creating policy directory: %v", err)
 		}
 		defer os.RemoveAll(tempDir)
-		if err := validate.ReadEnv(); err != nil {
-			log.Fatalf("Error reading .env file: %v", err)
-		}
 
-		policyLoc, err := validate.FetchPolicyFromRegistry(cmd.Name())
+		policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
 		if err != nil {
 			return fmt.Errorf("error fetching policy from registry: %v", err)
 		}

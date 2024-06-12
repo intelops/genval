@@ -120,7 +120,9 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Printf("Error parsing source: %v", err)
 	}
-	remoteURL, err := oci.GetGitRemoteURL()
+
+	remoteURL, err := oci.GetRemoteURL()
+	fmt.Printf("Remote Name: %v", remoteURL)
 	if err != nil {
 		return err
 	}

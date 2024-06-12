@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
@@ -54,8 +58,9 @@ export GITHUB_TOKEN=<your GitHub PAT>
 ./genval regoval terraform --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/terraform/sec_group.tf \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/terraform.rego
 
-TODO: Add examples for validating with default policies
+# Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
 
+./genval regoval terraform --reqinput <path to terraform file>
 	`,
 	RunE: runTerraformCmd,
 }
@@ -69,9 +74,35 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 		log.Errorf("Error converting tf file: %v", err)
 	}
 
-	err = validate.ValidateWithRego(inputJSON, policy)
-	if err != nil {
-		log.Errorf("Validation %v failed", err)
+	if policy == "" {
+		fmt.Println("\n" + "Validating with default policies...")
+
+		tempDir, err := os.MkdirTemp("", "policyDirectory")
+		if err != nil {
+			return fmt.Errorf("error creating policy directory: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
+		if err != nil {
+			return fmt.Errorf("error fetching policy from registry: %v", err)
+		}
+
+		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(policyLoc, tempDir)
+		if err != nil {
+			return fmt.Errorf("error applying default policies: %v", err)
+		}
+
+		err = validate.ValidateDockerfile(inputFile, defaultRegoPolicies)
+		if err != nil {
+			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
+		}
+	} else {
+		err = validate.ValidateWithRego(inputJSON, policy)
+		if err != nil {
+			log.Errorf("Validation %v failed", err)
+		}
 	}
 	log.Infof("Terraform resource: %v, validated succussfully.", inputFile)
 	return nil
