@@ -24,9 +24,6 @@ func init() {
 	}
 
 	infrafileCmd.Flags().StringVarP(&infrafileArgs.policy, "policy", "p", "", "Path for the CEL policy file, polciy can be passed from either Local or from remote URL")
-	if err := infrafileCmd.MarkFlagRequired("policy"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
 
 	regovalCmd.AddCommand(infrafileCmd)
 }

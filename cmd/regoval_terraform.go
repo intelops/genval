@@ -24,10 +24,6 @@ func init() {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
 	terraformCmd.Flags().StringVarP(&terraformArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	if err := terraformCmd.MarkFlagRequired("policy"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
-
 	regovalCmd.AddCommand(terraformCmd)
 }
 

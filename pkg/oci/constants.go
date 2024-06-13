@@ -21,9 +21,9 @@ const (
 
 	URLPrefix = "oci://"
 
-	DockerfilePolicies = "ghcr.io/intelops/genval-security-policies/dockerfile-policies:v0.0.1"
-	InfrafilePolicies  = "ghcr.io/intelops/genval-security-policies/infrafile-policies:v0.0.1"
-	TerraformPOlicies  = "ghcr.io/intelops/genval-security-policies/terraform-policies:v0.0.1"
+	DockerfilePolicies = "ghcr.io/intelops/policyhub/genval/dockerfile-policies:v0.0.1"
+	InfrafilePolicies  = "ghcr.io/intelops/policyhub/genval/infrafile_policies:v0.0.1"
+	TerraformPOlicies  = "ghcr.io/intelops/policyhub/genval/terraform-policies:v0.0.1"
 )
 
 // FetchPolicyFromRegistry fetches the policy based on the command provided
