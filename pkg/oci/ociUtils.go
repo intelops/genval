@@ -9,11 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-<<<<<<< HEAD
-	"github.com/google/go-containerregistry/pkg/name"
-=======
 	"github.com/go-git/go-git/v5"
->>>>>>> update-validation
+	"github.com/google/go-containerregistry/pkg/name"
 	log "github.com/sirupsen/logrus"
 )
 
