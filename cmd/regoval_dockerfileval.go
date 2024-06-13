@@ -1,6 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
+	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
@@ -20,9 +24,9 @@ func init() {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	if err := dockerfilevalCmd.MarkFlagRequired("policy"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
+	// if err := dockerfilevalCmd.MarkFlagRequired("policy"); err != nil {
+	// 	log.Fatalf("Error marking flag as required: %v", err)
+	// }
 
 	regovalCmd.AddCommand(dockerfilevalCmd)
 }
@@ -52,7 +56,12 @@ export GITHUB_TOKEN=<your GitHub PAT>
 
 ./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
-	`,
+
+
+# Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
+
+./genval regoval dockerfileval --reqinput <Path to Dockerfile>
+`,
 	RunE: runDockerfilevalCmd,
 }
 
@@ -65,10 +74,38 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		log.Errorf("Error reading Dockerfile: %v, validation failed: %s\n", input, err)
 	}
 
-	err = validate.ValidateDockerfile(string(dockerfilefileContent), policy)
-	if err != nil {
-		log.Errorf("Dockerfile validation failed: %s\n", err)
+	if policy == "" {
+		fmt.Println("\n" + "Validating with default policies...")
+
+		tempDir, err := os.MkdirTemp("", "policyDirectory")
+		if err != nil {
+			return fmt.Errorf("error creating policy directory: %v", err)
+		}
+		defer os.RemoveAll(tempDir)
+
+		policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
+		if err != nil {
+			return fmt.Errorf("error fetching policy from registry: %v", err)
+		}
+
+		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(policyLoc, tempDir)
+		if err != nil {
+			return fmt.Errorf("error applying default policies: %v", err)
+		}
+
+		err = validate.ValidateDockerfile(string(dockerfilefileContent), defaultRegoPolicies)
+		if err != nil {
+			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
+		}
+	} else {
+		err := validate.ValidateDockerfile(string(dockerfilefileContent), policy)
+		if err != nil {
+			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
+		}
 	}
-	log.Infof("Dockerfile: %v validation succeeded!\n", input)
+
+	log.Infof("Dockerfile: %v validation completed!\n", input)
 	return nil
 }

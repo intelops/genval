@@ -17,12 +17,13 @@ import rego.v1
 #     msg:= "Deployment does not use 'envFrom'"
 # }
 
-deny_secret contains msg if {
-	input.kind == "Deployment"
-	container := input.spec.template.spec.containers[i]
-	not container.envFrom[i].secretRef
-	msg := "Deployment does not use 'secretRef' in ENV"
-}
+# deny_secret contains msg if {
+#     input.kind == "Deployment"
+#     container := input.spec.template.spec.containers[_]
+#     env := container.envFrom[_]
+#     not env.secretRef
+#     msg:= "Deployment does not use 'secretRef' in ENV"
+# 	}
 
 # deny_secret contains msg if {
 #     input.kind == "Deployment"
@@ -32,11 +33,11 @@ deny_secret contains msg if {
 #     msg:= "Deployment does not use 'valueFrom' in ENV"
 # }
 
-# deny_priviliged_pod contains msg if {
-# 	input.kind == "Deployment"
-# 	not input.spec.template.spec.securityContext
-#     msg:= "Deployment does not use priviliged pod"
-# }
+deny_priviliged_pod contains msg if {
+	input.kind == "Deployment"
+	not input.spec.template.spec.securityContext
+    msg:= "Deployment does not use priviliged pod"
+}
 
 # deny_priviliged_pod contains msg if {
 # 	input.kind == "Deployment"
