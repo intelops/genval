@@ -1,9 +1,9 @@
 [
   {
     "id": "1",
-    "policyName": "deny_latest",
+    "policyName": "multi_stage",
     "status": "passed",
-    "description": "Image does not have latest tag",
+    "description": "Use multi-stage Docker builds to minimize size and performance",
     "severity": "High",
     "benchmark": "CIS-4.2",
     "category": "Infrastructure security"
