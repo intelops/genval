@@ -7,6 +7,14 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// Helper function to determine the processor type based on the file extension
+func getProcessorForInput(inputContent string) InputProcessor {
+	if filepath.Ext(inputContent) == ".Dockerfile" {
+		return DockerfileProcessor{}
+	}
+	return GenericProcessor{}
+}
+
 type validateWithRegoTestCase struct {
 	name          string
 	inputContent  string
@@ -35,6 +43,18 @@ func TestValidateWithRego(t *testing.T) {
 			regoPolicy:    "/rego/k8s.rego",
 			expectedError: true,
 		},
+		{
+			name:          "valid Dockerfile and policy",
+			inputContent:  "Dockerfile",
+			regoPolicy:    "/rego/dockerfilepolicies/",
+			expectedError: false,
+		},
+		{
+			name:          "invalid Dockerfile and policy",
+			inputContent:  "Dockerfile-invalid",
+			regoPolicy:    "/rego/docker-invalid.rego",
+			expectedError: true,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -42,8 +62,11 @@ func TestValidateWithRego(t *testing.T) {
 			inputFilePath := filepath.Join(testdataDir, tc.inputContent)
 			regoPolicyPath := filepath.Join(testdataDir, tc.regoPolicy)
 
+			// Determine the appropriate processor
+			processor := getProcessorForInput(inputFilePath)
+
 			// Call the function under test
-			err := ValidateWithRego(inputFilePath, regoPolicyPath)
+			err := ValidateWithRego(inputFilePath, regoPolicyPath, processor)
 
 			if tc.expectedError {
 				assert.Error(t, err)

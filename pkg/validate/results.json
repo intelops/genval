@@ -1,9 +1,9 @@
 [
   {
     "id": "1",
-    "policyName": "multi_stage",
-    "status": "passed",
-    "description": "Use multi-stage Docker builds to minimize size and performance",
+    "policyName": "base_image",
+    "status": "failed",
+    "description": "Use hardened and secure base image from Chainguard",
     "severity": "High",
     "benchmark": "CIS-4.2",
     "category": "Infrastructure security"
