@@ -24,9 +24,6 @@ func init() {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	// if err := dockerfilevalCmd.MarkFlagRequired("policy"); err != nil {
-	// 	log.Fatalf("Error marking flag as required: %v", err)
-	// }
 
 	regovalCmd.AddCommand(dockerfilevalCmd)
 }

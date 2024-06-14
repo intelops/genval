@@ -45,7 +45,7 @@ func TestValidateWithRego(t *testing.T) {
 		},
 		{
 			name:          "valid Dockerfile and policy",
-			inputContent:  "Dockerfile",
+			inputContent:  "Docker-file",
 			regoPolicy:    "/rego/dockerfilepolicies/",
 			expectedError: false,
 		},
