@@ -21,9 +21,9 @@ const (
 
 	URLPrefix = "oci://"
 
-	DockerfilePolicies = "ghcr.io/intelops/policyhub/genval/dockerfile-policies:v0.0.1"
-	InfrafilePolicies  = "ghcr.io/intelops/policyhub/genval/infrafile_policies:v0.0.1"
-	TerraformPOlicies  = "ghcr.io/intelops/policyhub/genval/terraform-policies:v0.0.1"
+	DockerfilePolicies = URLPrefix + "ghcr.io/intelops/policyhub/genval/dockerfile-policies:v0.0.1"
+	InfrafilePolicies  = URLPrefix + "ghcr.io/intelops/policyhub/genval/infrafile_policies:v0.0.1"
+	TerraformPOlicies  = URLPrefix + "ghcr.io/intelops/policyhub/genval/terraform-policies:v0.0.1"
 )
 
 // FetchPolicyFromRegistry fetches the policy based on the command provided
@@ -36,7 +36,7 @@ func FetchPolicyFromRegistry(cmd string) (string, error) {
 
 	policy, ok := policies[cmd]
 	if !ok {
-		return "", errors.New("error getting ociURL")
+		return "", errors.New("error getting policy location")
 	}
 
 	return policy, nil

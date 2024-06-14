@@ -8,14 +8,18 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/intelops/genval/pkg/cuecore"
 	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-utils/version"
@@ -46,7 +50,7 @@ func CheckTagAndPullArchive(url, tool string, archivePath *os.File) error {
 	ociref := parts[0]
 	desiredTag := parts[1]
 
-	opts, err := GetCreds()
+	opts, err := GenerateCraneOptions()
 	if err != nil {
 		log.Errorf("Error reading credentials: %v", err)
 	}
@@ -179,7 +183,8 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 		log.Errorf("Invalid Output path: %s requires a directory", err)
 		return err
 	}
-	ref, err := name.ParseReference(dest)
+
+	ref, err := ParseOCIReference(dest)
 	if err != nil {
 		log.Errorf("Invalid URL: %v", err)
 		return err
@@ -189,7 +194,7 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	url := parts[0]
 	desiredTag := parts[1]
 
-	opts, err := GetCreds()
+	opts, err := GenerateCraneOptions()
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
@@ -260,7 +265,7 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	return nil
 }
 
-func GetCreds() ([]crane.Option, error) {
+func GenerateCraneOptions() ([]crane.Option, error) {
 	opts := []crane.Option{}
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
@@ -291,7 +296,21 @@ func GetCreds() ([]crane.Option, error) {
 				if user == "" || pass == "" {
 					return nil, errors.New("username or password is empty")
 				}
+				token, tokenSet := os.LookupEnv("ARTIFACT_REGISTRY_TOKEN")
 
+				if tokenSet || token != "" {
+					// Token is set, use it
+					authConfig := authn.AuthConfig{RegistryToken: token}
+					opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
+				} else {
+					if user == "" || pass == "" {
+						return nil, errors.New("username or password is empty")
+					}
+
+					// Create authentication config
+					authConfig := authn.AuthConfig{Username: user, Password: pass}
+					opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
+				}
 				// Create authentication config
 				authConfig := authn.AuthConfig{Username: user, Password: pass}
 				opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
@@ -304,6 +323,16 @@ func GetCreds() ([]crane.Option, error) {
 		// Docker config file exists, use default keychain
 		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
+	retryTransport := transport.NewRetry(http.DefaultTransport,
+		transport.WithRetryStatusCodes(retryOnStatusCodes...),
+		transport.WithRetryBackoff(remote.Backoff{
+			Duration: 1,
+			Factor:   1.0,
+			Jitter:   0.1,
+			Steps:    2,
+			Cap:      3 * time.Minute,
+		}))
+	opts = append(opts, crane.WithTransport(retryTransport))
 
 	userAgent := fmt.Sprintf("cosign/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
 
@@ -345,4 +374,12 @@ func CreateWorkspace(desiredTool, ociURL string) error {
 		return fmt.Errorf("error extracting archive: %s", err)
 	}
 	return nil
+}
+
+var retryOnStatusCodes = []int{
+	http.StatusRequestTimeout,
+	http.StatusInternalServerError,
+	http.StatusBadGateway,
+	http.StatusServiceUnavailable,
+	http.StatusGatewayTimeout,
 }

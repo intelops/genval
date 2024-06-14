@@ -8,7 +8,6 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
-	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
@@ -114,21 +113,20 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err := oci.CreateTarball(inputPath, outputPath); err != nil {
 		return fmt.Errorf("creating tarball: %w", err)
 	}
-	log.Println("✔ Artifact created successfully")
+	log.Info("✔ Artifact created successfully")
 
-	ref, err := name.ParseReference(source)
+	ref, err := oci.ParseOCIReference(source)
 	if err != nil {
-		log.Printf("Error parsing source: %v", err)
+		log.Errorf("Error parsing source: %v", err)
 	}
 
 	remoteURL, err := oci.GetRemoteURL()
-	fmt.Printf("Remote Name: %v", remoteURL)
 	if err != nil {
-		return err
+		return fmt.Errorf("error fetching credentials: %v", err)
 	}
 	annotations, err := oci.ParseAnnotations(pushArgs.annotations)
 	if err != nil {
-		return err
+		return fmt.Errorf("error parsing annotations %s: %v", pushArgs.annotations, err)
 	}
 
 	img := mutate.MediaType(empty.Image, types.OCIManifestSchema1)
@@ -155,7 +153,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	}
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
-	opts, err := oci.GetCreds()
+	opts, err := oci.GenerateCraneOptions()
 	if err != nil {
 		log.Errorf("Error reading credentials: %v", err)
 	}
@@ -174,11 +172,11 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if pushArgs.sign {
 		err := oci.SignCosign(digestURL, pushArgs.cosignKey)
 		if err != nil {
-			return err
+			return fmt.Errorf("error signing artifact %s: %v", digestURL, err)
 		}
 	}
 
-	log.Printf("✔ Artifact pushed successfully to: %v\n, with Digest: %v\n", source, digest)
-	log.Printf("Digest URL: %v\n", digestURL)
+	log.Infof("✔ Artifact pushed successfully to: %v\n,Artifact Digest: %v\n", source, digest)
+	log.Infof("Digest URL: %v\n", digestURL)
 	return nil
 }

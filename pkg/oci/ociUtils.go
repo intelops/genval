@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/go-git/go-git/v5"
+	"github.com/google/go-containerregistry/pkg/name"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -91,4 +92,18 @@ func GetRemoteURL() (string, error) {
 	normalizedURL.User = nil
 
 	return normalizedURL.String(), nil
+}
+
+func ParseOCIReference(ociURL string) (name.Reference, error) {
+	if !strings.HasPrefix(ociURL, URLPrefix) {
+		return nil, fmt.Errorf("URL must be in format 'oci://<domain>/<org>/<repo>'")
+	}
+
+	url := strings.TrimPrefix(ociURL, URLPrefix)
+	ref, err := name.ParseReference(url)
+	if err != nil {
+		return nil, fmt.Errorf("'%s' invalid URL: %w", ociURL, err)
+	}
+
+	return ref, nil
 }
