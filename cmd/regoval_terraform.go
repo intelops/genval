@@ -64,6 +64,7 @@ export GITHUB_TOKEN=<your GitHub PAT>
 func runTerraformCmd(cmd *cobra.Command, args []string) error {
 	inputFile := terraformArgs.reqinput
 	policy := terraformArgs.policy
+	var processor validate.GenericProcessor
 
 	inputJSON, err := parser.ConvertTFtoJSON(inputFile)
 	if err != nil {
@@ -89,13 +90,13 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error applying default policies: %v", err)
 		}
 
-		err = validate.ValidateDockerfile(inputFile, defaultRegoPolicies)
+		err = validate.ValidateWithRego(inputFile, defaultRegoPolicies, processor)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
 		}
 	} else {
-		err = validate.ValidateWithRego(inputJSON, policy)
+		err = validate.ValidateWithRego(inputJSON, policy, processor)
 		if err != nil {
 			log.Errorf("Validation %v failed", err)
 		}
