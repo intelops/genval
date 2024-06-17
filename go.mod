@@ -3,7 +3,7 @@ module github.com/intelops/genval
 go 1.21
 
 require (
-	cuelang.org/go v0.9.0
+	cuelang.org/go v0.9.1
 	github.com/briandowns/spinner v1.23.1
 	github.com/fatih/color v1.17.0
 	github.com/go-git/go-git/v5 v5.12.0
