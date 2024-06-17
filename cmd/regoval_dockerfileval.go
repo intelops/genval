@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+	"strings"
 
 	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/utils"
@@ -72,23 +72,31 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		log.Errorf("Error reading Dockerfile: %v, validation failed: %s\n", input, err)
 	}
 
-	if policy == "" {
-		fmt.Println("\n" + "Validating with default policies...")
+	if policy == "" || strings.HasPrefix(policy, "oci://") {
 
-		tempDir, err := os.MkdirTemp("", "policyDirectory")
+		tempDir, cleanup, err := utils.TempDirWithCleanup()
 		if err != nil {
-			return fmt.Errorf("error creating policy directory: %v", err)
+			return fmt.Errorf("error creating temporary directory: %v", err)
 		}
-		defer os.RemoveAll(tempDir)
+		defer cleanup()
 
-		policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
-		if err != nil {
-			return fmt.Errorf("error fetching policy from registry: %v", err)
-		}
+		var defaultRegoPolicies string
+		if policy == "" {
+			fmt.Println("\n" + "Validating with default policies...")
+			policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
+			if err != nil {
+				return fmt.Errorf("error fetching policy from registry: %v", err)
+			}
 
-		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(policyLoc, tempDir)
-		if err != nil {
-			return fmt.Errorf("error applying default policies: %v", err)
+			defaultRegoPolicies, err = validate.ApplyDefaultPolicies(policyLoc, tempDir)
+			if err != nil {
+				return fmt.Errorf("error applying default policies: %v", err)
+			}
+		} else {
+			defaultRegoPolicies, err = validate.ApplyDefaultPolicies(policy, tempDir)
+			if err != nil {
+				return fmt.Errorf("error applying default policies: %v", err)
+			}
 		}
 
 		err = validate.ValidateWithRego(string(dockerfilefileContent), defaultRegoPolicies, processor)
