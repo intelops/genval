@@ -66,7 +66,7 @@ export GITHUB_TOKEN=<Your GitHub PAT>
 func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 	inputFile := infrafileArgs.reqinput
 	policy := infrafileArgs.policy
-
+	var processor validate.GenericProcessor
 	if policy == "" {
 		fmt.Println("\n" + "Validating with default policies...")
 
@@ -86,13 +86,13 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error applying default policies: %v", err)
 		}
 
-		err = validate.ValidateWithRego(inputFile, defaultRegoPolicies)
+		err = validate.ValidateWithRego(inputFile, defaultRegoPolicies, processor)
 		if err != nil {
 			return fmt.Errorf("validation infrafiles failed: %s", err)
 		}
 	} else {
 
-		err := validate.ValidateWithRego(inputFile, policy)
+		err := validate.ValidateWithRego(inputFile, policy, processor)
 		if err != nil {
 			return fmt.Errorf("validating %v failed: %v", inputFile, err)
 		}

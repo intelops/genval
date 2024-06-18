@@ -12,3 +12,4 @@ cosign
 !.devcontainer/Dockerfile
 results.json
 .env
+!pkg/validate/testdata/Dockerfile/

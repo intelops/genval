@@ -14,7 +14,35 @@ import (
 	"github.com/open-policy-agent/opa/rego"
 )
 
-func ValidateWithRego(inputContent string, regoPolicyPath string) error {
+type InputProcessor interface {
+	ProcessInput(string) ([]byte, error)
+}
+
+// DOckefileProcessor processes Dockerrile input
+type DockerfileProcessor struct{}
+
+// d.ProcessInput processes Dockerfile content and returns a []byte or any error
+func (d DockerfileProcessor) ProcessInput(content string) ([]byte, error) {
+	dockerfileInstructions := parser.ParseDockerfileContent(content)
+	jsonData, err := json.Marshal(dockerfileInstructions)
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling %v, to JSON: %v", dockerfileInstructions, err)
+	}
+	return jsonData, nil
+}
+
+// GenericProcessor processes generic inputs like (YAML, JSON, etc)
+type GenericProcessor struct{}
+
+// g.ProcessInput processes generic input contents and returns a []byte or any error
+func (g GenericProcessor) ProcessInput(content string) ([]byte, error) {
+	jsonData, err := parser.ProcessInput(content)
+	if err != nil {
+		return nil, fmt.Errorf("error reading input content file: %v", err)
+	}
+	return jsonData, nil
+}
+func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProcessor) error {
 	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
 	if err != nil {
 		return err
@@ -29,7 +57,7 @@ func ValidateWithRego(inputContent string, regoPolicyPath string) error {
 
 	for _, regoFile := range regoPolicy {
 		// read input is a file
-		jsonData, err := parser.ProcessInput(inputContent)
+		jsonData, err := processor.ProcessInput(inputContent)
 		if err != nil {
 			return fmt.Errorf("error reading input content file: %v", err)
 		}
@@ -46,7 +74,7 @@ func ValidateWithRego(inputContent string, regoPolicyPath string) error {
 
 		policyName := filepath.Base(regoFile)
 
-		var commands map[string]interface{}
+		var commands interface{}
 		err = json.Unmarshal(jsonData, &commands)
 		if err != nil {
 			return fmt.Errorf("error Unmarshalling jsonData: %v", err)

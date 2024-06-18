@@ -83,6 +83,8 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 	outputPath := dockerfileArgs.output
 	inputPolicyFile := dockerfileArgs.inputPolicy
 	outputPolicyFile := dockerfileArgs.outputPolicy
+	var dprocessor validate.DockerfileProcessor
+	var gprocessor validate.GenericProcessor
 
 	// Use ParseInputFile to read and unmarshal the input file
 	var data generate.DockerfileContent
@@ -99,7 +101,7 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Validate the YAML using OPA
-	err = validate.ValidateInput(string(inputContent), inputPolicyFile)
+	err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor)
 	if err != nil {
 		log.Fatalf("Validation error: %v", err)
 		return err
@@ -115,7 +117,7 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 	}
 	fmt.Printf("Generated Dockerfile saved to: %s\n", outputPath)
 
-	err = validate.ValidateDockerfile(string(outputData), outputPolicyFile)
+	err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor)
 	if err != nil {
 		log.Error("Dockerfile validation failed:", err)
 	} else {

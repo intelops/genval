@@ -24,9 +24,6 @@ func init() {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	// if err := dockerfilevalCmd.MarkFlagRequired("policy"); err != nil {
-	// 	log.Fatalf("Error marking flag as required: %v", err)
-	// }
 
 	regovalCmd.AddCommand(dockerfilevalCmd)
 }
@@ -68,6 +65,7 @@ export GITHUB_TOKEN=<your GitHub PAT>
 func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	input := dockerfilevalArgs.reqinput
 	policy := dockerfilevalArgs.policy
+	processor := validate.DockerfileProcessor{}
 
 	dockerfilefileContent, err := utils.ReadFile(input)
 	if err != nil {
@@ -93,13 +91,13 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error applying default policies: %v", err)
 		}
 
-		err = validate.ValidateDockerfile(string(dockerfilefileContent), defaultRegoPolicies)
+		err = validate.ValidateWithRego(string(dockerfilefileContent), defaultRegoPolicies, processor)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
 		}
 	} else {
-		err := validate.ValidateDockerfile(string(dockerfilefileContent), policy)
+		err := validate.ValidateWithRego(string(dockerfilefileContent), policy, processor)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
