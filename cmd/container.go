@@ -3,8 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/fatih/color"
 	generate "github.com/intelops/genval/pkg/generate/dockerfile_gen"
+	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
@@ -100,11 +103,44 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 		log.Fatalf("Unable to read input: %v", err)
 	}
 
-	// Validate the YAML using OPA
-	err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor)
+	tempDir, err := os.MkdirTemp("", "policyDirectory")
 	if err != nil {
-		log.Fatalf("Validation error: %v", err)
-		return err
+		return fmt.Errorf("error creating policy directory: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	if inputPolicyFile == "" {
+		fmt.Println("\n" + "Validating with default input policies...")
+		inputPolicy, err := oci.FetchPolicyFromRegistry("inputPolicy")
+		if err != nil {
+			return fmt.Errorf("error fetching input policies %v", err)
+		}
+		defaultInputPolicies, err := validate.ApplyPolicyiesFromOCI(inputPolicy, tempDir)
+		if err != nil {
+			return fmt.Errorf("error validating with default policies: %v", err)
+		}
+		err = validate.ValidateWithRego(string(inputContent), defaultInputPolicies, gprocessor)
+		if err != nil {
+			log.Fatalf("Validation error: %v", err)
+			return err
+		}
+	} else if strings.HasPrefix(inputPolicyFile, "oci://") {
+		fmt.Printf("\n"+"Pulling poilices from '%v'"+"\n", inputPolicyFile)
+		ociInputPolicies, err := validate.ApplyPolicyiesFromOCI(inputPolicyFile, tempDir)
+		if err != nil {
+			return fmt.Errorf("error validating with OCI policies: %v", err)
+		}
+		err = validate.ValidateWithRego(string(inputContent), ociInputPolicies, gprocessor)
+		if err != nil {
+			log.Fatalf("Validation error: %v", err)
+			return err
+		}
+	} else {
+		err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor)
+		if err != nil {
+			log.Fatalf("Validation error: %v", err)
+			return err
+		}
 	}
 
 	dockerfileContent := generate.GenerateDockerfileContent(&data)
@@ -115,13 +151,42 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 		log.Error("Error writing Dockerfile:", err)
 		return err
 	}
-	fmt.Printf("Generated Dockerfile saved to: %s\n", outputPath)
+	color.Green(fmt.Sprintf("Generated Dockerfile saved to: %s\n", outputPath))
 
-	err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor)
-	if err != nil {
-		log.Error("Dockerfile validation failed:", err)
+	if outputPolicyFile == "" {
+		fmt.Println("\n" + "Validating with default output policies...")
+		outputPolicy, err := oci.FetchPolicyFromRegistry("dockerfileval")
+		if err != nil {
+			return fmt.Errorf("error fetching output policies %v", err)
+		}
+		defaultOutputPolicies, err := validate.ApplyPolicyiesFromOCI(outputPolicy, tempDir)
+		if err != nil {
+			return fmt.Errorf("error validating with default policies: %v", err)
+		}
+		err = validate.ValidateWithRego(string(outputData), defaultOutputPolicies, dprocessor)
+		if err != nil {
+			log.Fatalf("Validation error: %v", err)
+			return err
+		}
+	} else if strings.HasPrefix(outputPolicyFile, "oci://") {
+		fmt.Printf("\n"+"Pulling poilices from '%v'"+"\n", outputPolicyFile)
+		ociOutputPolicies, err := validate.ApplyPolicyiesFromOCI(outputPolicyFile, tempDir)
+		if err != nil {
+			return fmt.Errorf("error validating with OCI policies: %v", err)
+		}
+		err = validate.ValidateWithRego(string(outputData), ociOutputPolicies, dprocessor)
+		if err != nil {
+			log.Fatalf("Validation error: %v", err)
+			return err
+		}
 	} else {
-		fmt.Printf("Dockerfile validation succeeded!\n")
+		err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor)
+		if err != nil {
+			log.Fatalf("Validation error: %v", err)
+			return err
+		}
 	}
+
+	color.Green("Validation of generated Dockerfile completed")
 	return nil
 }
