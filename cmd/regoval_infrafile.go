@@ -57,6 +57,10 @@ export GITHUB_TOKEN=<Your GitHub PAT>
 ./genval regoval infrafile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/k8s/deployment.json \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/k8s.rego
 
+# Validating of ubernetes manifests using policies stored in OCI compliant registries
+
+./genval regoval infrafile --reqinput=./templates/input/k8s/deployment.yaml \
+--policy oci://ghcr.io/intelops/policyhub/genval/infrafile_policies:v0.0.1
 
 # Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
 

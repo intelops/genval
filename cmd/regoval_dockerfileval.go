@@ -41,7 +41,7 @@ such as those hosted on GitHub (e.g., https://github.com)
 	Example: `
 # Validate Dockerfil with Rego policies by providing the required args from local file system
 
-./genval regoval dockerfileval --reqinput=input.json \
+./genval regoval dockerfileval --reqinput=Dockerfile \
 --policy=<'path/to/policy.rego file>
 
 # Provide the required files from remote URL's
@@ -55,6 +55,10 @@ export GITHUB_TOKEN=<your GitHub PAT>
 ./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
 
+# Validating of Dockerfile using policies stored in OCI compliant registries
+
+./genval regoval dockerfileval --reqinput=Dockerfile \
+--policy oci://ghcr.io/intelops/policyhub/genval/dockerfile_policies:v0.0.1
 
 # Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
 

@@ -56,6 +56,12 @@ export GITHUB_TOKEN=<your GitHub PAT>
 ./genval regoval terraform --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/terraform/sec_group.tf \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/terraform.rego
 
+
+# Validating of Terraform files using policies stored in OCI compliant registries
+
+./genval regoval terrafrorm --reqinput=./templaes/inputs/terraform/sec_group.tf \
+--policy oci://ghcr.io/intelops/policyhub/genval/terraform_policies:v0.0.1
+
 # Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
 
 ./genval regoval terraform --reqinput <path to terraform file>

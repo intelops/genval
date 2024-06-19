@@ -22,9 +22,9 @@ const (
 	URLPrefix = "oci://"
 
 	// OCI URLs for Rego policies
-	DockerfilePolicies = URLPrefix + "ghcr.io/intelops/policyhub/genval/dockerfile-policies:v0.0.1"
+	DockerfilePolicies = URLPrefix + "ghcr.io/intelops/policyhub/genval/dockerfile_policies:v0.0.1"
 	InfrafilePolicies  = URLPrefix + "ghcr.io/intelops/policyhub/genval/infrafile_policies:v0.0.1"
-	TerraformPOlicies  = URLPrefix + "ghcr.io/intelops/policyhub/genval/terraform-policies:v0.0.1"
+	TerraformPolicies  = URLPrefix + "ghcr.io/intelops/policyhub/genval/terraform_policies:v0.0.1"
 )
 
 // FetchPolicyFromRegistry fetches the policy based on the command provided
@@ -32,7 +32,7 @@ func FetchPolicyFromRegistry(cmd string) (string, error) {
 	policies := map[string]string{
 		"dockerfileval": DockerfilePolicies,
 		"infrafile":     InfrafilePolicies,
-		"terraform":     TerraformPOlicies,
+		"terraform":     TerraformPolicies,
 	}
 
 	policy, ok := policies[cmd]
