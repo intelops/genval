@@ -2,9 +2,11 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+	"strings"
 
+	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/oci"
+	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -66,24 +68,32 @@ export GITHUB_TOKEN=<Your GitHub PAT>
 func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 	inputFile := infrafileArgs.reqinput
 	policy := infrafileArgs.policy
-	var processor validate.GenericProcessor
-	if policy == "" {
-		fmt.Println("\n" + "Validating with default policies...")
+	processor := validate.GenericProcessor{}
 
-		tempDir, err := os.MkdirTemp("", "policyDirectory")
+	if policy == "" || strings.HasPrefix(policy, "oci://") {
+		tempDir, cleanup, err := utils.TempDirWithCleanup()
 		if err != nil {
-			return fmt.Errorf("error creating policy directory: %v", err)
+			return fmt.Errorf("error creating temporary directory: %v", err)
 		}
-		defer os.RemoveAll(tempDir)
+		defer cleanup()
 
-		policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
-		if err != nil {
-			return fmt.Errorf("error fetching policy from registry: %v", err)
-		}
+		var defaultRegoPolicies string
+		if policy == "" {
+			policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
+			if err != nil {
+				return fmt.Errorf("error fetching policy from registry: %v", err)
+			}
 
-		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(policyLoc, tempDir)
-		if err != nil {
-			return fmt.Errorf("error applying default policies: %v", err)
+			defaultRegoPolicies, err = validate.ApplyPolicyiesFromOCI(policyLoc, tempDir)
+			if err != nil {
+				return fmt.Errorf("error applying default policies: %v", err)
+			}
+		} else {
+			fmt.Printf("\n"+"Pulling poilices from '%v'"+"\n", policy)
+			defaultRegoPolicies, err = validate.ApplyPolicyiesFromOCI(policy, tempDir)
+			if err != nil {
+				return fmt.Errorf("error applying default policies: %v", err)
+			}
 		}
 
 		err = validate.ValidateWithRego(inputFile, defaultRegoPolicies, processor)
@@ -91,13 +101,11 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("validation infrafiles failed: %s", err)
 		}
 	} else {
-
 		err := validate.ValidateWithRego(inputFile, policy, processor)
 		if err != nil {
 			return fmt.Errorf("validating %v failed: %v", inputFile, err)
 		}
 	}
-
-	log.Infof("infrafile %v, validated succussfully.", inputFile)
+	log.Infof(color.GreenString("infrafile validation for: %v completed", inputFile))
 	return nil
 }

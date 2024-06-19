@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/validate"
@@ -71,8 +73,7 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 		log.Errorf("Error converting tf file: %v", err)
 	}
 
-	if policy == "" {
-		fmt.Println("\n" + "Validating with default policies...")
+	if policy == "" || strings.HasPrefix(policy, "oci://") {
 
 		tempDir, err := os.MkdirTemp("", "policyDirectory")
 		if err != nil {
@@ -80,14 +81,24 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 		}
 		defer os.RemoveAll(tempDir)
 
-		policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
-		if err != nil {
-			return fmt.Errorf("error fetching policy from registry: %v", err)
-		}
+		var defaultRegoPolicies string
+		if policy == "" {
+			fmt.Println("\n" + "Validating with default policies...")
+			policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
+			if err != nil {
+				return fmt.Errorf("error fetching policy from registry: %v", err)
+			}
 
-		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(policyLoc, tempDir)
-		if err != nil {
-			return fmt.Errorf("error applying default policies: %v", err)
+			defaultRegoPolicies, err = validate.ApplyPolicyiesFromOCI(policyLoc, tempDir)
+			if err != nil {
+				return fmt.Errorf("error applying default policies: %v", err)
+			}
+		} else {
+			fmt.Printf("\n"+"Pulling poilices from '%v'"+"\n", policy)
+			defaultRegoPolicies, err = validate.ApplyPolicyiesFromOCI(policy, tempDir)
+			if err != nil {
+				return fmt.Errorf("error applying default policies: %v", err)
+			}
 		}
 
 		err = validate.ValidateWithRego(inputFile, defaultRegoPolicies, processor)
@@ -101,6 +112,6 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 			log.Errorf("Validation %v failed", err)
 		}
 	}
-	log.Infof("Terraform resource: %v, validated succussfully.", inputFile)
+	log.Infof(color.GreenString("Terraform resource validation for: %v completed", inputFile))
 	return nil
 }

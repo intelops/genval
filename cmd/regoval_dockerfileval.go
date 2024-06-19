@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
@@ -88,12 +89,13 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 				return fmt.Errorf("error fetching policy from registry: %v", err)
 			}
 
-			defaultRegoPolicies, err = validate.ApplyDefaultPolicies(policyLoc, tempDir)
+			defaultRegoPolicies, err = validate.ApplyPolicyiesFromOCI(policyLoc, tempDir)
 			if err != nil {
 				return fmt.Errorf("error applying default policies: %v", err)
 			}
 		} else {
-			defaultRegoPolicies, err = validate.ApplyDefaultPolicies(policy, tempDir)
+			fmt.Printf("\n"+"Pulling poilices from '%v'"+"\n", policy)
+			defaultRegoPolicies, err = validate.ApplyPolicyiesFromOCI(policy, tempDir)
 			if err != nil {
 				return fmt.Errorf("error applying default policies: %v", err)
 			}
@@ -112,6 +114,6 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Infof("Dockerfile: %v validation completed!\n", input)
+	log.Infof(color.GreenString("Dockerfile: %v validation completed!\n", input))
 	return nil
 }

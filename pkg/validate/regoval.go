@@ -108,7 +108,7 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 	return nil
 }
 
-func ApplyDefaultPolicies(ociURL, path string) (string, error) {
+func ApplyPolicyiesFromOCI(ociURL, path string) (string, error) {
 	if err := oci.PullArtifact(context.Background(), ociURL, path); err != nil {
 		return "", fmt.Errorf("error pulling policy from %s: %v", ociURL, err)
 	}
