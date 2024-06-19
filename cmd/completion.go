@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
 
@@ -56,15 +57,26 @@ PowerShell:
 	ValidArgs:             []string{"bash", "zsh", "fish", "powershell"},
 	Args:                  cobra.MatchAll(cobra.ExactArgs(1), cobra.OnlyValidArgs),
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			log.Error("No shell specified")
+		}
+		var err error
 		switch args[0] {
 		case "bash":
-			rootCmd.GenBashCompletion(os.Stdout)
+			err = rootCmd.GenBashCompletion(os.Stdout)
 		case "zsh":
-			rootCmd.GenZshCompletion(os.Stdout)
+			err = rootCmd.GenZshCompletion(os.Stdout)
 		case "fish":
-			rootCmd.GenFishCompletion(os.Stdout, true)
+			err = rootCmd.GenFishCompletion(os.Stdout, true)
 		case "powershell":
-			rootCmd.GenPowerShellCompletionWithDesc(os.Stdout)
+			err = rootCmd.GenPowerShellCompletionWithDesc(os.Stdout)
+		default:
+			log.Printf("Unknown shell: %s", args[0])
+			return
+		}
+		if err != nil {
+			log.Printf("Error generating completion for %s: %v", args[0], err)
+			return
 		}
 	},
 }
