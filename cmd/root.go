@@ -16,6 +16,8 @@ var rootCmd = &cobra.Command{
 	for a wide range of tools. It supports various file types, including Dockerfile, Kubernetes manifests,
 	custom resource definition (CRD) manifests, Terraform files, and more.
 `,
+	// SilenceErrors: true,
+	SilenceUsage: true,
 }
 
 func init() {
