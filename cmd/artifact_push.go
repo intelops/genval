@@ -155,7 +155,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	defer spin.Stop()
 	opts, err := oci.GenerateCraneOptions()
 	if err != nil {
-		log.Errorf("Error reading credentials: %v", err)
+		log.Errorf("Error creating options required for push: %v", err)
 	}
 
 	if err := crane.Push(img, ref.String(), opts...); err != nil {

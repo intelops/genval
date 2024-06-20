@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/intelops/genval/pkg/oci"
-	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -75,34 +73,8 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 	processor := validate.GenericProcessor{}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		tempDir, cleanup, err := utils.TempDirWithCleanup()
-		if err != nil {
-			return fmt.Errorf("error creating temporary directory: %v", err)
-		}
-		defer cleanup()
-
-		var defaultRegoPolicies string
-		if policy == "" {
-			policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
-			if err != nil {
-				return fmt.Errorf("error fetching policy from registry: %v", err)
-			}
-
-			defaultRegoPolicies, err = validate.ApplyPolicyiesFromOCI(policyLoc, tempDir)
-			if err != nil {
-				return fmt.Errorf("error applying default policies: %v", err)
-			}
-		} else {
-			fmt.Printf("\n"+"Pulling poilices from '%v'"+"\n", policy)
-			defaultRegoPolicies, err = validate.ApplyPolicyiesFromOCI(policy, tempDir)
-			if err != nil {
-				return fmt.Errorf("error applying default policies: %v", err)
-			}
-		}
-
-		err = validate.ValidateWithRego(inputFile, defaultRegoPolicies, processor)
-		if err != nil {
-			return fmt.Errorf("validation infrafiles failed: %s", err)
+		if err := validate.ValidateWithOCIPolicies(inputFile, policy, cmd.Name(), processor); err != nil {
+			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
 		err := validate.ValidateWithRego(inputFile, policy, processor)

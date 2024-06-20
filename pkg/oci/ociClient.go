@@ -222,8 +222,7 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	// Pull the image from the repository
 	img, err := crane.Pull(ref.String(), opts...)
 	if err != nil {
-		log.Error("error pulling artifact:")
-		return err
+		return fmt.Errorf("error pulling artifact:%v", err)
 	}
 
 	tempDir, err := os.MkdirTemp("", "artifact")
@@ -263,6 +262,22 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	}
 
 	return nil
+}
+
+// CustomTransport wraps another http.RoundTripper and logs the number of retries.
+type CustomTransport struct {
+	Transport  http.RoundTripper
+	retryCount int
+}
+
+func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	resp, err := t.Transport.RoundTrip(req)
+	if err != nil {
+		t.retryCount++
+		log.Printf("Retry %d: Error occurred during request: %v", t.retryCount, err)
+	}
+	// return resp, fmt.Errorf("I tried '%v' times, exiting now since retries are failing. Please check above errors", t.retryCount)
+	return resp, err
 }
 
 func GenerateCraneOptions() ([]crane.Option, error) {
@@ -314,13 +329,18 @@ func GenerateCraneOptions() ([]crane.Option, error) {
 	retryTransport := transport.NewRetry(http.DefaultTransport,
 		transport.WithRetryStatusCodes(retryOnStatusCodes...),
 		transport.WithRetryBackoff(remote.Backoff{
-			Duration: 1,
+			Duration: 1 * time.Second,
 			Factor:   1.0,
 			Jitter:   0.1,
 			Steps:    2,
 			Cap:      3 * time.Minute,
 		}))
-	opts = append(opts, crane.WithTransport(retryTransport))
+
+	customTransport := &CustomTransport{
+		Transport: retryTransport,
+	}
+
+	opts = append(opts, crane.WithTransport(customTransport))
 
 	userAgent := fmt.Sprintf("cosign/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
 

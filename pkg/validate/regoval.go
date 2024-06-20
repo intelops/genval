@@ -4,14 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"path/filepath"
+	"strings"
 
 	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
+	log "github.com/sirupsen/logrus"
 )
 
 type InputProcessor interface {
@@ -114,4 +115,42 @@ func ApplyPolicyiesFromOCI(ociURL, path string) (string, error) {
 	}
 
 	return path, nil
+}
+
+func ValidateWithOCIPolicies(resource, policy, ociURL string, processor InputProcessor) error {
+	if policy == "" || strings.HasPrefix(policy, "oci://") {
+
+		tempDir, cleanup, err := utils.TempDirWithCleanup()
+		if err != nil {
+			return fmt.Errorf("error creating temporary directory: %v", err)
+		}
+		defer cleanup()
+
+		var defaultRegoPolicies string
+		if policy == "" {
+			log.Info("Validating with default policies...")
+			policyLoc, err := oci.FetchPolicyFromRegistry(ociURL)
+			if err != nil {
+				return fmt.Errorf("error fetching policy from registry: %v", err)
+			}
+
+			defaultRegoPolicies, err = ApplyPolicyiesFromOCI(policyLoc, tempDir)
+			if err != nil {
+				return fmt.Errorf("error applying default policies: %v", err)
+			}
+		} else {
+			log.Infof("Pulling policies from '%v'", policy)
+			defaultRegoPolicies, err = ApplyPolicyiesFromOCI(policy, tempDir)
+			if err != nil {
+				return fmt.Errorf("error applying default policies: %v", err)
+			}
+		}
+
+		err = ValidateWithRego(resource, defaultRegoPolicies, processor)
+		if err != nil {
+			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
+		}
+	}
+	return nil
 }
