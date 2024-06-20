@@ -62,7 +62,7 @@ type cueFlags struct {
 var cueArgs cueFlags
 
 func init() {
-	cueCmd.Flags().StringVarP(&cueArgs.source, "source", "s", "", "Input file in JSON/YAML format for generating/validating manifests")
+	cueCmd.Flags().StringVarP(&cueArgs.source, "reqinput", "i", "", "Input file in JSON/YAML format for generating/validating manifests")
 	cueCmd.Flags().StringVarP(&cueArgs.resource, "resource", "r", "", "A top-level label used to define the Cue Definition")
 	cueCmd.Flags().StringVarP(&cueArgs.policy, "policy", "p", "", "a directory containing cue.mod and cue definitions")
 
