@@ -17,7 +17,6 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
-	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/intelops/genval/pkg/cuecore"
@@ -41,7 +40,7 @@ func ParseAnnotations(args []string) (map[string]string, error) {
 // CheckTagAndPullArchive checks for provided tag to be available in the remote, if available pulls the archive
 // and stores it in the specified directory and retuens an error if encountered.
 func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error {
-	ref, err := name.ParseReference(url)
+	ref, err := ParseOCIReference(url)
 	if err != nil {
 		return fmt.Errorf("error parsing url %s: %v", url, err)
 	}

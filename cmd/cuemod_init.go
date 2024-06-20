@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/intelops/genval/pkg/cuecore"
 	"github.com/intelops/genval/pkg/oci"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -37,7 +36,7 @@ and provide the directory to --policy flag in cue command.
 for validating and generating the Kubernetes resources.
 
 # Curently, available flags for cuemod init are:
---tool=k8s:1.29
+--tool=k8s:1.30
 --tool=argocd:2.10.4
 --tool=tektoncd:0.58.0
 --too=crosplane:1.15.0
@@ -83,11 +82,11 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 	if initArgs.tool == "" {
 		return errors.New("atleast one tool needs to be provided to initialize")
 	}
-	desiredTool, ociURL, err := cuecore.ParseTools(initArgs.tool)
+
+	ociURL, err := oci.FetchPolicyFromRegistry(initArgs.tool)
 	if err != nil {
-		log.Errorf("Error prsing provided tool %s: %v", initArgs.tool, err)
+		return fmt.Errorf("error fetching module for '%v': %v", initArgs.tool, err)
 	}
-	// key := ""
 	verified, err := oci.VerifyArifact(context.Background(), ociURL, initArgs.key)
 	if err != nil {
 		return fmt.Errorf("error varifying artifact: %v", err)
@@ -106,7 +105,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 		if input == "y" {
 			fmt.Println("Proceeding...")
 
-			if err := oci.CreateWorkspace(desiredTool, ociURL, initArgs.creds); err != nil {
+			if err := oci.CreateWorkspace(initArgs.tool, ociURL, initArgs.creds); err != nil {
 				log.Errorf("Error creating workspace: %v", err)
 			}
 			log.Infof("Workspace verified and created")
@@ -116,7 +115,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Println("Invalid input. Please enter 'y' or 'n'.")
 		}
-	} else if err := oci.CreateWorkspace(desiredTool, ociURL, initArgs.creds); err != nil {
+	} else if err := oci.CreateWorkspace(initArgs.tool, ociURL, initArgs.creds); err != nil {
 		log.Errorf("Error creating workspace: %v", err)
 	}
 	return nil

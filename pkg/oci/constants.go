@@ -21,11 +21,13 @@ const (
 
 	URLPrefix = "oci://"
 
+	// TODO: Move all the URLs to a .env file to read from
 	// OCI URLs for Rego policies
 	DockerfilePolicies = URLPrefix + "ghcr.io/intelops/policyhub/genval/dockerfile_policies:v0.0.1"
 	InfrafilePolicies  = URLPrefix + "ghcr.io/intelops/policyhub/genval/infrafile_policies:v0.0.1"
 	TerraformPolicies  = URLPrefix + "ghcr.io/intelops/policyhub/genval/terraform_policies:v0.0.1"
 	InputPolicies      = URLPrefix + "ghcr.io/intelops/policyhub/genval/input_policies:v0.0.1"
+	k8sLatestModule    = URLPrefix + "ghcr.io/intelops/policyhub/genval/k8s-cuemods:v0.0.1"
 )
 
 // FetchPolicyFromRegistry fetches the policy based on the command provided
@@ -35,6 +37,7 @@ func FetchPolicyFromRegistry(cmd string) (string, error) {
 		"infrafile":     InfrafilePolicies,
 		"terraform":     TerraformPolicies,
 		"inputPolicy":   InputPolicies,
+		"k8s:1.30":      k8sLatestModule,
 	}
 
 	policy, ok := policies[cmd]
