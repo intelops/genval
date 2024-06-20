@@ -40,7 +40,7 @@ func ParseAnnotations(args []string) (map[string]string, error) {
 
 // CheckTagAndPullArchive checks for provided tag to be available in the remote, if available pulls the archive
 // and stores it in the specified directory and retuens an error if encountered.
-func CheckTagAndPullArchive(url, tool string, archivePath *os.File) error {
+func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error {
 	ref, err := name.ParseReference(url)
 	if err != nil {
 		return fmt.Errorf("error parsing url %s: %v", url, err)
@@ -53,6 +53,14 @@ func CheckTagAndPullArchive(url, tool string, archivePath *os.File) error {
 	opts, err := GenerateCraneOptions()
 	if err != nil {
 		log.Errorf("Error reading credentials: %v", err)
+	}
+	auth, err := GetCreds(creds)
+	if err != nil {
+		return fmt.Errorf("error getting credentials: %v", err)
+	}
+	opts = append(opts, crane.WithAuth(auth))
+	if creds == "" {
+		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
 	tags, err := crane.ListTags(ociref, opts...)
@@ -175,7 +183,7 @@ func CreateTarball(sourcePath, outputPath string) error {
 }
 
 // PullArtifact checks if tag exists and pull's the artifact from remote repository and writes to disk
-func PullArtifact(ctx context.Context, dest, path string) error {
+func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	if dest == "" {
 		return errors.New("artifact URL can not be empty")
 	}
@@ -197,6 +205,14 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	opts, err := GenerateCraneOptions()
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
+	}
+	auth, err := GetCreds(creds)
+	if err != nil {
+		return fmt.Errorf("error getting credentials: %v", err)
+	}
+	opts = append(opts, crane.WithAuth(auth))
+	if creds == "" {
+		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
 	tags, err := crane.ListTags(url, opts...)
@@ -279,53 +295,22 @@ func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	// return resp, fmt.Errorf("I tried '%v' times, exiting now since retries are failing. Please check above errors", t.retryCount)
 	return resp, err
 }
+func GetCreds(creds string) (authn.Authenticator, error) {
+	var authConfig authn.AuthConfig
 
+	parts := strings.SplitN(creds, ":", 2)
+
+	if len(parts) == 1 {
+		authConfig = authn.AuthConfig{RegistryToken: parts[0]}
+	} else {
+		authConfig = authn.AuthConfig{Username: parts[0], Password: parts[1]}
+	}
+
+	return authn.FromConfig(authConfig), nil
+}
 func GenerateCraneOptions() ([]crane.Option, error) {
 	opts := []crane.Option{}
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("error getting user's home directory: %v", err)
-	}
-	credPath := filepath.Join(homeDir, ".docker", "config.json")
-	_, err = os.Stat(credPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// Docker config file doesn't exist, check environment variables
-			user, ok := os.LookupEnv("ARTIFACT_REGISTRY_USERNAME")
-			if !ok {
-				return nil, errors.New("ARTIFACT_REGISTRY_USERNAME environment variable not set")
-			}
 
-			pass, ok := os.LookupEnv("ARTIFACT_REGISTRY_PASSWORD")
-			if !ok {
-				return nil, errors.New("ARTIFACT_REGISTRY_PASSWORD environment variable not set")
-			}
-
-			token, tokenSet := os.LookupEnv("ARTIFACT_REGISTRY_TOKEN")
-
-			if tokenSet || token != "" {
-				// Token is set, use it
-				authConfig := authn.AuthConfig{RegistryToken: token}
-				opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
-			} else {
-				if user == "" || pass == "" {
-					return nil, errors.New("username or password is empty")
-				}
-				// Create authentication config
-				authConfig := authn.AuthConfig{Username: user, Password: pass}
-				opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
-			}
-			// Create authentication config
-			authConfig := authn.AuthConfig{Username: user, Password: pass}
-			opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
-		} else {
-			// Other error occurred while checking for Docker config file
-			return nil, fmt.Errorf("error checking Docker config at %s: %v", credPath, err)
-		}
-	} else {
-		// Docker config file exists, use default keychain
-		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
-	}
 	retryTransport := transport.NewRetry(http.DefaultTransport,
 		transport.WithRetryStatusCodes(retryOnStatusCodes...),
 		transport.WithRetryBackoff(remote.Backoff{
@@ -349,7 +334,7 @@ func GenerateCraneOptions() ([]crane.Option, error) {
 	return opts, nil
 }
 
-func CreateWorkspace(desiredTool, ociURL string) error {
+func CreateWorkspace(desiredTool, ociURL, creds string) error {
 	archivePath, err := cuecore.CreatePath(desiredTool, "archive")
 	if err != nil {
 		return fmt.Errorf("error initializing archive %s: %v", desiredTool, err)
@@ -362,7 +347,7 @@ func CreateWorkspace(desiredTool, ociURL string) error {
 	}
 	defer destTar.Close()
 
-	if err := CheckTagAndPullArchive(ociURL, desiredTool, destTar); err != nil {
+	if err := CheckTagAndPullArchive(ociURL, desiredTool, creds, destTar); err != nil {
 		log.Errorf("Error pulling module for %s from %v: %v", desiredTool, destTar, err)
 	}
 	extractPath, err := cuecore.CreatePath(desiredTool, "extracted-content")

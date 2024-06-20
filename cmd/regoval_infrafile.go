@@ -13,6 +13,7 @@ import (
 type infrafileFlags struct {
 	reqinput string
 	policy   string
+	ociCreds string
 }
 
 var infrafileArgs infrafileFlags
@@ -24,7 +25,7 @@ func init() {
 	}
 
 	infrafileCmd.Flags().StringVarP(&infrafileArgs.policy, "policy", "p", "", "Path for the CEL policy file, polciy can be passed from either Local or from remote URL")
-
+	infrafileCmd.Flags().StringVarP(&infrafileArgs.ociCreds, "credentials", "c", "", "credentials for interacting with OCI registrirs")
 	regovalCmd.AddCommand(infrafileCmd)
 }
 
@@ -57,12 +58,19 @@ export GITHUB_TOKEN=<Your GitHub PAT>
 
 # Validating of ubernetes manifests using policies stored in OCI compliant registries
 
+To facilitate authentication with OCI compliant container registries, Users can provide credentials through --credentials flag. The creds can
+be provided via <USER:PAT> or <REGISTRY_PAT> format. If no credentials are provided, Genval searches for the "./docker/config.json"
+file in the user's $HOME directory. If this file is found, Genval utilizes it for authentication.
+
 ./genval regoval infrafile --reqinput=./templates/input/k8s/deployment.yaml \
 --policy oci://ghcr.io/intelops/policyhub/genval/infrafile_policies:v0.0.1
+--credentials <GITHUB_PAT> or <USER:PAT>
+
 
 # Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
 
 ./genval --regoval infrafile --reqinput <Path to Infrafile like k8s>
+// No credntials provided, will default to $HOME/.docker/config.json for credentials
 `,
 	RunE: runinfrafileCmd,
 }
@@ -73,7 +81,11 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 	processor := validate.GenericProcessor{}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if err := validate.ValidateWithOCIPolicies(inputFile, policy, cmd.Name(), processor); err != nil {
+		if err := validate.ValidateWithOCIPolicies(inputFile,
+			policy,
+			cmd.Name(),
+			infrafileArgs.ociCreds,
+			processor); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {

@@ -43,6 +43,11 @@ for validating and generating the Kubernetes resources.
 --too=crosplane:1.15.0
 --tool=clusterapi:<version without v>
 
+cuemod init behind the scenes interacts with OCI compliant container registries. To facilitate authentication registries,
+Users can provide credentials through --credentials flag. The creds can be provided via <USER:PAT> or <REGISTRY_PAT> format.
+If no credentials are provided, Genval searches for the "./docker/config.json" file in the user's $HOME directory.
+If this file is found, Genval utilizes it for authentication.
+
 In case, a user requires a workspace for a tool that is not available in the above list. Genval also supports pulling a custom workspace
 created and stored by users in OCI registries. The only requirement while building the workspace is the the directory structure should
 exactly be in the following order:
@@ -60,8 +65,9 @@ here: https://github.com/cue-labs/cue-by-example/tree/main/003_kubernetes_tutori
 }
 
 type initFlags struct {
-	tool string
-	key  string
+	tool  string
+	key   string
+	creds string
 }
 
 var initArgs initFlags
@@ -69,7 +75,7 @@ var initArgs initFlags
 func init() {
 	initCmd.Flags().StringVarP(&initArgs.tool, "tool", "t", "", "relevant tool for which the cue workspace should be created")
 	initCmd.Flags().StringVarP(&initArgs.key, "key", "k", "", "Cosign public key for verification of artifact signature")
-
+	initCmd.Flags().StringVarP(&initArgs.creds, "credentials", "c", "", "Credentials for interacting with OCI registries")
 	cuemodCmd.AddCommand(initCmd)
 }
 
@@ -100,7 +106,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 		if input == "y" {
 			fmt.Println("Proceeding...")
 
-			if err := oci.CreateWorkspace(desiredTool, ociURL); err != nil {
+			if err := oci.CreateWorkspace(desiredTool, ociURL, initArgs.creds); err != nil {
 				log.Errorf("Error creating workspace: %v", err)
 			}
 			log.Infof("Workspace verified and created")
@@ -110,7 +116,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 		} else {
 			fmt.Println("Invalid input. Please enter 'y' or 'n'.")
 		}
-	} else if err := oci.CreateWorkspace(desiredTool, ociURL); err != nil {
+	} else if err := oci.CreateWorkspace(desiredTool, ociURL, initArgs.creds); err != nil {
 		log.Errorf("Error creating workspace: %v", err)
 	}
 	return nil

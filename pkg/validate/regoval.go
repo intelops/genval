@@ -109,15 +109,15 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 	return nil
 }
 
-func ApplyPolicyiesFromOCI(ociURL, path string) (string, error) {
-	if err := oci.PullArtifact(context.Background(), ociURL, path); err != nil {
+func ApplyPolicyiesFromOCI(ociURL, creds, path string) (string, error) {
+	if err := oci.PullArtifact(context.Background(), creds, ociURL, path); err != nil {
 		return "", fmt.Errorf("error pulling policy from %s: %v", ociURL, err)
 	}
 
 	return path, nil
 }
 
-func ValidateWithOCIPolicies(resource, policy, ociURL string, processor InputProcessor) error {
+func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor InputProcessor) error {
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
 
 		tempDir, cleanup, err := utils.TempDirWithCleanup()
@@ -134,13 +134,13 @@ func ValidateWithOCIPolicies(resource, policy, ociURL string, processor InputPro
 				return fmt.Errorf("error fetching policy from registry: %v", err)
 			}
 
-			defaultRegoPolicies, err = ApplyPolicyiesFromOCI(policyLoc, tempDir)
+			defaultRegoPolicies, err = ApplyPolicyiesFromOCI(policyLoc, creds, tempDir)
 			if err != nil {
 				return fmt.Errorf("error applying default policies: %v", err)
 			}
 		} else {
 			log.Infof("Pulling policies from '%v'", policy)
-			defaultRegoPolicies, err = ApplyPolicyiesFromOCI(policy, tempDir)
+			defaultRegoPolicies, err = ApplyPolicyiesFromOCI(policy, creds, tempDir)
 			if err != nil {
 				return fmt.Errorf("error applying default policies: %v", err)
 			}

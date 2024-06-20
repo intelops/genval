@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -26,10 +27,10 @@ var pushCmd = &cobra.Command{
 The artifact push command takes in a tar.gz bundle of configuration files generated/validated by Genval
 and pushes them into a OCI complient container registry
 
-To facilitate authentication with container registries, Genval initially searches for the "./docker/config.json"
-file in the user's $HOME directory. If this file is found, Genval utilizes it for authentication.
-However, if the file is not present, users must set the ARTIFACT_REGISTRY_USERNAME and ARTIFACT_REGISTRY_PASSWORD
-environment variables to authenticate with the container registry.
+To facilitate authentication with OCI compliant container registries,
+Users can provide credentials through --creds flag. The creds can be provided via <USER:PAT> or <REGISTRY_PAT> format.
+If no credentials are provided, Genval searches for the "./docker/config.json" file in the user's $HOME directory.
+If this file is found, Genval utilizes it for authentication.
 `,
 	Example: `
 # Build and push the provided file/files as OCI artifact to registry
@@ -41,6 +42,7 @@ environment variables to authenticate with the container registry.
 ./genval artifact push --reqinput ./templates/defaultpolicies/rego \
 --dest ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
+// No credentials provided, will default to $HOME/.docker/config.json for credentials
 
 # Alternatively, users may provide the Cosign generated private key for signing the artifact
 
@@ -48,6 +50,7 @@ environment variables to authenticate with the container registry.
 --dest ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 --cosign-key <Path to Cosign private Key>
+--credentials <GITHUB_PAT> or <USER:PAT>
 
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 
@@ -156,6 +159,14 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	opts, err := oci.GenerateCraneOptions()
 	if err != nil {
 		log.Errorf("Error creating options required for push: %v", err)
+	}
+	auth, err := oci.GetCreds(pushArgs.creds)
+	if err != nil {
+		return fmt.Errorf("error getting credentials: %v", err)
+	}
+	opts = append(opts, crane.WithAuth(auth))
+	if pushArgs.creds == "" {
+		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
 	if err := crane.Push(img, ref.String(), opts...); err != nil {
