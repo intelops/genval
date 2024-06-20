@@ -13,10 +13,13 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/logs"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/intelops/genval/pkg/cuecore"
@@ -49,13 +52,13 @@ func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error
 	ociref := parts[0]
 	desiredTag := parts[1]
 
-	opts, err := GenerateCraneOptions()
-	if err != nil {
-		log.Errorf("Error reading credentials: %v", err)
-	}
 	auth, err := GetCreds(creds)
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
+	}
+	opts, err := GenerateCraneOptions(context.Background(), ref, auth, []string{ref.Context().Scope(transport.PullScope)})
+	if err != nil {
+		log.Errorf("Error reading credentials: %v", err)
 	}
 	opts = append(opts, crane.WithAuth(auth))
 	if creds == "" {
@@ -201,11 +204,11 @@ func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	url := parts[0]
 	desiredTag := parts[1]
 
-	opts, err := GenerateCraneOptions()
+	auth, err := GetCreds(creds)
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	auth, err := GetCreds(creds)
+	opts, err := GenerateCraneOptions(ctx, ref, auth, []string{ref.Context().Scope(transport.PullScope)})
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
@@ -279,21 +282,6 @@ func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	return nil
 }
 
-// CustomTransport wraps another http.RoundTripper and logs the number of retries.
-type CustomTransport struct {
-	Transport  http.RoundTripper
-	retryCount int
-}
-
-func (t *CustomTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	resp, err := t.Transport.RoundTrip(req)
-	if err != nil {
-		t.retryCount++
-		log.Printf("Retry %d: Error occurred during request: %v", t.retryCount, err)
-	}
-	// return resp, fmt.Errorf("I tried '%v' times, exiting now since retries are failing. Please check above errors", t.retryCount)
-	return resp, err
-}
 func GetCreds(creds string) (authn.Authenticator, error) {
 	var authConfig authn.AuthConfig
 
@@ -307,10 +295,20 @@ func GetCreds(creds string) (authn.Authenticator, error) {
 
 	return authn.FromConfig(authConfig), nil
 }
-func GenerateCraneOptions() ([]crane.Option, error) {
-	opts := []crane.Option{}
 
-	retryTransport := transport.NewRetry(http.DefaultTransport,
+// Most parts of GenerateCraneOptions and its related funcs are copied from https://github.com/google/go-containerregistry/blob/1b4e4078a545f2b6f96766a064b45ee77cdbefdd/pkg/v1/remote/options.go#L128
+func GenerateCraneOptions(ctx context.Context, ref name.Reference, auth authn.Authenticator, scopes []string) ([]crane.Option, error) {
+	opts := []crane.Option{}
+	var retryTransport http.RoundTripper
+
+	userAgent := fmt.Sprintf("intelops/genval/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
+	retryTransport = remote.DefaultTransport.(*http.Transport).Clone()
+	if logs.Enabled(logs.Debug) {
+		retryTransport = transport.NewLogger(retryTransport)
+	}
+
+	retryTransport = transport.NewRetry(retryTransport,
+		transport.WithRetryPredicate(defaultRetryPredicate),
 		transport.WithRetryStatusCodes(retryOnStatusCodes...),
 		transport.WithRetryBackoff(remote.Backoff{
 			Duration: 1 * time.Second,
@@ -319,18 +317,39 @@ func GenerateCraneOptions() ([]crane.Option, error) {
 			Steps:    2,
 			Cap:      3 * time.Minute,
 		}))
+	retryTransport = transport.NewUserAgent(retryTransport, userAgent)
 
-	customTransport := &CustomTransport{
-		Transport: retryTransport,
+	t, err := transport.NewWithContext(ctx, ref.Context().Registry, auth, retryTransport, scopes)
+	if err != nil {
+		return nil, err
 	}
-
-	opts = append(opts, crane.WithTransport(customTransport))
-
-	userAgent := fmt.Sprintf("cosign/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
-
-	opts = append(opts, crane.WithUserAgent(userAgent))
-
+	opts = append(opts, crane.WithTransport(t))
 	return opts, nil
+}
+
+var defaultRetryPredicate = func(err error) bool {
+	// Various failure modes here, as we're often reading from and writing to
+	// the network.
+	if isTemporary(err) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) || errors.Is(err, syscall.EPIPE) || errors.Is(err, syscall.ECONNRESET) {
+		logs.Warn.Printf("retrying %v", err)
+		return true
+	}
+	return false
+}
+
+type temporary interface {
+	Temporary() bool
+}
+
+// isTemporary returns true if err implements Temporary() and it returns true.
+func isTemporary(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	if te, ok := err.(temporary); ok && te.Temporary() {
+		return true
+	}
+	return false
 }
 
 func CreateWorkspace(desiredTool, ociURL, creds string) error {

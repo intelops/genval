@@ -36,11 +36,11 @@ and provide the directory to --policy flag in cue command.
 for validating and generating the Kubernetes resources.
 
 # Curently, available flags for cuemod init are:
---tool=k8s:1.30
---tool=argocd:2.10.4
---tool=tektoncd:0.58.0
---too=crosplane:1.15.0
---tool=clusterapi:<version without v>
+--tool=k8s:latest
+--tool=argocd:latest
+--tool=tektoncd:latest
+--too=crosplane:latest
+--tool=clusterapi:<latest>
 
 cuemod init behind the scenes interacts with OCI compliant container registries. To facilitate authentication registries,
 Users can provide credentials through --credentials flag. The creds can be provided via <USER:PAT> or <REGISTRY_PAT> format.
