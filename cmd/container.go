@@ -3,7 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"strings"
 
+	"github.com/fatih/color"
 	generate "github.com/intelops/genval/pkg/generate/dockerfile_gen"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
@@ -17,6 +19,7 @@ type dockerfileFlags struct {
 	output       string
 	inputPolicy  string
 	outputPolicy string
+	ociCreds     string
 }
 
 var dockerfileArgs dockerfileFlags
@@ -31,13 +34,10 @@ func init() {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
 	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.inputPolicy, "inputpolicy", "i", "", "Path for the Input policyin Rego, input-policy can be passed from either Local or from remote URL")
-	if err := dockerfileCmd.MarkFlagRequired("inputpolicy"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
+
 	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.outputPolicy, "outputpolicy", "o", "", "Path for Out policy in Rego, Output-policy can be passed from either Local or from remote URL")
-	if err := dockerfileCmd.MarkFlagRequired("outputpolicy"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
+	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.ociCreds, "credentials", "c", "", "Credentaals for interacting with OCI registries")
+
 	rootCmd.AddCommand(dockerfileCmd)
 }
 
@@ -74,6 +74,29 @@ for input and output policies can be supplied from local file paths or remote UR
 --output ./output/Dockefile-cobra \
 --inputpolicy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/inputfile_policies.rego \
 --outputpolicy  https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
+
+# Users can use policies to validate input JSON as well as generated Dockerfile with policies stored in their OCI registries
+or with Genval's default Rego policies. Behind the scenes, this action iteracts with OCI registries for pulling the policies.
+
+To facilitate authentication with OCI compliant container registries,
+Users can provide credentials through --credentials flag. The creds can be provided via <USER:PAT> or <REGISTRY_PAT> format.
+If no credentials are provided, Genval searches for the "./docker/config.json" file in the user's $HOME directory.
+If this file is found, Genval utilizes it for authentication.
+
+# Validating with Default policies
+
+./genval dockerfile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/dockerfile_input/clang_input.json \
+--output ./output/Dockefile-cobra
+// No credntials provided, will default to $HOME/.docker/config.json for credentials
+
+# Validating with policies stored in OCI compliant container registries
+
+./genval dockerfile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/dockerfile_input/clang_input.json \
+--output ./output/Dockefile-cobra \
+inputpolicy oci://ghcr.io/intelops/policyhub/genval/input_policies:v0.0.1 \
+--outputpolicy oci://ghcr.io/intelops/policyhub/genval/dockerfile_policies:v0.0.1 \
+--credentials <GITHUB_PAT> or <USER:PAT>
+
 	`,
 	RunE: rundockerfileCmd,
 }
@@ -100,11 +123,20 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 		log.Fatalf("Unable to read input: %v", err)
 	}
 
-	// Validate the YAML using OPA
-	err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor)
-	if err != nil {
-		log.Fatalf("Validation error: %v", err)
-		return err
+	if inputPolicyFile == "" || strings.HasPrefix(inputPolicyFile, "oci://") {
+		if err := validate.ValidateWithOCIPolicies(string(inputContent),
+			inputPolicyFile,
+			"inputPolicy",
+			dockerfileArgs.ociCreds,
+			dprocessor); err != nil {
+			return fmt.Errorf("error validating with policies stored in registriy: %v", err)
+		}
+	} else {
+		err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor)
+		if err != nil {
+			log.Fatalf("Validation error: %v", err)
+			return err
+		}
 	}
 
 	dockerfileContent := generate.GenerateDockerfileContent(&data)
@@ -115,13 +147,24 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 		log.Error("Error writing Dockerfile:", err)
 		return err
 	}
-	fmt.Printf("Generated Dockerfile saved to: %s\n", outputPath)
+	color.Green(fmt.Sprintf("Generated Dockerfile saved to: %s\n", outputPath))
 
-	err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor)
-	if err != nil {
-		log.Error("Dockerfile validation failed:", err)
+	if outputPolicyFile == "" || strings.HasPrefix(outputPolicyFile, "oci://") {
+		if err := validate.ValidateWithOCIPolicies(string(outputData),
+			outputPolicyFile,
+			"dockerfileval",
+			dockerfileArgs.ociCreds,
+			dprocessor); err != nil {
+			return fmt.Errorf("error validating with policies stored in registry: %v", err)
+		}
 	} else {
-		fmt.Printf("Dockerfile validation succeeded!\n")
+		err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor)
+		if err != nil {
+			log.Fatalf("Validation error: %v", err)
+			return err
+		}
 	}
+
+	color.Green("Validation of generated Dockerfile completed")
 	return nil
 }

@@ -8,7 +8,7 @@ input_dockerfile.json
 Dockerfile*
 genval
 cosign
-.todo
+todo.md
 !.devcontainer/Dockerfile
 results.json
 .env

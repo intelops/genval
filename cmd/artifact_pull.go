@@ -22,10 +22,10 @@ The artifact pull command pull the artifact stored in the remote container regis
 If --verify flag is set to true (false by default), Genval will verify the artifact's signature
 which is signed by Cosign in Keyless mode and pull the artifact, and unpack the tar.gz archive in desired path.
 
-To facilitate authentication with container registries, Genval initially searches for the "./docker/config.json"
-file in the user's $HOME directory. If this file is found, Genval utilizes it for authentication.
-However, if the file is not present, users must set the ARTIFACT_REGISTRY_USERNAME and ARTIFACT_REGISTRY_PASSWORD
-environment variables to authenticate with the container registry.
+To facilitate authentication with OCI compliant container registries,
+Users can provide credentials through --creds flag. The creds can be provided via <USER:PAT> or <REGISTRY_PAT> format.
+If no credentials are provided, Genval searches for the "./docker/config.json" file in the user's $HOME directory.
+If this file is found, Genval utilizes it for authentication.
 
 
 `,
@@ -45,12 +45,14 @@ environment variables to authenticate with the container registry.
 --path ./output \
 --verify true \
 --pub-key ./cosign/cosign.pub
+--credentials <GITHUB_PAT> or <USER:PAT>
 
 # Uses can also pull the artifact with verifying the signatures of the artifact
   in the container registry and unpack the archive in desired path
 
 ./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
 --path ./output
+// No credentials provided, will default to $HOME/.docker/config.json for credentials
 `,
 	RunE: runPullArtifactCmd,
 }
@@ -103,7 +105,7 @@ func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
 	spin := utils.StartSpinner("Pulling Artifact...")
 	defer spin.Stop()
 
-	if err := oci.PullArtifact(context.Background(), pullArgs.dest, pullArgs.path); err != nil {
+	if err := oci.PullArtifact(context.Background(), pullArgs.creds, pullArgs.dest, pullArgs.path); err != nil {
 		color.Red("Error pulling artifact from remote : %v", err)
 		return err
 	}

@@ -10,12 +10,14 @@ import (
 // rootCommand returns a cobra command for genvalctl CLI tool
 var rootCmd = &cobra.Command{
 	Use:   "genval",
-	Short: "	",
+	Short: "An agnostic confiuguration management tool for generating and validating IaC files",
 	Long: `
 	Genval is a versatile Go utility that simplifies configuration management by generating and validating configuration files
 	for a wide range of tools. It supports various file types, including Dockerfile, Kubernetes manifests,
 	custom resource definition (CRD) manifests, Terraform files, and more.
 `,
+	// SilenceErrors: true,
+	SilenceUsage: true,
 }
 
 func init() {
@@ -24,8 +26,7 @@ func init() {
 }
 
 func Execute() {
-	err := rootCmd.Execute()
-	if err != nil {
+	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
 	}
 }

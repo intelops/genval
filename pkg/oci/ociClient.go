@@ -8,14 +8,20 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
+	"syscall"
+	"time"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
+	"github.com/google/go-containerregistry/pkg/logs"
 	"github.com/google/go-containerregistry/pkg/name"
+	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/intelops/genval/pkg/cuecore"
 	log "github.com/sirupsen/logrus"
 	"sigs.k8s.io/release-utils/version"
@@ -36,8 +42,8 @@ func ParseAnnotations(args []string) (map[string]string, error) {
 
 // CheckTagAndPullArchive checks for provided tag to be available in the remote, if available pulls the archive
 // and stores it in the specified directory and retuens an error if encountered.
-func CheckTagAndPullArchive(url, tool string, archivePath *os.File) error {
-	ref, err := name.ParseReference(url)
+func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error {
+	ref, err := ParseOCIReference(url)
 	if err != nil {
 		return fmt.Errorf("error parsing url %s: %v", url, err)
 	}
@@ -46,9 +52,17 @@ func CheckTagAndPullArchive(url, tool string, archivePath *os.File) error {
 	ociref := parts[0]
 	desiredTag := parts[1]
 
-	opts, err := GetCreds()
+	auth, err := GetCreds(creds)
+	if err != nil {
+		return fmt.Errorf("error getting credentials: %v", err)
+	}
+	opts, err := GenerateCraneOptions(context.Background(), ref, auth, []string{ref.Context().Scope(transport.PullScope)})
 	if err != nil {
 		log.Errorf("Error reading credentials: %v", err)
+	}
+	opts = append(opts, crane.WithAuth(auth))
+	if creds == "" {
+		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
 	tags, err := crane.ListTags(ociref, opts...)
@@ -171,7 +185,7 @@ func CreateTarball(sourcePath, outputPath string) error {
 }
 
 // PullArtifact checks if tag exists and pull's the artifact from remote repository and writes to disk
-func PullArtifact(ctx context.Context, dest, path string) error {
+func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	if dest == "" {
 		return errors.New("artifact URL can not be empty")
 	}
@@ -179,7 +193,8 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 		log.Errorf("Invalid Output path: %s requires a directory", err)
 		return err
 	}
-	ref, err := name.ParseReference(dest)
+
+	ref, err := ParseOCIReference(dest)
 	if err != nil {
 		log.Errorf("Invalid URL: %v", err)
 		return err
@@ -189,9 +204,17 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	url := parts[0]
 	desiredTag := parts[1]
 
-	opts, err := GetCreds()
+	auth, err := GetCreds(creds)
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
+	}
+	opts, err := GenerateCraneOptions(ctx, ref, auth, []string{ref.Context().Scope(transport.PullScope)})
+	if err != nil {
+		return fmt.Errorf("error getting credentials: %v", err)
+	}
+	opts = append(opts, crane.WithAuth(auth))
+	if creds == "" {
+		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	}
 
 	tags, err := crane.ListTags(url, opts...)
@@ -217,8 +240,7 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	// Pull the image from the repository
 	img, err := crane.Pull(ref.String(), opts...)
 	if err != nil {
-		log.Error("error pulling artifact:")
-		return err
+		return fmt.Errorf("error pulling artifact:%v", err)
 	}
 
 	tempDir, err := os.MkdirTemp("", "artifact")
@@ -260,59 +282,77 @@ func PullArtifact(ctx context.Context, dest, path string) error {
 	return nil
 }
 
-func GetCreds() ([]crane.Option, error) {
-	opts := []crane.Option{}
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return nil, fmt.Errorf("error getting user's home directory: %v", err)
-	}
-	credPath := filepath.Join(homeDir, ".docker", "config.json")
-	_, err = os.Stat(credPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			// Docker config file doesn't exist, check environment variables
-			user, ok := os.LookupEnv("ARTIFACT_REGISTRY_USERNAME")
-			if !ok {
-				return nil, errors.New("ARTIFACT_REGISTRY_USERNAME environment variable not set")
-			}
+func GetCreds(creds string) (authn.Authenticator, error) {
+	var authConfig authn.AuthConfig
 
-			pass, ok := os.LookupEnv("ARTIFACT_REGISTRY_PASSWORD")
-			if !ok {
-				return nil, errors.New("ARTIFACT_REGISTRY_PASSWORD environment variable not set")
-			}
+	parts := strings.SplitN(creds, ":", 2)
 
-			token, tokenSet := os.LookupEnv("ARTIFACT_REGISTRY_TOKEN")
-
-			if tokenSet || token != "" {
-				// Token is set, use it
-				authConfig := authn.AuthConfig{RegistryToken: token}
-				opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
-			} else {
-				if user == "" || pass == "" {
-					return nil, errors.New("username or password is empty")
-				}
-
-				// Create authentication config
-				authConfig := authn.AuthConfig{Username: user, Password: pass}
-				opts = append(opts, crane.WithAuth(authn.FromConfig(authConfig)))
-			}
-		} else {
-			// Other error occurred while checking for Docker config file
-			return nil, fmt.Errorf("error checking Docker config at %s: %v", credPath, err)
-		}
+	if len(parts) == 1 {
+		authConfig = authn.AuthConfig{RegistryToken: parts[0]}
 	} else {
-		// Docker config file exists, use default keychain
-		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
+		authConfig = authn.AuthConfig{Username: parts[0], Password: parts[1]}
 	}
 
-	userAgent := fmt.Sprintf("cosign/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
+	return authn.FromConfig(authConfig), nil
+}
 
-	opts = append(opts, crane.WithUserAgent(userAgent))
+// Most parts of GenerateCraneOptions and its related funcs are copied from https://github.com/google/go-containerregistry/blob/1b4e4078a545f2b6f96766a064b45ee77cdbefdd/pkg/v1/remote/options.go#L128
+func GenerateCraneOptions(ctx context.Context, ref name.Reference, auth authn.Authenticator, scopes []string) ([]crane.Option, error) {
+	opts := []crane.Option{}
+	var retryTransport http.RoundTripper
 
+	userAgent := fmt.Sprintf("intelops/genval/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
+	retryTransport = remote.DefaultTransport.(*http.Transport).Clone()
+	if logs.Enabled(logs.Debug) {
+		retryTransport = transport.NewLogger(retryTransport)
+	}
+
+	retryTransport = transport.NewRetry(retryTransport,
+		transport.WithRetryPredicate(defaultRetryPredicate),
+		transport.WithRetryStatusCodes(retryOnStatusCodes...),
+		transport.WithRetryBackoff(remote.Backoff{
+			Duration: 1 * time.Second,
+			Factor:   1.0,
+			Jitter:   0.1,
+			Steps:    2,
+			Cap:      3 * time.Minute,
+		}))
+	retryTransport = transport.NewUserAgent(retryTransport, userAgent)
+
+	t, err := transport.NewWithContext(ctx, ref.Context().Registry, auth, retryTransport, scopes)
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, crane.WithTransport(t))
 	return opts, nil
 }
 
-func CreateWorkspace(desiredTool, ociURL string) error {
+var defaultRetryPredicate = func(err error) bool {
+	// Various failure modes here, as we're often reading from and writing to
+	// the network.
+	if isTemporary(err) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) || errors.Is(err, syscall.EPIPE) || errors.Is(err, syscall.ECONNRESET) {
+		logs.Warn.Printf("retrying %v", err)
+		return true
+	}
+	return false
+}
+
+type temporary interface {
+	Temporary() bool
+}
+
+// isTemporary returns true if err implements Temporary() and it returns true.
+func isTemporary(err error) bool {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return false
+	}
+	if te, ok := err.(temporary); ok && te.Temporary() {
+		return true
+	}
+	return false
+}
+
+func CreateWorkspace(desiredTool, ociURL, creds string) error {
 	archivePath, err := cuecore.CreatePath(desiredTool, "archive")
 	if err != nil {
 		return fmt.Errorf("error initializing archive %s: %v", desiredTool, err)
@@ -325,7 +365,7 @@ func CreateWorkspace(desiredTool, ociURL string) error {
 	}
 	defer destTar.Close()
 
-	if err := CheckTagAndPullArchive(ociURL, desiredTool, destTar); err != nil {
+	if err := CheckTagAndPullArchive(ociURL, desiredTool, creds, destTar); err != nil {
 		log.Errorf("Error pulling module for %s from %v: %v", desiredTool, destTar, err)
 	}
 	extractPath, err := cuecore.CreatePath(desiredTool, "extracted-content")
@@ -345,4 +385,12 @@ func CreateWorkspace(desiredTool, ociURL string) error {
 		return fmt.Errorf("error extracting archive: %s", err)
 	}
 	return nil
+}
+
+var retryOnStatusCodes = []int{
+	http.StatusRequestTimeout,
+	http.StatusInternalServerError,
+	http.StatusBadGateway,
+	http.StatusServiceUnavailable,
+	http.StatusGatewayTimeout,
 }

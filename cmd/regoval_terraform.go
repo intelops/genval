@@ -2,9 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
+	"strings"
 
-	"github.com/intelops/genval/pkg/oci"
+	"github.com/fatih/color"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
@@ -14,6 +14,7 @@ import (
 type terraformFlags struct {
 	reqinput string
 	policy   string
+	ociCreds string
 }
 
 var terraformArgs terraformFlags
@@ -24,6 +25,7 @@ func init() {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
 	terraformCmd.Flags().StringVarP(&terraformArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
+	terraformCmd.Flags().StringVarP(&terraformArgs.ociCreds, "credentials", "c", "", "credentials for interacting with OCI registries")
 	regovalCmd.AddCommand(terraformCmd)
 }
 
@@ -54,9 +56,21 @@ export GITHUB_TOKEN=<your GitHub PAT>
 ./genval regoval terraform --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/terraform/sec_group.tf \
 --policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/terraform.rego
 
+
+# Validating of Terraform files using policies stored in OCI compliant registries
+
+To facilitate authentication with OCI compliant container registries, Users can provide credentials through --credentials flag. The creds can
+be provided via <USER:PAT> or <REGISTRY_PAT> format. If no credentials are provided, Genval searches for the "./docker/config.json"
+file in the user's $HOME directory. If this file is found, Genval utilizes it for authentication.
+
+./genval regoval terrafrorm --reqinput=./templaes/inputs/terraform/sec_group.tf \
+--policy oci://ghcr.io/intelops/policyhub/genval/terraform_policies:v0.0.1
+--credentials <GITHUB_PAT> or <USER:PAT>
+
 # Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
 
 ./genval regoval terraform --reqinput <path to terraform file>
+// No credntials provided, will default to $HOME/.docker/config.json for credentials
 	`,
 	RunE: runTerraformCmd,
 }
@@ -71,29 +85,13 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 		log.Errorf("Error converting tf file: %v", err)
 	}
 
-	if policy == "" {
-		fmt.Println("\n" + "Validating with default policies...")
-
-		tempDir, err := os.MkdirTemp("", "policyDirectory")
-		if err != nil {
-			return fmt.Errorf("error creating policy directory: %v", err)
-		}
-		defer os.RemoveAll(tempDir)
-
-		policyLoc, err := oci.FetchPolicyFromRegistry(cmd.Name())
-		if err != nil {
-			return fmt.Errorf("error fetching policy from registry: %v", err)
-		}
-
-		defaultRegoPolicies, err := validate.ApplyDefaultPolicies(policyLoc, tempDir)
-		if err != nil {
-			return fmt.Errorf("error applying default policies: %v", err)
-		}
-
-		err = validate.ValidateWithRego(inputFile, defaultRegoPolicies, processor)
-		if err != nil {
-			log.Errorf("Dockerfile validation failed: %s\n", err)
-			return err
+	if policy == "" || strings.HasPrefix(policy, "oci://") {
+		if err := validate.ValidateWithOCIPolicies(inputJSON,
+			policy,
+			cmd.Name(),
+			terraformArgs.ociCreds,
+			processor); err != nil {
+			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
 		err = validate.ValidateWithRego(inputJSON, policy, processor)
@@ -101,6 +99,6 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 			log.Errorf("Validation %v failed", err)
 		}
 	}
-	log.Infof("Terraform resource: %v, validated succussfully.", inputFile)
+	log.Infof(color.GreenString("Terraform resource validation for: %v completed", inputFile))
 	return nil
 }

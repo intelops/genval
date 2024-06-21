@@ -127,7 +127,7 @@ If verification is successful, you'll see "**Verified OK.**"
 ## Quick Start
 
 
-For a quick start, pre-built templates for Dockerfile generation for popular languages can be found in the `./templates/inputs/dockerfile_input` folder.
+For a quick start, pre-built templates for Dockerfile generation for popular languages can be found in the `./templates/inputs/dockerfile_input` folder. We also maintain all the default policies and input templates in a dedicated [repository](https://github.com/intelops/policyhub).
 
 
 ## Building from Source
@@ -188,12 +188,52 @@ $ genval dockerfile --reqinput=./templates/inputs/dockerfile_input/golang_input.
 
 All the rego policies are housed in a hirearchy containing a `rego` policy and a `JSON` file containing all the metadata related to policy. A user needs to pass the directory containing boththe `.rego` and `.json` files. Genval also accpets a top leval directory containing multiple sub-directories containing multiple rego and accompanied JSON files for validating with more than one policy.
 
+Users can use policies to validate input JSON as well as generated Dockerfile with policies stored in their OCI registries
+or with Genval's default Rego policies. Behind the scenes, this action iteracts with OCI registries for pulling the policies.
 
+To facilitate authentication with OCI compliant container registries,
+Users can provide credentials through --credentials flag. The creds can be provided via <$USER:$PAT> or <REGISTRY_PAT> format.
+If no credentials are provided, Genval searches for the "./docker/config.json" file in the user's $HOME directory.
+If this file is found, Genval utilizes it for authentication.
+
+**Validating with Default policies**
+
+```shell
+./genval dockerfile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/dockerfile_input/clang_input.json \
+--output ./output/Dockefile-cobra
+// No credntials provided, will default to $HOME/.docker/config.json for credentials
+```
+
+**Validating with policies stored in OCI compliant container registries**
+
+```shell
+./genval dockerfile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/dockerfile_input/clang_input.json \
+--output ./output/Dockefile-cobra \
+inputpolicy oci://ghcr.io/intelops/policyhub/genval/input_policies:v0.0.1 \
+--outputpolicy oci://ghcr.io/intelops/policyhub/genval/dockerfile_policies:v0.0.1 \
+--credentials <$GITHUB_PAT> or <$USER:$PAT> format
+```
 **Review Feedback**: Genval provides feedback based on best practice validation. Use this feedback to refine your Dockerfile.
 
 ### Validation of the Dockerfile, Kubernetes manifests and Terraform files using Rego policies
 
-Genval manages validation with Rego polcies with `regoval` command and for validation of each of the technology a separate subcommand is provided:
+Users can leverage Genval's feature of Validating of resources using policies stored in OCI compliant registries or provide policies stored in their own OCI compliant registries.
+
+To facilitate authentication with OCI compliant container registries, Users can provide credentials through `--credentials` flag while invoking a regoval subcommand. The credentials can
+be provided via <$USER:$PAT> or <$REGISTRY_PAT> format. If no credentials are provided, Genval searches for the `./docker/config.json` file in the user's `$HOME` directory. If this file is found, Genval utilizes it for authentication.
+
+**Example**:
+
+./genval regoval dockerfileval --reqinput=Dockerfile \
+--policy oci://ghcr.io/intelops/policyhub/genval/dockerfile_policies:v0.0.1
+--credentials <GITHUB_PAT> or <USER:PAT>
+
+
+Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
+
+./genval regoval dockerfileval --reqinput <Path to Dockerfile>
+// No credntials provided, will default to $HOME/.docker/config.json for credentials
+
 
 #### Validation of Dockerfiles with Rego policies
 
