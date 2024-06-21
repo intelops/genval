@@ -30,7 +30,16 @@ source:
 
 # Adds Changelog to the release
 changelog:
+  use: github
+  format: "{{.SHA}}: {{.Message}} (@{{.AuthorUsername}})"
   sort: asc
+  groups: # Regex use RE2 syntax as defined here: https://github.com/google/re2/wiki/Syntax.
+    - title: 'Updates'
+      regexp: ^(?i).*?update\w*(\([[:word:]]+\))??!?:.+$
+      order: 100
+    - title: 'Bug fixes'
+      regexp: ^(?i).*?fix\w*(\([[:word:]]+\))??!?:.+$
+      order: 200
   filters:
     exclude:
       - "^docs:"
