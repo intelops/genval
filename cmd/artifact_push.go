@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -187,7 +188,8 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Infof("✔ Artifact pushed successfully to: %v\n,Artifact Digest: %v\n", source, digest)
-	log.Infof("Digest URL: %v\n", digestURL)
+	log.Infof(color.GreenString("✔ Artifact pushed successfully to: %v", pushArgs.dest))
+	log.Infof(color.GreenString("✔ Digest: %v", digest))
+	log.Infof(color.GreenString("✔ Digest URL: %v\n", digestURL))
 	return nil
 }
