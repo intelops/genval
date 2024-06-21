@@ -12,7 +12,6 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
-	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/intelops/genval/pkg/oci"
@@ -161,7 +160,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := oci.GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PushScope)})
+	opts, err := oci.GenerateCraneOptions()
 	if err != nil {
 		log.Errorf("Error creating options required for push: %v", err)
 	}

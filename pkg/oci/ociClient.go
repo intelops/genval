@@ -19,7 +19,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/logs"
-	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/intelops/genval/pkg/cuecore"
@@ -56,7 +55,7 @@ func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PullScope)})
+	opts, err := GenerateCraneOptions()
 	if err != nil {
 		log.Errorf("Error reading credentials: %v", err)
 	}
@@ -208,7 +207,7 @@ func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PullScope)})
+	opts, err := GenerateCraneOptions()
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
@@ -297,7 +296,7 @@ func GetCreds(creds string) (authn.Authenticator, error) {
 }
 
 // Most parts of GenerateCraneOptions and its related funcs are copied from https://github.com/google/go-containerregistry/blob/1b4e4078a545f2b6f96766a064b45ee77cdbefdd/pkg/v1/remote/options.go#L128
-func GenerateCraneOptions(ref name.Reference, auth authn.Authenticator, scopes []string) ([]crane.Option, error) {
+func GenerateCraneOptions() ([]crane.Option, error) {
 	opts := []crane.Option{}
 	var retryTransport http.RoundTripper
 
