@@ -35,7 +35,7 @@ changelog:
   sort: asc
   groups: # Regex use RE2 syntax as defined here: https://github.com/google/re2/wiki/Syntax.
     - title: 'Updates'
-      regexp: ^(?i).*?update\w*(\([[:word:]]+\))??!?:.+$
+      regexp: '^.*?update(\([[:word:]]+\))??!?:.+$'
       order: 100
     - title: 'Bug fixes'
       regexp: ^(?i).*?fix\w*(\([[:word:]]+\))??!?:.+$

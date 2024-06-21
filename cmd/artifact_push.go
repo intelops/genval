@@ -161,7 +161,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := oci.GenerateCraneOptions(cmd.Context(), ref, auth, []string{ref.Context().Scope(transport.PushScope)})
+	opts, err := oci.GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PushScope)})
 	if err != nil {
 		log.Errorf("Error creating options required for push: %v", err)
 	}

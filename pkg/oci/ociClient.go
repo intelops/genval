@@ -56,7 +56,7 @@ func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := GenerateCraneOptions(context.Background(), ref, auth, []string{ref.Context().Scope(transport.PullScope)})
+	opts, err := GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PullScope)})
 	if err != nil {
 		log.Errorf("Error reading credentials: %v", err)
 	}
@@ -208,7 +208,7 @@ func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := GenerateCraneOptions(ctx, ref, auth, []string{ref.Context().Scope(transport.PullScope)})
+	opts, err := GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PullScope)})
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
@@ -297,7 +297,7 @@ func GetCreds(creds string) (authn.Authenticator, error) {
 }
 
 // Most parts of GenerateCraneOptions and its related funcs are copied from https://github.com/google/go-containerregistry/blob/1b4e4078a545f2b6f96766a064b45ee77cdbefdd/pkg/v1/remote/options.go#L128
-func GenerateCraneOptions(ctx context.Context, ref name.Reference, auth authn.Authenticator, scopes []string) ([]crane.Option, error) {
+func GenerateCraneOptions(ref name.Reference, auth authn.Authenticator, scopes []string) ([]crane.Option, error) {
 	opts := []crane.Option{}
 	var retryTransport http.RoundTripper
 
@@ -319,11 +319,12 @@ func GenerateCraneOptions(ctx context.Context, ref name.Reference, auth authn.Au
 		}))
 	retryTransport = transport.NewUserAgent(retryTransport, userAgent)
 
-	t, err := transport.NewWithContext(ctx, ref.Context().Registry, auth, retryTransport, scopes)
-	if err != nil {
-		return nil, err
-	}
-	opts = append(opts, crane.WithTransport(t))
+	// t, err := transport.NewWithContext(ref.Context().Registry, auth, retryTransport, scopes)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	opts = append(opts, crane.WithTransport(retryTransport))
+
 	return opts, nil
 }
 
