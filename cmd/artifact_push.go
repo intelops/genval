@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/empty"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
+	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/intelops/genval/pkg/oci"
@@ -157,19 +159,27 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	}
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
+	var opts []crane.Option
 	auth, err := oci.GetCreds(pushArgs.creds)
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := oci.GenerateCraneOptions()
+	if pushArgs.creds == "" || auth == nil {
+		auth, err = authn.DefaultKeychain.Resolve(ref.Context())
+		if err != nil {
+			return err
+		}
+	}
+	opts = append(opts, crane.WithAuth(auth))
+
+	topts, err := oci.GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PushScope)})
 	if err != nil {
 		log.Errorf("Error creating options required for push: %v", err)
 	}
-	opts = append(opts, crane.WithAuth(auth))
-	if pushArgs.creds == "" {
-		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
-	}
-
+	// if pushArgs.creds == "" {
+	// 	opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
+	// }
+	opts = append(opts, topts)
 	if err := crane.Push(img, ref.String(), opts...); err != nil {
 		log.Fatalf("Error pushing artifact: %v", err)
 	}

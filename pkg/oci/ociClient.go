@@ -19,6 +19,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/crane"
 	"github.com/google/go-containerregistry/pkg/logs"
+	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/intelops/genval/pkg/cuecore"
@@ -50,19 +51,28 @@ func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error
 	parts := strings.Split(ref.String(), ":")
 	ociref := parts[0]
 	desiredTag := parts[1]
-
+	var opts []crane.Option
 	auth, err := GetCreds(creds)
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := GenerateCraneOptions()
+	if creds == "" || auth == nil {
+		auth, err = authn.DefaultKeychain.Resolve(ref.Context())
+		if err != nil {
+			return fmt.Errorf("error resloving authentication: %v", err)
+		}
+	}
+	opts = append(opts, crane.WithAuth(auth))
+
+	topts, err := GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PullScope)})
 	if err != nil {
 		log.Errorf("Error reading credentials: %v", err)
 	}
-	opts = append(opts, crane.WithAuth(auth))
-	if creds == "" {
-		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
-	}
+	opts = append(opts, topts)
+
+	// if creds == "" {
+	// 	opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
+	// }
 
 	tags, err := crane.ListTags(ociref, opts...)
 	if err != nil {
@@ -202,19 +212,26 @@ func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	parts := strings.Split(ref.String(), ":")
 	url := parts[0]
 	desiredTag := parts[1]
-
+	var opts []crane.Option
 	auth, err := GetCreds(creds)
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts, err := GenerateCraneOptions()
+	if creds == "" || auth == nil {
+		auth, err = authn.DefaultKeychain.Resolve(ref.Context())
+		if err != nil {
+			return fmt.Errorf("error resolving credentials: %v", err)
+		}
+	}
+	opts = append(opts, crane.WithAuth(auth))
+	// if creds == "" {
+	// 	opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
+	// }
+	topts, err := GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PullScope)})
 	if err != nil {
 		return fmt.Errorf("error getting credentials: %v", err)
 	}
-	opts = append(opts, crane.WithAuth(auth))
-	if creds == "" {
-		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
-	}
+	opts = append(opts, topts)
 
 	tags, err := crane.ListTags(url, opts...)
 	if err != nil {
@@ -295,16 +312,17 @@ func GetCreds(creds string) (authn.Authenticator, error) {
 	return authn.FromConfig(authConfig), nil
 }
 
-// Most parts of GenerateCraneOptions and its related funcs are copied from https://github.com/google/go-containerregistry/blob/1b4e4078a545f2b6f96766a064b45ee77cdbefdd/pkg/v1/remote/options.go#L128
-func GenerateCraneOptions() ([]crane.Option, error) {
-	opts := []crane.Option{}
+// Most parts of GenerateCraneOptions and its related funcs are copied from https://github.com/google/go-containerregistry/blob/1b4e4078a545f2b6f96766a064b45ee77cdbefdd/pkg/v1/remote/options.go#L155
+
+// GenerateCraneOptions returns a []crane.Option for performing remote operations
+func GenerateCraneOptions(ctx context.Context, ref name.Registry, auth authn.Authenticator, scopes []string) (crane.Option, error) {
 	var retryTransport http.RoundTripper
 
-	userAgent := fmt.Sprintf("intelops/genval/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
 	retryTransport = remote.DefaultTransport.(*http.Transport).Clone()
 	if logs.Enabled(logs.Debug) {
 		retryTransport = transport.NewLogger(retryTransport)
 	}
+	userAgent := fmt.Sprintf("intelops/genval/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
 
 	retryTransport = transport.NewRetry(retryTransport,
 		transport.WithRetryPredicate(defaultRetryPredicate),
@@ -317,14 +335,14 @@ func GenerateCraneOptions() ([]crane.Option, error) {
 			Cap:      3 * time.Minute,
 		}))
 	retryTransport = transport.NewUserAgent(retryTransport, userAgent)
+	t, err := transport.NewWithContext(ctx, ref, auth, retryTransport, scopes)
+	if err != nil {
+		return nil, err
+	}
 
-	// t, err := transport.NewWithContext(ref.Context().Registry, auth, retryTransport, scopes)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	opts = append(opts, crane.WithTransport(retryTransport))
+	// opts = append(opts, crane.WithTransport(t))
 
-	return opts, nil
+	return crane.WithTransport(t), nil
 }
 
 var defaultRetryPredicate = func(err error) bool {
