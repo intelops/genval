@@ -32,7 +32,10 @@ func ParseAnnotations(args []string) (map[string]string, error) {
 	for _, annotation := range args {
 		kv := strings.Split(annotation, "=")
 		if len(kv) != 2 {
-			return annotations, fmt.Errorf("invalid annotation %s, must be in the format key=value", annotation)
+			return annotations, fmt.Errorf(
+				"invalid annotation %s, must be in the format key=value",
+				annotation,
+			)
 		}
 		annotations[kv[0]] = kv[1]
 	}
@@ -64,9 +67,14 @@ func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error
 	}
 	opts = append(opts, crane.WithAuth(auth))
 
-	topts, err := GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PullScope)})
+	topts, err := GenerateCraneOptions(
+		context.Background(),
+		ref.Context().Registry,
+		auth,
+		[]string{ref.Context().Scope(transport.PullScope)},
+	)
 	if err != nil {
-		log.Errorf("Error reading credentials: %v", err)
+		log.Errorf("Error etting up transport for pull: %v", err)
 	}
 	opts = append(opts, topts)
 
@@ -215,7 +223,7 @@ func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	var opts []crane.Option
 	auth, err := GetCreds(creds)
 	if err != nil {
-		return fmt.Errorf("error getting credentials: %v", err)
+		return fmt.Errorf("error fetching credentials: %v", err)
 	}
 	if creds == "" || auth == nil {
 		auth, err = authn.DefaultKeychain.Resolve(ref.Context())
@@ -227,9 +235,14 @@ func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	// if creds == "" {
 	// 	opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
 	// }
-	topts, err := GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PullScope)})
+	topts, err := GenerateCraneOptions(
+		context.Background(),
+		ref.Context().Registry,
+		auth,
+		[]string{ref.Context().Scope(transport.PullScope)},
+	)
 	if err != nil {
-		return fmt.Errorf("error getting credentials: %v", err)
+		return fmt.Errorf("error setting up transport for pull: %v", err)
 	}
 	opts = append(opts, topts)
 
@@ -313,16 +326,25 @@ func GetCreds(creds string) (authn.Authenticator, error) {
 }
 
 // Most parts of GenerateCraneOptions and its related funcs are copied from https://github.com/google/go-containerregistry/blob/1b4e4078a545f2b6f96766a064b45ee77cdbefdd/pkg/v1/remote/options.go#L155
-
-// GenerateCraneOptions returns a []crane.Option for performing remote operations
-func GenerateCraneOptions(ctx context.Context, ref name.Registry, auth authn.Authenticator, scopes []string) (crane.Option, error) {
+// GenerateCraneOptions returns a crane.Option for performing remote operations
+func GenerateCraneOptions(
+	ctx context.Context,
+	ref name.Registry,
+	auth authn.Authenticator,
+	scopes []string,
+) (crane.Option, error) {
 	var retryTransport http.RoundTripper
 
 	retryTransport = remote.DefaultTransport.(*http.Transport).Clone()
 	if logs.Enabled(logs.Debug) {
 		retryTransport = transport.NewLogger(retryTransport)
 	}
-	userAgent := fmt.Sprintf("intelops/genval/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
+	userAgent := fmt.Sprintf(
+		"genval/%s (%s; %s)",
+		version.GetVersionInfo().GitVersion,
+		runtime.GOOS,
+		runtime.GOARCH,
+	)
 
 	retryTransport = transport.NewRetry(retryTransport,
 		transport.WithRetryPredicate(defaultRetryPredicate),
@@ -340,15 +362,15 @@ func GenerateCraneOptions(ctx context.Context, ref name.Registry, auth authn.Aut
 		return nil, err
 	}
 
-	// opts = append(opts, crane.WithTransport(t))
-
 	return crane.WithTransport(t), nil
 }
 
 var defaultRetryPredicate = func(err error) bool {
 	// Various failure modes here, as we're often reading from and writing to
 	// the network.
-	if isTemporary(err) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) || errors.Is(err, syscall.EPIPE) || errors.Is(err, syscall.ECONNRESET) {
+	if isTemporary(err) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF) ||
+		errors.Is(err, syscall.EPIPE) ||
+		errors.Is(err, syscall.ECONNRESET) {
 		logs.Warn.Printf("retrying %v", err)
 		return true
 	}

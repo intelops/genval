@@ -106,8 +106,7 @@ func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
 	defer spin.Stop()
 
 	if err := oci.PullArtifact(context.Background(), pullArgs.creds, pullArgs.dest, pullArgs.path); err != nil {
-		color.Red("Error pulling artifact from remote : %v", err)
-		return err
+		fmt.Printf(color.RedString("Error pulling artifact:  %v", err))
 	}
 	spin.Stop()
 	color.Green("Artifact from %s pulled and stored in :%s", pullArgs.dest, pullArgs.path)

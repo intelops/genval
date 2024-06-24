@@ -390,9 +390,6 @@ Genval offers comprehensive management capabilities for the configuration files 
 
 To bolster supply chain security workflows, Genval enables users to sign the artifacts after storing them in the registry. Similarly, when pulling any artifact, Genval provides functionality to verify the signatures of the artifacts. This feature leverages **Sigstore's Cosign keyless mode** of signing and verifying artifacts. However, users can also utilize their own private and public keys for signing and verifying the artifacts respectively.
 
-To facilitate authentication with container registries, Genval initially looks for the `~/.docker/config.json` file in the user's
-`$HOME` directory. If this file is found, Genval utilizes it for authentication with the registry. However, if the file is not present,
-users must set the `ARTIFACT_REGISTRY_USERNAME` and `ARTIFACT_REGISTRY_PASSWORD` environment variables to authenticate with the container registry.
 
 #### Building, pushing, and signing generated and/or verified config files and OCI artifacts
 

@@ -162,31 +162,29 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	var opts []crane.Option
 	auth, err := oci.GetCreds(pushArgs.creds)
 	if err != nil {
-		return fmt.Errorf("error getting credentials: %v", err)
+		return fmt.Errorf("error fetching credentials: %v", err)
 	}
 	if pushArgs.creds == "" || auth == nil {
 		auth, err = authn.DefaultKeychain.Resolve(ref.Context())
 		if err != nil {
-			return err
+			return fmt.Errorf("error fetching default keychain credentials: %v", err)
 		}
 	}
 	opts = append(opts, crane.WithAuth(auth))
 
 	topts, err := oci.GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PushScope)})
 	if err != nil {
-		log.Errorf("Error creating options required for push: %v", err)
+		return fmt.Errorf("error setting up transport for push: %v", err)
 	}
-	// if pushArgs.creds == "" {
-	// 	opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
-	// }
+
 	opts = append(opts, topts)
 	if err := crane.Push(img, ref.String(), opts...); err != nil {
-		log.Fatalf("Error pushing artifact: %v", err)
+		return fmt.Errorf("error pushing artifact: %v", err)
 	}
 	spin.Stop()
 	digest, err := img.Digest()
 	if err != nil {
-		log.Errorf("parsing artifact digest failed: %s", err)
+		return fmt.Errorf("parsing artifact digest failed: %s", err)
 	}
 
 	digestURL := ref.Context().Digest(digest.String()).String()
