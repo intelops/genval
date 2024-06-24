@@ -10,7 +10,7 @@ require (
 	github.com/google/cel-go v0.20.1
 	github.com/google/go-containerregistry v0.19.2
 	github.com/google/go-github/v57 v57.0.0
-	github.com/hashicorp/hcl/v2 v2.20.1
+	github.com/hashicorp/hcl/v2 v2.21.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
 	github.com/joho/godotenv v1.5.1
 	github.com/open-policy-agent/opa v0.65.0
@@ -24,7 +24,6 @@ require (
 	golang.org/x/oauth2 v0.21.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	gotest.tools/v3 v3.5.1
 	sigs.k8s.io/release-utils v0.8.2
 )
 
