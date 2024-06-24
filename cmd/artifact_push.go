@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/fatih/color"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/compression"
 	"github.com/google/go-containerregistry/pkg/crane"
@@ -155,21 +157,31 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.Errorf("appending content to artifact failed: %v", err)
 	}
+
 	spin := utils.StartSpinner("pushing artifact")
 	defer spin.Stop()
+
+	var opts []crane.Option
 	auth, err := oci.GetCreds(pushArgs.creds)
 	if err != nil {
-		return fmt.Errorf("error getting credentials: %v", err)
-	}
-	opts, err := oci.GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PushScope)})
-	if err != nil {
-		log.Errorf("Error creating options required for push: %v", err)
-	}
-	opts = append(opts, crane.WithAuth(auth))
-	if pushArgs.creds == "" {
-		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
+		return err
 	}
 
+	if pushArgs.creds == "" || auth == nil {
+		auth, err = authn.DefaultKeychain.Resolve(ref.Context())
+		if err != nil {
+			return err
+		}
+	}
+
+	opts = append(opts, crane.WithAuth(auth))
+
+	topts, err := oci.GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PushScope)})
+	if err != nil {
+		return fmt.Errorf("error creating transport for push operation: %v", err)
+	}
+
+	opts = append(opts, topts)
 	if err := crane.Push(img, ref.String(), opts...); err != nil {
 		log.Fatalf("Error pushing artifact: %v", err)
 	}
@@ -188,7 +200,8 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Infof("✔ Artifact pushed successfully to: %v\n,Artifact Digest: %v\n", source, digest)
-	log.Infof("Digest URL: %v\n", digestURL)
+	log.Infof(color.GreenString("✔ Artifact pushed successfully to: %v", pushArgs.dest))
+	log.Infof(color.GreenString("✔ Digest: %v", digest))
+	log.Infof(color.GreenString("✔ Digest URL: %v\n", digestURL))
 	return nil
 }
