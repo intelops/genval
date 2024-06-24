@@ -52,18 +52,26 @@ func CheckTagAndPullArchive(url, tool, creds string, archivePath *os.File) error
 	ociref := parts[0]
 	desiredTag := parts[1]
 
+	var opts []crane.Option
 	auth, err := GetCreds(creds)
 	if err != nil {
-		return fmt.Errorf("error getting credentials: %v", err)
+		return fmt.Errorf("error fetching credentials: %v", err)
 	}
-	opts, err := GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PullScope)})
-	if err != nil {
-		log.Errorf("Error reading credentials: %v", err)
+
+	if creds == "" || auth == nil {
+		auth, err = authn.DefaultKeychain.Resolve(ref.Context())
+		if err != nil {
+			return fmt.Errorf("error fetching default keychain: %v", err)
+		}
 	}
+
 	opts = append(opts, crane.WithAuth(auth))
-	if creds == "" {
-		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
+
+	topts, err := GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PullScope)})
+	if err != nil {
+		return fmt.Errorf("error creating transport for pull: %v", err)
 	}
+	opts = append(opts, topts)
 
 	tags, err := crane.ListTags(ociref, opts...)
 	if err != nil {
@@ -204,18 +212,26 @@ func PullArtifact(ctx context.Context, creds, dest, path string) error {
 	url := parts[0]
 	desiredTag := parts[1]
 
+	var opts []crane.Option
 	auth, err := GetCreds(creds)
 	if err != nil {
-		return fmt.Errorf("error getting credentials: %v", err)
+		return fmt.Errorf("error fetching credentials: %v", err)
 	}
-	opts, err := GenerateCraneOptions(ref, auth, []string{ref.Context().Scope(transport.PullScope)})
-	if err != nil {
-		return fmt.Errorf("error getting credentials: %v", err)
+
+	if creds == "" || auth == nil {
+		auth, err = authn.DefaultKeychain.Resolve(ref.Context())
+		if err != nil {
+			return fmt.Errorf("error fetching default keychain: %v", err)
+		}
 	}
+
 	opts = append(opts, crane.WithAuth(auth))
-	if creds == "" {
-		opts = append(opts, crane.WithAuthFromKeychain(authn.DefaultKeychain))
+
+	topts, err := GenerateCraneOptions(context.Background(), ref.Context().Registry, auth, []string{ref.Context().Scope(transport.PullScope)})
+	if err != nil {
+		return fmt.Errorf("error creating transport for pull:%v", err)
 	}
+	opts = append(opts, topts)
 
 	tags, err := crane.ListTags(url, opts...)
 	if err != nil {
@@ -297,11 +313,11 @@ func GetCreds(creds string) (authn.Authenticator, error) {
 }
 
 // Most parts of GenerateCraneOptions and its related funcs are copied from https://github.com/google/go-containerregistry/blob/1b4e4078a545f2b6f96766a064b45ee77cdbefdd/pkg/v1/remote/options.go#L128
-func GenerateCraneOptions(ref name.Reference, auth authn.Authenticator, scopes []string) ([]crane.Option, error) {
-	opts := []crane.Option{}
+// GenerateCraneOptions generates an crane options object to perform remote operations
+func GenerateCraneOptions(ctx context.Context, ref name.Registry, auth authn.Authenticator, scopes []string) (crane.Option, error) {
 	var retryTransport http.RoundTripper
 
-	userAgent := fmt.Sprintf("intelops/genval/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
+	userAgent := fmt.Sprintf("genval/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
 	retryTransport = remote.DefaultTransport.(*http.Transport).Clone()
 	if logs.Enabled(logs.Debug) {
 		retryTransport = transport.NewLogger(retryTransport)
@@ -319,13 +335,12 @@ func GenerateCraneOptions(ref name.Reference, auth authn.Authenticator, scopes [
 		}))
 	retryTransport = transport.NewUserAgent(retryTransport, userAgent)
 
-	// t, err := transport.NewWithContext(ref.Context().Registry, auth, retryTransport, scopes)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	opts = append(opts, crane.WithTransport(retryTransport))
+	t, err := transport.NewWithContext(ctx, ref, auth, retryTransport, scopes)
+	if err != nil {
+		return nil, err
+	}
 
-	return opts, nil
+	return crane.WithTransport(t), nil
 }
 
 var defaultRetryPredicate = func(err error) bool {
