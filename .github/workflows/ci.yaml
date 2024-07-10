@@ -33,7 +33,7 @@ jobs:
           skip-build-cache: true
 
       - name: Static check
-        uses: dominikh/staticcheck-action@v1.3
+        uses: dominikh/staticcheck-action@v1.3.1
         with:
           version: "2023.1.6"
           install-go: false
