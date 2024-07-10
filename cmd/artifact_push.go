@@ -1,4 +1,4 @@
-package cmd
+eackage cmd
 
 import (
 	"context"
@@ -128,7 +128,7 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 
 	remoteURL, err := oci.GetRemoteURL()
 	if err != nil {
-		return fmt.Errorf("error fetching credentials: %v", err)
+		return fmt.Errorf("error parsing remote URL, %s: %v", remoteURL, err)
 	}
 	annotations, err := oci.ParseAnnotations(pushArgs.annotations)
 	if err != nil {
