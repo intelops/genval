@@ -1,4 +1,4 @@
-eackage cmd
+package cmd
 
 import (
 	"context"
