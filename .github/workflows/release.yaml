@@ -8,12 +8,12 @@ name: release
 on:
   push:
     tags:
-      - 'v*'  # Run pn Push tag
+      - "v*" # Run pn Push tag
 
 permissions:
-   contents: write # needed to write releases
-   id-token: write # needed for keyless signing
-   packages: write # needed for ghcr access
+  contents: write # needed to write releases
+  id-token: write # needed for keyless signing
+  packages: write # needed for ghcr access
 
 jobs:
   release:
@@ -22,16 +22,16 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # this is important, otherwise it won't checkout the full tree (i.e. no previous tags)
-      - uses: actions/setup-go@v4
+      - uses: actions/setup-go@v5
         with:
-          go-version: 1.21    # Go version
+          go-version: 1.22 # Go version
           cache: true
       - name: Run tests
         run: go test ./... -coverprofile=coverage.out -coverpkg=./... -covermode=atomic
 
-      - uses: sigstore/cosign-installer@v3.4.0        # installs cosign
-      - uses: anchore/sbom-action/download-syft@v0.14.3 # installs syft
-      - uses: goreleaser/goreleaser-action@v5          # run goreleaser
+      - uses: sigstore/cosign-installer@v3.5 # installs cosign
+      - uses: anchore/sbom-action/download-syft@v0.16 # installs syft
+      - uses: goreleaser/goreleaser-action@v6 # run goreleaser
         id: goreleaser
         with:
           version: latest
@@ -42,7 +42,3 @@ jobs:
       - name: verify release
         run: |
           bash ./.github/workflows/verify.sh
-
-
-
-
