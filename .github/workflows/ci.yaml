@@ -17,15 +17,15 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-go@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/setup-go@0a12ed9d6a96ab950c8f026ed9f722fe0da7ef32 # v5
         with:
           go-version: "1.22"
           cache: false
       - name: Run tests
         run: go test ./... -coverprofile=coverage.out -coverpkg=./... -covermode=atomic
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@a4f60bb28d35aeee14e6880718e0c85ff1882e64 # v6
         with:
           version: v1.59
           args: -v --config=.ci.yml
@@ -33,13 +33,13 @@ jobs:
           skip-build-cache: true
 
       - name: Static check
-        uses: dominikh/staticcheck-action@v1.3.1
+        uses: dominikh/staticcheck-action@5106bb8ba1333e0510c91b2aa44c5ede005d9cff # v1.3.1
         with:
           version: "2023.1.6"
           install-go: false
           cache-key: "1.22"
       - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@6e7b7d1fd3e4fef0c5fa8cce1229c54b2c9bd0d8 # 0.24.0
         with:
           scan-type: "fs"
           ignore-unfixed: true
@@ -47,6 +47,6 @@ jobs:
           output: "trivy-results.sarif"
           severity: "CRITICAL,HIGH"
       - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@02ab1d05e391b5778f6ca0b68022bb05ec6481fa # v3
         with:
           sarif_file: "trivy-results.sarif"
