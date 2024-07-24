@@ -1,6 +1,7 @@
 module github.com/intelops/genval
 
-go 1.22.0
+go 1.22.5
+
 require (
 	cuelang.org/go v0.9.2
 	github.com/briandowns/spinner v1.23.1
