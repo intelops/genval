@@ -42,12 +42,7 @@ func init() {
 var baseURL = "localhost:11434"
 
 func runGenerateCmd(cmd *cobra.Command, args []string) error {
-	c := llm.Config{
-		ModelName:   "llama3",
-		URL:         baseURL,
-		Temperature: 0.7,
-		TopP:        0.9,
-	}
+	c := llm.NewDefaultConfig(baseURL)
 
 	client, err := llm.NewOllamaClient(c)
 	if err != nil {
