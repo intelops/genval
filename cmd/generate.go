@@ -44,7 +44,7 @@ var baseURL = "localhost:11434"
 func runGenerateCmd(cmd *cobra.Command, args []string) error {
 	c := llm.NewDefaultConfig(baseURL)
 
-	client, err := llm.NewOllamaClient(c)
+	client, err := c.NewOllamaClient()
 	if err != nil {
 		return fmt.Errorf("error creating client: %v", err)
 	}
