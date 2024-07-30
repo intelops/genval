@@ -42,23 +42,31 @@ func init() {
 var baseURL = "localhost:11434"
 
 func runGenerateCmd(cmd *cobra.Command, args []string) error {
-	c := llm.NewDefaultConfig(baseURL)
-
-	client, err := c.NewOllamaClient()
+	// Use default base URL if --endpoint is not provided
+	url := baseURL
+	if generateArgs.endpoint != "" {
+		url = generateArgs.endpoint
+	}
+	c, err := llm.NewDefaultConfig(url)
 	if err != nil {
+		return fmt.Errorf("error initializing ollama configurations:%v", err)
+	}
+
+	if err := c.NewOllamaClient(); err != nil {
 		return fmt.Errorf("error creating client: %v", err)
 	}
+
 	ctx := context.Background()
 
-	if generateArgs.endpoint == "" {
-		generateArgs.endpoint = c.URL
+	if generateArgs.endpoint != "" {
+		c.URL = generateArgs.endpoint
 	}
 
-	if generateArgs.model == "" {
-		generateArgs.model = c.ModelName
+	if generateArgs.model != "" {
+		c.ModelName = generateArgs.model
 	}
 
-	response, err := client.GenerateResponse(ctx, generateArgs.model, generateArgs.prompt)
+	response, err := c.GenerateResponse(ctx, generateArgs.model, generateArgs.prompt)
 	if err != nil {
 		return fmt.Errorf("error generating response: %v", err)
 	}

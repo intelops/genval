@@ -7,8 +7,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/kelseyhightower/envconfig"
 	ollama "github.com/ollama/ollama/api"
-	"github.com/ollama/ollama/envconfig"
 )
 
 // Config represents the configuration options for the Ollama client.
@@ -16,40 +16,76 @@ type Config struct {
 	client *ollama.Client
 	// ModelName is the model name; it should be a name familiar to Ollama from
 	// the library at https://ollama.com/library
-	ModelName string
+	ModelName string `envconfig:"MODEL_NAME" default:"llama3"`
 	// URL is the base URL for the Ollama API
-	URL         string
-	Temperature float32
-	TopP        float32
+	URL         string  `envconfig:"ENDPOINT" default:"localhost:11434"`
+	Temperature float32 `envconfig:"TEMPERATURE" default:"0.8"`
+	TopP        float32 `envconfig:"TOP_P" default:"0.9"`
 }
 
-var ollamaHost = envconfig.Host
+type OllamaEndpoint struct {
+	Scheme string
+	Host   string
+	Port   string
+}
 
-// NewDefaultConfig creates a new Config with default values.
+// TODO: Use envconfig pkg and Move the Endpoint related code to separate pkg
+// NewOllamaEndpoint creates a new OllamaEndpoint with the provided scheme, host, and port.
+func NewOllamaEndpoint(scheme, host, port string) OllamaEndpoint {
+	return OllamaEndpoint{
+		Scheme: scheme,
+		Host:   host,
+		Port:   port,
+	}
+}
 
-func NewDefaultConfig(baseURL string) Config {
+// DefaultOllamaEndpoint returns a default OllamaEndpoint.
+func DefaultOllamaEndpoint() OllamaEndpoint {
+	return NewOllamaEndpoint("http", "localhost", "11434")
+}
+
+// NewDefaultConfig creates a new Config with default values, potentially overridden by environment variables.
+func NewDefaultConfig(baseURL string) (*Config, error) {
+	e := DefaultOllamaEndpoint()
 	if baseURL == "" {
-		baseURL = net.JoinHostPort(ollamaHost.Host, ollamaHost.Port)
+		baseURL = net.JoinHostPort(e.Host, e.Port)
 	}
 
-	return Config{
+	config := &Config{
 		ModelName:   "llama3",
 		URL:         baseURL,
 		Temperature: 0.7,
 		TopP:        0.9,
 	}
+
+	if err := envconfig.Process("", config); err != nil {
+		return nil, err
+	}
+
+	// Override URL if not set in environment variables
+	if config.URL == "" {
+		config.URL = baseURL
+	}
+
+	return config, nil
 }
 
 // NewOllamaClient creates a new OllamaClient with the provided configuration.
-func (config *Config) NewOllamaClient() error {
-	if config.ModelName == "" {
+func (c *Config) NewOllamaClient() error {
+	if c.ModelName == "" {
 		return errors.New("model name is required")
+	}
+
+	// Extract the scheme and host from the URL
+	u, err := url.Parse(c.URL)
+	if err != nil {
+		return err
 	}
 
 	client := ollama.NewClient(
 		&url.URL{
-			Scheme: ollamaHost.Scheme,
-			Host:   config.URL,
+			Scheme: u.Scheme,
+			Host:   u.Host,
 		},
 		http.DefaultClient,
 	)
@@ -58,7 +94,7 @@ func (config *Config) NewOllamaClient() error {
 		return errors.New("failed to create Ollama client")
 	}
 
-	config.client = client
+	c.client = client
 	return nil
 }
 
