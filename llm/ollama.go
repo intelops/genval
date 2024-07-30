@@ -13,23 +13,19 @@ import (
 
 // Config represents the configuration options for the Ollama client.
 type Config struct {
+	client *ollama.Client
 	// ModelName is the model name; it should be a name familiar to Ollama from
 	// the library at https://ollama.com/library
-	ModelName   string
+	ModelName string
+	// URL is the base URL for the Ollama API
 	URL         string
 	Temperature float32
 	TopP        float32
 }
 
-// OllamaClient represents the client to interact with the Ollama API.
-type OllamaClient struct {
-	client *ollama.Client
-	Config
-}
-
 var ollamaHost = envconfig.Host
 
-// NewDefaultConfig function creates a new Config with default values.
+// NewDefaultConfig creates a new Config with default values.
 
 func NewDefaultConfig(baseURL string) Config {
 	if baseURL == "" {
@@ -45,9 +41,9 @@ func NewDefaultConfig(baseURL string) Config {
 }
 
 // NewOllamaClient creates a new OllamaClient with the provided configuration.
-func (config *Config) NewOllamaClient() (*OllamaClient, error) {
+func (config *Config) NewOllamaClient() error {
 	if config.ModelName == "" {
-		return nil, errors.New("model name is required")
+		return errors.New("model name is required")
 	}
 
 	client := ollama.NewClient(
@@ -59,16 +55,18 @@ func (config *Config) NewOllamaClient() (*OllamaClient, error) {
 	)
 
 	if client == nil {
-		return nil, errors.New("failed to create Ollama client")
+		return errors.New("failed to create Ollama client")
 	}
 
-	return &OllamaClient{
-		client: client,
-		Config: *config,
-	}, nil
+	config.client = client
+	return nil
 }
 
-func (c *OllamaClient) GenerateResponse(ctx context.Context, model string, prompt string) (string, error) {
+func (c *Config) GenerateResponse(ctx context.Context, model string, prompt string) (string, error) {
+	if c.client == nil {
+		return "", errors.New("client is not initialized")
+	}
+
 	req := &ollama.GenerateRequest{
 		Model:  model,
 		Prompt: prompt,
