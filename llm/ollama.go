@@ -13,6 +13,8 @@ import (
 
 // Config represents the configuration options for the Ollama client.
 type Config struct {
+	// ModelName is the model name; it should be a name familiar to Ollama from
+	// the library at https://ollama.com/library
 	ModelName   string
 	URL         string
 	Temperature float32
@@ -21,14 +23,19 @@ type Config struct {
 
 // OllamaClient represents the client to interact with the Ollama API.
 type OllamaClient struct {
-	client      *ollama.Client
-	model       string
-	temperature float32
-	topP        float32
+	client *ollama.Client
+	Config
 }
 
+var ollamaHost = envconfig.Host
+
 // NewDefaultConfig function creates a new Config with default values.
+
 func NewDefaultConfig(baseURL string) Config {
+	if baseURL == "" {
+		baseURL = net.JoinHostPort(ollamaHost.Host, ollamaHost.Port)
+	}
+
 	return Config{
 		ModelName:   "llama3",
 		URL:         baseURL,
@@ -38,12 +45,7 @@ func NewDefaultConfig(baseURL string) Config {
 }
 
 // NewOllamaClient creates a new OllamaClient with the provided configuration.
-func NewOllamaClient(config Config) (*OllamaClient, error) {
-	ollamaHost := envconfig.Host
-	if config.URL == "" {
-		config.URL = net.JoinHostPort(ollamaHost.Host, ollamaHost.Port)
-	}
-
+func (config *Config) NewOllamaClient() (*OllamaClient, error) {
 	if config.ModelName == "" {
 		return nil, errors.New("model name is required")
 	}
@@ -61,10 +63,8 @@ func NewOllamaClient(config Config) (*OllamaClient, error) {
 	}
 
 	return &OllamaClient{
-		client:      client,
-		model:       config.ModelName,
-		temperature: config.Temperature,
-		topP:        config.TopP,
+		client: client,
+		Config: *config,
 	}, nil
 }
 
