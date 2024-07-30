@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/url"
@@ -80,7 +81,11 @@ func (c *Config) NewOllamaClient() error {
 	e := DefaultOllamaEndpoint()
 	// Extract the scheme and host from the URL
 	u, err := url.Parse(c.URL)
-	if err != nil || u.Scheme == "" {
+	if err != nil {
+		return fmt.Errorf("error parsing endpoint: %v", err)
+	}
+
+	if u.Scheme == "" {
 		// Default to "http" if no scheme is provided
 		c.URL = net.JoinHostPort(e.Host, e.Port)
 	}
