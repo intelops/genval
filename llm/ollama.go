@@ -76,16 +76,19 @@ func (c *Config) NewOllamaClient() error {
 		return errors.New("model name is required")
 	}
 
+	// Assume DefaultOllamaEndpoint returns scheme and host information
+	e := DefaultOllamaEndpoint()
 	// Extract the scheme and host from the URL
 	u, err := url.Parse(c.URL)
-	if err != nil {
-		return err
+	if err != nil || u.Scheme == "" {
+		// Default to "http" if no scheme is provided
+		c.URL = net.JoinHostPort(e.Host, e.Port)
 	}
 
 	client := ollama.NewClient(
 		&url.URL{
-			Scheme: u.Scheme,
-			Host:   u.Host,
+			Scheme: e.Scheme,
+			Host:   c.URL,
 		},
 		http.DefaultClient,
 	)
