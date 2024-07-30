@@ -27,6 +27,16 @@ type OllamaClient struct {
 	topP        float32
 }
 
+// NewDefaultConfig function creates a new Config with default values.
+func NewDefaultConfig(baseURL string) Config {
+	return Config{
+		ModelName:   "llama3",
+		URL:         baseURL,
+		Temperature: 0.7,
+		TopP:        0.9,
+	}
+}
+
 // NewOllamaClient creates a new OllamaClient with the provided configuration.
 func NewOllamaClient(config Config) (*OllamaClient, error) {
 	ollamaHost := envconfig.Host
