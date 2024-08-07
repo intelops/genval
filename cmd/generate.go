@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/llm"
@@ -42,6 +43,16 @@ func init() {
 var baseURL = "localhost:11434"
 
 func runGenerateCmd(cmd *cobra.Command, args []string) error {
+	if generateArgs.model == "" {
+		generateArgs.model = openai.GPT3Dot5Turbo
+
+		resp, err := llm.GenerateCompletrion(context.Background(), generateArgs.model, generateArgs.prompt)
+		if err != nil {
+			return fmt.Errorf("error generating response: %v", err)
+		}
+		fmt.Println(resp.Choices[0].Message.Content)
+		return nil
+	}
 	// Use default base URL if --endpoint is not provided
 	url := baseURL
 	if generateArgs.endpoint != "" {
