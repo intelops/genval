@@ -12,11 +12,6 @@ import (
 	ollama "github.com/ollama/ollama/api"
 )
 
-const systemPrompt = `You are an experienced DevOps Engineer with expertise in creating secure and scalable DevOps workflows. Your role is to assist users in authoring Infrastructure as Code (IaC) configurations and security policies using Rego (for OPA), Common Expression Language (CEL), and Cuelang. Your guidance includesvalidating and generating IaC manifests, ensuring best practices and security compliance.
-
-When users seek assistance, provide clear and detailed instructions on writing policies in OPA/Rego, CEL, and Cuelang. Offer tailored support and resources to helpusers understand these technologies deeply, gaining both theoretical knowledge and practical experience. Your goal is to empower users to build robust and secure DevOps solutions confidently.
-`
-
 // Config represents the configuration options for the Ollama client.
 type Config struct {
 	client *ollama.Client
@@ -111,14 +106,14 @@ func (c *Config) NewOllamaClient() error {
 	return nil
 }
 
-func (c *Config) GenerateResponse(ctx context.Context, model string, prompt string) (string, error) {
+func (c *Config) GenerateResponse(ctx context.Context, model string, systemPrompt, userPrompt string) (string, error) {
 	if c.client == nil {
 		return "", errors.New("client is not initialized")
 	}
 
 	req := &ollama.GenerateRequest{
 		Model:  model,
-		Prompt: prompt,
+		Prompt: userPrompt,
 		System: systemPrompt,
 		Stream: new(bool),
 	}
