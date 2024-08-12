@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/sashabaranov/go-openai"
@@ -23,9 +24,10 @@ var generateCmd = &cobra.Command{
 }
 
 type generateFlags struct {
-	model    string
-	endpoint string
-	prompt   string
+	model     string
+	endpoint  string
+	prompt    string
+	assistant []string
 }
 
 var generateArgs generateFlags
@@ -37,16 +39,32 @@ func init() {
 	if err := generateCmd.MarkFlagRequired("prompt"); err != nil {
 		fmt.Errorf("Error marking flag as required: %v", err)
 	}
+	generateCmd.Flags().StringSliceVarP(&generateArgs.assistant, "assistant", "a", nil, "Specify the assistant to use to generate policies, currently supported: (eg: cue, cel, rego)")
+
 	rootCmd.AddCommand(generateCmd)
 }
 
 var baseURL = "localhost:11434"
 
 func runGenerateCmd(cmd *cobra.Command, args []string) error {
-	if generateArgs.model == "" {
-		generateArgs.model = openai.GPT3Dot5Turbo
+	lang := generateArgs.assistant[0]
 
-		resp, err := llm.GenerateCompletrion(context.Background(), generateArgs.model, generateArgs.prompt)
+	systemPrompt, err := llm.GetSystemPrompt(lang)
+	if err != nil {
+		return fmt.Errorf("error getting system prompt: %v", err)
+	}
+
+	if generateArgs.model == "" {
+		generateArgs.model = openai.GPT4o
+
+		// Ensure only one assistant is specified
+		if len(generateArgs.assistant) != 1 {
+			return errors.New("please specify exactly one assistant (cue, cel, or rego)")
+		}
+		ctx, cancel := context.WithCancel(cmd.Context())
+		defer cancel()
+
+		resp, err := llm.GenerateCompletion(ctx, systemPrompt, generateArgs.prompt)
 		if err != nil {
 			return fmt.Errorf("error generating response: %v", err)
 		}
@@ -77,7 +95,7 @@ func runGenerateCmd(cmd *cobra.Command, args []string) error {
 		c.ModelName = generateArgs.model
 	}
 
-	response, err := c.GenerateResponse(ctx, generateArgs.model, generateArgs.prompt)
+	response, err := c.GenerateResponse(ctx, generateArgs.model, systemPrompt, generateArgs.prompt)
 	if err != nil {
 		return fmt.Errorf("error generating response: %v", err)
 	}
