@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/llm"
+	"github.com/intelops/genval/pkg/tui"
 )
 
 var generateCmd = &cobra.Command{
@@ -47,7 +48,23 @@ func init() {
 var baseURL = "localhost:11434"
 
 func runGenerateCmd(cmd *cobra.Command, args []string) error {
-	lang := generateArgs.assistant[0]
+	p := tea.NewProgram(tui.NewGenerateModel())
+	m, err := p.StartReturningModel()
+	if err != nil {
+		return err
+	}
+
+	model := m.(tui.GenerateModel)
+
+	// If the user exited with 'q' or 'esc', simply return
+	if model.Result == "" {
+		return nil
+	}
+	// Use the selected result (e.g., "rego", "cel", or "cue") as the assistant
+	lang := model.Result
+	if generateArgs.assistant == nil {
+		return fmt.Errorf("please specify exactly one assistant (cue, cel, or rego): %v", err)
+	}
 
 	systemPrompt, err := llm.GetSystemPrompt(lang)
 	if err != nil {
@@ -58,9 +75,9 @@ func runGenerateCmd(cmd *cobra.Command, args []string) error {
 		generateArgs.model = openai.GPT4o
 
 		// Ensure only one assistant is specified
-		if len(generateArgs.assistant) != 1 {
-			return errors.New("please specify exactly one assistant (cue, cel, or rego)")
-		}
+		// if len(generateArgs.assistant) != 1 {
+		// 	return errors.New("please specify exactly one assistant (cue, cel, or rego)")
+		// }
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
 
