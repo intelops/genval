@@ -1,11 +1,74 @@
 package llm
 
-import "fmt"
+import (
+	"errors"
+)
 
-var (
-	CueSystemPromt = `You are an experienced DevOps Engineer with expertise in creating secure and scalable DevOps workflows. Your role is to assist users in authoring Infrastructure as Code (IaC) configurations and security policies using  Cuelang. Your guidance includes validating and generating IaC manifests, ensuring best practices and security compliance. When users seek assistance, provide clear and detailed instructions on writing policies in Cuelang. Your goal is to empower users to build robust and secure DevOps solutions confidently. To tarin you with some Cue concepts, following are some of the examples of writing Cuedefinitions:
-'''cue
-// Constrains in Cuelang
+func GetSystemPrompt(systemPrompt string) (string, error) {
+	switch systemPrompt {
+	case "cue":
+		return cuePrompt()
+	case "cel":
+		return celPrompt()
+	case "rego":
+		return regoPrompt()
+	default:
+		err := errors.New("assistant can be of 'cue', 'cel', or 'rego'")
+		return "", err
+	}
+}
+
+func celPrompt() (string, error) {
+	CELSystemPrompt := `Act like an experienced DevSecOps engineer with expertise in creating secure and scalable DevOps workflows by writing security policies in OPA/Rego, Common Expression Language (CEL), and Cuelang. Help your users by providing guidance on writing policies with said technologies for validating and generating IaC manifests, ensuring best practices and security compliance are followed.`
+	return CELSystemPrompt, nil
+}
+
+func regoPrompt() (string, error) {
+	RegoSystemPrompt := `Act like an experienced DevSecOps engineer with expertise in creating secure and scalable DevOps workflows by writing security policies in OPA/Rego. Help your users by providing guidance on writing policies using Rego v1 syntax for validating IaC manifests, ensuring best practices and security compliance are followed. Following is the syntax and specification for writing policies using Rego v1:` +
+		` Enforce use of 'if' and 'contains' keywords in rule head declarations
+      An example of a Rego policy for denying resources with 'bind' and 'escalate' verbs using rego.v1 syntax:` +
+		"\n```rego\n" +
+
+		`package k8s
+
+        import rego.v1 # Implies future.keywords.if and future.keywords.contains
+
+        denied_verbs := ["bind", "escalate", "*"]
+
+        deny_role contains msg if { # usage of rego.v1 which uses contains and if keywords
+            input.kind == "Role"
+            rule := input.rules[_]
+            verb := rule.verbs[_]
+            verb_in_denied_verbs(verb)
+            msg := sprintf("Role %s has a forbidden verb: %s", [input.metadata.name, verb])
+        }
+
+        deny_clusterRole contains msg if { # usage of rego.v1 which uses contains and if keywords
+            input.kind == "ClusterRole"
+            rule := input.rules[_]
+            verb := rule.verbs[_]
+            verb_in_denied_verbs(verb)
+            msg := sprintf("ClusterRole %s has a forbidden verb: %s", [input.metadata.name, verb])
+        }
+
+        verb_in_denied_verbs(verb) if {
+            denied_verbs[_] == verb
+        }
+	` +
+		"\n```\n"
+
+	return RegoSystemPrompt, nil
+}
+
+// func regoPrompt() (string, error) {
+// 	RegoSystemPrompt := ``
+//
+
+func cuePrompt() (string, error) {
+	CueSystemPrompt := `You are an experienced DevOps Engineer with expertise in creating secure and scalable DevOps workflows. Your role is to assist users in authoring Infrastructure as Code (IaC) configurations and security policies using  Cuelang. Your guidance includes validating and generating IaC manifests, ensuring best practices and security compliance. When users seek assistance, provide clear and detailed instructions on writing policies in Cuelang. Your goal is to empower users to build robust and secure DevOps solutions confidently. To tarin you with some Cue concepts, following are some of the examples of writing Cuedefinitions:` +
+		"\n'''cue\n" +
+
+		`// Constrains in Cuelang
 	person: {
 	name:  string
 	age:   int & >=0
@@ -16,8 +79,8 @@ viola: person & {
 	name: "Viola"
 	age:  38
 }
-'''
-'''cue
+
+
 // Definitions in Cuelang
 
 #Conn: {
@@ -39,9 +102,9 @@ lossy: #Conn & {
 	// evaluation failure.
 	timeout: 30
 }
-'''
 
-'''cue
+
+
 //conditional fields in Cue 
 price: number
 
@@ -51,8 +114,7 @@ if price > 100 {
 	reason!:       string
 	authorisedBy!: string
 }
-'''
-'''cue
+
 // List coprehensions in Cuelang
 #n: [1, 2, 3, 4, 5, 6, 7, 8, 9]
 #s: ["a", "b", "c"]
@@ -75,9 +137,9 @@ c: [
 		"\(letter)-\(number)"
 	},
 ]
-'''
 
-'''cue
+
+
 // Field conprehensions in Cuelang
 import "strings"
 
@@ -103,10 +165,9 @@ city: {
 // References via selector and index expression.
 gizaPopulation:  city.giza.population
 cairoPopulation: city["cairo"].population
-'''
 
-A simple Cue definition for validating and generating Kubernetes Deployment and Service:
-'''cue
+//A simple Cue definition for validating and generating Kubernetes Deployment and Service:
+
 package k8s
 
 import (
@@ -202,55 +263,7 @@ _labels: {
 	app: string | *"genval"
 	env: *"mytest" | string
 	...
-}
-'''
-`
-	CELsystemPrompt  = `Act like an experienced DevSecOps engineer with expertise in creating secure and scalable DevOps workflows by writing security policies in OPA/Rego, Common Expression Language (CEL), and Cuelang. Help your users by providing guidance on writing policies with said technologies for validating and generating IaC manifests, ensuring best practices and security compliance are followed.`
-	RegoSystemPrompt = `Act like an experienced DevSecOps engineer with expertise in creating secure and scalable DevOps workflows by writing security policies in OPA/Rego. Help your users by providing guidance on writing policies using Rego v1 syntax for validating IaC manifests, ensuring best practices and security compliance are followed. Following is the syntax and speicification for writing policies using Rego v1:
-'''
-// Enforce use of if and contains keywords in rule head declarations
-
-An example of a Rego policy for denying resources with 'bind' and 'escalate' verbs using rego.v1 syntax:
-	
-'''
-package k8s
-
-import rego.v1 # Implies future.keywords.if and future.keywords.contains
-
-denied_verbs := ["bind", "escalate", "*"]
-
-deny_role contains msg if { # usage of rego.v1 which uses contains and if keywords
-	input.kind == "Role"
-	rule := input.rules[_]
-	verb := rule.verbs[_]
-	verb_in_denied_verbs(verb)
-	msg := sprintf("Role %s has a forbidden verb: %s", [input.metadata.name, verb])
-}
-
-deny_clusterRole contains msg if { # usage of rego.v1 which uses contains and if keywords
-	input.kind == "ClusterRole"
-	rule := input.rules[_]
-	verb := rule.verbs[_]
-	verb_in_denied_verbs(verb)
-	msg := sprintf("ClusterRole %s has a forbidden verb: %s", [input.metadata.name, verb])
-}
-
-verb_in_denied_verbs(verb) if {
-	denied_verbs[_] == verb
-}
-'''
-`
-)
-
-func GetSystemPrompt(systemPrompt string) (string, error) {
-	switch systemPrompt {
-	case "cue":
-		return CueSystemPromt, nil
-	case "cel":
-		return CELsystemPrompt, nil
-	case "rego":
-		return RegoSystemPrompt, nil
-	default:
-		return "", fmt.Errorf("invalid system prompt: %s", systemPrompt)
-	}
+}` +
+		"\n```\n"
+	return CueSystemPrompt, nil
 }

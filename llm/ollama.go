@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 	ollama "github.com/ollama/ollama/api"
@@ -112,10 +113,11 @@ func (c *Config) GenerateResponse(ctx context.Context, model string, systemPromp
 	}
 
 	req := &ollama.GenerateRequest{
-		Model:  model,
-		Prompt: userPrompt,
-		System: systemPrompt,
-		Stream: new(bool),
+		Model:     model,
+		Prompt:    userPrompt,
+		System:    systemPrompt,
+		Stream:    new(bool),
+		KeepAlive: &ollama.Duration{Duration: 10 * time.Minute},
 	}
 	reply := ""
 	respFunc := func(resp ollama.GenerateResponse) error {
@@ -126,3 +128,7 @@ func (c *Config) GenerateResponse(ctx context.Context, model string, systemPromp
 	err := c.client.Generate(ctx, req, respFunc)
 	return reply, err
 }
+
+// 	ad := ollama.Duration(d)
+// 	return &ad
+// }
