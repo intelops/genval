@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -37,9 +38,9 @@ func init() {
 	generateCmd.Flags().StringVarP(&generateArgs.model, "model", "m", "", "Select the AI model")
 	generateCmd.Flags().StringVarP(&generateArgs.endpoint, "endpoint", "e", "", "Endpoint for the AI model")
 	generateCmd.Flags().StringVarP(&generateArgs.prompt, "prompt", "p", "", "Your prompt to the model")
-	if err := generateCmd.MarkFlagRequired("prompt"); err != nil {
-		fmt.Errorf("Error marking flag as required: %v", err)
-	}
+	// if err := generateCmd.MarkFlagRequired("prompt"); err != nil {
+	// 	fmt.Errorf("Error marking flag as required: %v", err)
+	// }
 	generateCmd.Flags().StringSliceVarP(&generateArgs.assistant, "assistant", "a", nil, "Specify the assistant to use to generate policies, currently supported: (eg: cue, cel, rego)")
 
 	rootCmd.AddCommand(generateCmd)
@@ -48,36 +49,37 @@ func init() {
 var baseURL = "localhost:11434"
 
 func runGenerateCmd(cmd *cobra.Command, args []string) error {
-	p := tea.NewProgram(tui.NewGenerateModel())
-	m, err := p.StartReturningModel()
-	if err != nil {
-		return err
+	var selectedAssistant string
+	if generateArgs.prompt == "" {
+		p := tea.NewProgram(tui.NewGenerateModel())
+		m, err := p.Run()
+		if err != nil {
+			return fmt.Errorf("error starting TUI: %v", err)
+		}
+		model := m.(tui.GenerateModel)
+
+		generateArgs.prompt = model.TextInput.Value()
+		selectedAssistant = model.SelectedAssistant
 	}
 
-	model := m.(tui.GenerateModel)
+	// Verify that exactly one assistant is selected
+	// if len(generateArgs.assistant) == 0 {
+	// 	return errors.New("please specify exactly one assistant (cue, cel, or rego)")
+	// }
 
-	// If the user exited with 'q' or 'esc', simply return
-	if model.Result == "" {
-		return nil
-	}
-	// Use the selected result (e.g., "rego", "cel", or "cue") as the assistant
-	lang := model.Result
-	if generateArgs.assistant == nil {
-		return fmt.Errorf("please specify exactly one assistant (cue, cel, or rego): %v", err)
-	}
-
-	systemPrompt, err := llm.GetSystemPrompt(lang)
+	// Proceed with the rest of your logic using the selected assistant and prompt
+	systemPrompt, err := llm.GetSystemPrompt(selectedAssistant)
 	if err != nil {
 		return fmt.Errorf("error getting system prompt: %v", err)
 	}
-
 	if generateArgs.model == "" {
 		generateArgs.model = openai.GPT4o
 
 		// Ensure only one assistant is specified
-		// if len(generateArgs.assistant) != 1 {
-		// 	return errors.New("please specify exactly one assistant (cue, cel, or rego)")
-		// }
+		if len(generateArgs.assistant) > 1 {
+			return errors.New("please specify only one assistant (cue, cel, or rego)")
+		}
+
 		ctx, cancel := context.WithCancel(cmd.Context())
 		defer cancel()
 
@@ -88,11 +90,13 @@ func runGenerateCmd(cmd *cobra.Command, args []string) error {
 		fmt.Println(resp.Choices[0].Message.Content)
 		return nil
 	}
+
 	// Use default base URL if --endpoint is not provided
 	url := baseURL
 	if generateArgs.endpoint != "" {
 		url = generateArgs.endpoint
 	}
+
 	c, err := llm.NewDefaultConfig(url)
 	if err != nil {
 		return fmt.Errorf("error initializing ollama configurations:%v", err)
