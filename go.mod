@@ -8,7 +8,7 @@ require (
 	github.com/fatih/color v1.17.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/cel-go v0.21.0
-	github.com/google/go-containerregistry v0.20.1
+	github.com/google/go-containerregistry v0.20.2
 	github.com/google/go-github/v57 v57.0.0
 	github.com/hashicorp/hcl/v2 v2.21.0
 	github.com/jedib0t/go-pretty/v6 v6.5.9
@@ -104,7 +104,7 @@ require (
 	github.com/digitorus/pkcs7 v0.0.0-20230818184609-3a137a874352 // indirect
 	github.com/digitorus/timestamp v0.0.0-20231217203849-220c5c2851b7 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
-	github.com/docker/cli v24.0.7+incompatible // indirect
+	github.com/docker/cli v27.1.1+incompatible // indirect
 	github.com/docker/distribution v2.8.3+incompatible // indirect
 	github.com/docker/docker v26.1.5+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.8.0 // indirect
