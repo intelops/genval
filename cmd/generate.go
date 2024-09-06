@@ -58,16 +58,13 @@ func runGenerateCmd(cmd *cobra.Command, args []string) error {
 		}
 		model := m.(tui.GenerateModel)
 
-		generateArgs.prompt = model.TextInput.Value()
+		generateArgs.prompt = model.TextArea.Value()
 		selectedAssistant = model.SelectedAssistant
+		// Print the user input and assistant after Bubbletea quits
+		// fmt.Printf("\nSelected Assistant: %s\n", selectedAssistant)
+		// fmt.Printf("User Prompt: %s\n", generateArgs.prompt)
 	}
 
-	// Verify that exactly one assistant is selected
-	// if len(generateArgs.assistant) == 0 {
-	// 	return errors.New("please specify exactly one assistant (cue, cel, or rego)")
-	// }
-
-	// Proceed with the rest of your logic using the selected assistant and prompt
 	systemPrompt, err := llm.GetSystemPrompt(selectedAssistant)
 	if err != nil {
 		return fmt.Errorf("error getting system prompt: %v", err)

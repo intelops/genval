@@ -95,11 +95,11 @@ require (
 	github.com/buildkite/roko v1.2.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/charmbracelet/bubbles v0.19.0 // indirect
-	github.com/charmbracelet/bubbletea v0.27.0 // indirect
-	github.com/charmbracelet/lipgloss v0.12.1 // indirect
-	github.com/charmbracelet/x/ansi v0.1.4 // indirect
+	github.com/charmbracelet/bubbletea v1.1.0 // indirect
+	github.com/charmbracelet/lipgloss v0.13.0 // indirect
+	github.com/charmbracelet/x/ansi v0.2.3 // indirect
 	github.com/charmbracelet/x/input v0.1.0 // indirect
-	github.com/charmbracelet/x/term v0.1.1 // indirect
+	github.com/charmbracelet/x/term v0.2.0 // indirect
 	github.com/charmbracelet/x/windows v0.1.0 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
