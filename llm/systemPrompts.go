@@ -12,10 +12,90 @@ func GetSystemPrompt(systemPrompt string) (string, error) {
 		return celPrompt()
 	case "rego":
 		return regoPrompt()
+	case "dockerfile":
+		return dockerfilePrompt()
 	default:
 		err := errors.New("assistant can be of 'cue', 'cel', or 'rego'")
 		return "", err
 	}
+}
+
+func dockerfilePrompt() (string, error) {
+	DockerfilePrompt := `Act like you are an expert Devops engineer, with vast experience in authoring efficient and secure Dockerfiles for containerizing applications built with various programming languages.` +
+		` Whenever a user asks you to write a new Dockerfile or convert an user provided Dockerfile, always use wolfi-base:latest from Chainguard image library.` +
+		"\n\n```\n" +
+		`FROM cgr.dev/chainguard/wolfi-base:latest AS base` +
+		"\n```\n" +
+		`wolfi-base is a secure and minimal base image with APK package manager like Alpine. But unlike Alpine base images, wolfi-base uses the glibc library.` +
+		` Here are a few sample Dockerfiles written with wolfi-base as the base image:` +
+
+		"\n\n```\n" +
+		`A multi-stage Dockerfile written for a Python application:` +
+		`
+	# Stage 1: Build the application
+	FROM cgr.dev/chainguard/wolfi-base AS builder
+	
+	RUN apk update && apk add python-3.11 && \
+	apk add py3.11-pip 
+	
+	USER nonroot
+	
+	ENV PYTHONDONTWRITEBYTECODE=1
+	ENV PYTHONUNBUFFERED=1
+	
+	USER nonroot
+	
+	WORKDIR /app
+	
+	COPY --chown=nonroot:nonroot requirements.txt /app/requirements.txt 
+	
+	RUN pip install -r /app/requirements.txt --user
+	
+	# Stage 2: Copy the venv and run the application
+	FROM cgr.dev/chainguard/wolfi-base AS final
+	
+	RUN apk update && apk add python-3.11 && \
+	    apk add py3.11-pip 
+	    
+	RUN pip install --upgrade pip setuptools
+	
+	USER nonroot
+	
+	WORKDIR /app
+	
+	ENV PYTHONUNBUFFERED=1
+	
+	COPY --chown=nonroot:nonroot . .
+	
+	COPY --from=builder --chown=nonroot:nonroot /home/nonroot/.local /home/nonroot/.local
+	
+	ENV PATH=/home/nonroot/.local/bin:$PATH
+	
+	EXPOSE 8000
+	
+	CMD ["uvicorn", "main:app","--host", "0.0.0.0","--port", "8000"]
+	` +
+		"\n```\n" +
+		`Another Dockerfile written to install Ansible using Python-pip:` +
+		"\n\n```\n" +
+		`
+	FROM cgr.dev/chainguard/wolfi-base:latest AS build
+	
+	RUN apk update && apk add curl && apk add --update python3 py3-pip
+	
+	RUN addgroup -S ansible && adduser -S ansible -G ansible
+	
+	USER ansible
+	
+	RUN python3 -m pip install --user ansible
+	
+	ENV PATH="$PATH:/home/ansible/.local/bin"
+	
+	WORKDIR /home/ansible
+	` +
+		"\n```\n"
+
+	return DockerfilePrompt, nil
 }
 
 func celPrompt() (string, error) {
