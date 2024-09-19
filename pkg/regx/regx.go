@@ -3,8 +3,10 @@ package regx
 import (
 	"fmt"
 	"log"
+	"os"
 	"regexp"
 
+	"github.com/jedib0t/go-pretty/v6/table"
 	"gopkg.in/yaml.v2"
 
 	"github.com/intelops/genval/pkg/utils"
@@ -19,8 +21,12 @@ type PatternConfig struct {
 	} `yaml:"spec"`
 }
 
+// Metadata contains the details from the policy metadata section
 type Metadata struct {
-	Name string `yaml:"name"`
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Severity    string `yaml:"severity"`
+	Benchmark   string `yaml:"benchmark"`
 }
 
 // readYAML reads and parses a YAML file into the provided target structure
@@ -57,9 +63,24 @@ func ScanResourceFile(resourcePath string, patterns []string) bool {
 
 	fmt.Printf("Scanning file: %s\n", resourcePath)
 	if scanForPattern(string(content), patterns) {
-		fmt.Printf("The resource [%v] contains sensitive pattern: %v", resourcePath, patterns)
 		return false // Sensitive pattern found
 	}
-	fmt.Printf("No sensitive patterns found in resource: [%v]", resourcePath)
 	return true // No sensitive patterns found
+}
+
+// PrintResultTable prints the metadata and result in a formatted table
+func PrintResultTable(metadata Metadata, result string) {
+	t := table.NewWriter()
+	t.SetOutputMirror(os.Stdout)
+
+	t.AppendHeader(table.Row{"Name", "Description", "Severity", "Benchmark", "Result"})
+	t.AppendRow([]interface{}{
+		metadata.Name,
+		metadata.Description,
+		metadata.Severity,
+		metadata.Benchmark,
+		result,
+	})
+
+	t.Render()
 }
