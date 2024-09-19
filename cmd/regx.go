@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -49,12 +47,14 @@ func runRegxSearchCmd(cmd *cobra.Command, args []string) error {
 	// Perform the regex validation on the resource file
 	isPass := regx.ScanResourceFile(inputFile, patternConfig.Spec.Pattern)
 
-	// Print result: Pass/Fail
-	if isPass {
-		fmt.Printf("Pass: No sensitive information found in resource: %v\n", inputFile)
-	} else {
-		fmt.Printf("Fail: Sensitive information found in resource: %v\n", inputFile)
+	// Determine the result and print the table
+	result := "Pass"
+	if !isPass {
+		result = "Fail: Sensitive information found."
 	}
+
+	// Print the metadata and result in a table
+	regx.PrintResultTable(patternConfig.Metadata, result)
 
 	return nil
 }
