@@ -14,10 +14,35 @@ func GetSystemPrompt(systemPrompt string) (string, error) {
 		return regoPrompt()
 	case "dockerfile":
 		return dockerfilePrompt()
+	case "regex":
+		return regexPrompt()
 	default:
 		err := errors.New("assistant can be of 'cue', 'cel', or 'rego'")
 		return "", err
 	}
+}
+
+func regexPrompt() (string, error) {
+	RegexPrompt := `You are a expert security engineer, experienced in writing security policies to scan for sensitive information in IaC files and codebase.` +
+		`The regex policies for Genval are written as follows:` +
+		"\n\n```\n" +
+		`
+	apiVersion: genval/v1beta1
+  metadata:
+    name: test-pattern
+    description: Checks for sensitive information in the file
+    severity: Critical
+    benchmark: xyz
+  spec:
+    pattern:
+    - "password123"
+    - "token[:=]\\s*['\"]?[a-zA-Z0-9]+['\"]?"
+` +
+		"\n```\n" +
+		`The patterns in the spec.patterns are the Regex patterns which will be evaluated in Genval.` +
+		`Whenver a user as for Regex policy for Genvqal, please provide in the above format with user required regex patterns included.`
+
+	return RegexPrompt, nil
 }
 
 func dockerfilePrompt() (string, error) {
@@ -34,45 +59,45 @@ func dockerfilePrompt() (string, error) {
 		`
 	# Stage 1: Build the application
 	FROM cgr.dev/chainguard/wolfi-base AS builder
-	
+
 	RUN apk update && apk add python-3.11 && \
-	apk add py3.11-pip 
-	
+	apk add py3.11-pip
+
 	USER nonroot
-	
+
 	ENV PYTHONDONTWRITEBYTECODE=1
 	ENV PYTHONUNBUFFERED=1
-	
+
 	USER nonroot
-	
+
 	WORKDIR /app
-	
-	COPY --chown=nonroot:nonroot requirements.txt /app/requirements.txt 
-	
+
+	COPY --chown=nonroot:nonroot requirements.txt /app/requirements.txt
+
 	RUN pip install -r /app/requirements.txt --user
-	
+
 	# Stage 2: Copy the venv and run the application
 	FROM cgr.dev/chainguard/wolfi-base AS final
-	
+
 	RUN apk update && apk add python-3.11 && \
-	    apk add py3.11-pip 
-	    
+	    apk add py3.11-pip
+
 	RUN pip install --upgrade pip setuptools
-	
+
 	USER nonroot
-	
+
 	WORKDIR /app
-	
+
 	ENV PYTHONUNBUFFERED=1
-	
+
 	COPY --chown=nonroot:nonroot . .
-	
+
 	COPY --from=builder --chown=nonroot:nonroot /home/nonroot/.local /home/nonroot/.local
-	
+
 	ENV PATH=/home/nonroot/.local/bin:$PATH
-	
+
 	EXPOSE 8000
-	
+
 	CMD ["uvicorn", "main:app","--host", "0.0.0.0","--port", "8000"]
 	` +
 		"\n```\n" +
@@ -80,17 +105,17 @@ func dockerfilePrompt() (string, error) {
 		"\n\n```\n" +
 		`
 	FROM cgr.dev/chainguard/wolfi-base:latest AS build
-	
+
 	RUN apk update && apk add curl && apk add --update python3 py3-pip
-	
+
 	RUN addgroup -S ansible && adduser -S ansible -G ansible
-	
+
 	USER ansible
-	
+
 	RUN python3 -m pip install --user ansible
-	
+
 	ENV PATH="$PATH:/home/ansible/.local/bin"
-	
+
 	WORKDIR /home/ansible
 	` +
 		"\n```\n"
@@ -185,7 +210,7 @@ lossy: #Conn & {
 
 
 
-//conditional fields in Cue 
+//conditional fields in Cue
 price: number
 
 // High prices require a reason and the name of
