@@ -41,7 +41,7 @@ func init() {
 	// if err := generateCmd.MarkFlagRequired("prompt"); err != nil {
 	// 	fmt.Errorf("Error marking flag as required: %v", err)
 	// }
-	generateCmd.Flags().StringSliceVarP(&generateArgs.assistant, "assistant", "a", nil, "Specify the assistant to use to generate policies, currently supported: (eg: cue, cel, rego)")
+	generateCmd.Flags().StringSliceVarP(&generateArgs.assistant, "assistant", "a", nil, "Specify the assistant to use to generate policies, currently supported: (eg: cue, cel, rego, Dockerfile, Regex)")
 
 	rootCmd.AddCommand(generateCmd)
 }

@@ -28,8 +28,8 @@ func NewGenerateModel() GenerateModel {
 	ta := textarea.New()
 	ta.Placeholder = "Enter your prompt"
 	ta.Focus()
-	ta.SetWidth(50)
-	ta.SetHeight(10)
+	ta.SetWidth(100)
+	ta.SetHeight(20)
 	ta.KeyMap.InsertNewline.SetEnabled(false)
 	ta.KeyMap.DeleteWordBackward.SetEnabled(false)
 	ta.KeyMap.LineNext = key.NewBinding(key.WithKeys("down"))
@@ -38,7 +38,7 @@ func NewGenerateModel() GenerateModel {
 	ta.Prompt = "|"
 	ta.ShowLineNumbers = false
 	return GenerateModel{
-		Choices:  []string{"rego", "cel", "cue", "dockerfile"},
+		Choices:  []string{"rego", "cel", "cue", "dockerfile", "regex"},
 		Selected: 0,
 		Stage:    "assistant",
 		keymap: keymap{
