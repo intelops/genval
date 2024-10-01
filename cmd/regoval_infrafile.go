@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/intelops/genval/pkg/validate"
 )
 
 type infrafileFlags struct {
@@ -19,7 +20,6 @@ type infrafileFlags struct {
 var infrafileArgs infrafileFlags
 
 func init() {
-	infrafileCmd.Flags().StringVarP(&infrafileArgs.reqinput, "reqinput", "r", "", "Input JSON/YAML for validating Kubernetes configurations with Rego ")
 	if err := infrafileCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
