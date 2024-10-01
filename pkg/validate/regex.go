@@ -14,15 +14,15 @@ import (
 
 // PatternConfig represents the input YAML structure for regex patterns
 type PatternConfig struct {
-	APIVersion string   `yaml:"apiVersion"`
-	Metadata   Metadata `yaml:"metadata"`
+	APIVersion string         `yaml:"apiVersion"`
+	Metadata   PolicyMetadata `yaml:"metadata"`
 	Spec       struct {
 		Pattern []string `yaml:"pattern"`
 	} `yaml:"spec"`
 }
 
 // Metadata contains the details from the policy metadata section
-type Metadata struct {
+type PolicyMetadata struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 	Severity    string `yaml:"severity"`
@@ -33,7 +33,7 @@ type Metadata struct {
 func ReadRegxPolicy(path string, target interface{}) error {
 	data, err := utils.ReadFile(path)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to read the resource file: %w", err)
 	}
 
 	if err := yaml.Unmarshal(data, target); err != nil {
@@ -54,7 +54,7 @@ func scanForPattern(content string, patterns []string) bool {
 	return false
 }
 
-// scanResourceFile reads the provided file and scans it for sensitive info
+// ScanResourceFile reads the provided file and scans it for sensitive info.
 func ScanResourceFile(resourcePath string, patterns []string) bool {
 	content, err := utils.ReadFile(resourcePath)
 	if err != nil {
@@ -62,10 +62,7 @@ func ScanResourceFile(resourcePath string, patterns []string) bool {
 	}
 
 	fmt.Printf("Scanning file: %s\n", resourcePath)
-	if scanForPattern(string(content), patterns) {
-		return false // Sensitive pattern found
-	}
-	return true // No sensitive patterns found
+	return !scanForPattern(string(content), patterns) // Return the negation directly
 }
 
 // PrintResultTable prints the metadata and result in a formatted table
