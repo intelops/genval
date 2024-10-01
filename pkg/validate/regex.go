@@ -14,15 +14,15 @@ import (
 
 // PatternConfig represents the input YAML structure for regex patterns
 type PatternConfig struct {
-	APIVersion string         `yaml:"apiVersion"`
-	Metadata   PolicyMetadata `yaml:"metadata"`
-	Spec       struct {
+	APIVersion     string        `yaml:"apiVersion"`
+	PolicyMetadata RegexMetadata `yaml:"metadata"`
+	Spec           struct {
 		Pattern []string `yaml:"pattern"`
 	} `yaml:"spec"`
 }
 
 // Metadata contains the details from the policy metadata section
-type PolicyMetadata struct {
+type RegexMetadata struct {
 	Name        string `yaml:"name"`
 	Description string `yaml:"description"`
 	Severity    string `yaml:"severity"`
@@ -66,7 +66,7 @@ func ScanResourceFile(resourcePath string, patterns []string) bool {
 }
 
 // PrintResultTable prints the metadata and result in a formatted table
-func PrintResultTable(metadata Metadata, result string) {
+func PrintResultTable(metadata RegexMetadata, result string) {
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 

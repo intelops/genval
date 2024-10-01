@@ -16,7 +16,7 @@ var regexSearchArgs regexSearchFlags
 
 func init() {
 	regexSearchCmd.Flags().StringVarP(&regexSearchArgs.reqinput, "reqinput", "r", "", "Input file for validating against regex pattern")
-	if err := terraformCmd.MarkFlagRequired("reqinput"); err != nil {
+	if err := regexSearchCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
 	regexSearchCmd.Flags().StringVarP(&regexSearchArgs.policy, "policy", "p", "", "Path for the RegeX policy file, polciy can be passed from either Local or from remote URL")
@@ -24,12 +24,13 @@ func init() {
 }
 
 var regexSearchCmd = &cobra.Command{
-	Use:   "regx",
+	Use:   "regex",
 	Short: "Validate resource files with Regex policy match",
 	Long:  ``,
 	Example: `
 # Validate resource files with Regex policies
-
+genval regex --reqinput ./templates/inputs/k8s/deployment.json \
+  --policy ./templates/defaultpolicies/regex/policy.yaml
 	`,
 	RunE: runRegexSearchCmd,
 }
@@ -54,7 +55,7 @@ func runRegexSearchCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Print the metadata and result in a table
-	validate.PrintResultTable(patternConfig.Metadata, result)
+	validate.PrintResultTable(patternConfig.PolicyMetadata, result)
 
 	return nil
 }
