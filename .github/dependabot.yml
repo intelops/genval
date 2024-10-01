@@ -8,8 +8,10 @@ updates:
   - package-ecosystem: "gomod" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "weekly"
+    target-branch: "pre-main"
+    interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
+    target-branch: "pre-main"
     schedule:
       interval: "weekly"
