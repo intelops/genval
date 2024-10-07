@@ -67,4 +67,5 @@ lint: ## Run a linter on the codebase using golangci-lint.
 
 
 build: ## builds the GenVal app for defined OS/Arch by passing GOOS=$(GOOS) GOARCH=$GOARCH args.| Example usage `make build GOOS=linux GOARCH=amd64`
-	@GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o ./bin/genval .
+	@echo "Building genval binary..."
+	@GOOS=$(GOOS) GOARCH=$(GOARCH) CGO_LDFLAGS="-ljansson -lmagic" PKG_CONFIG_PATH=/usr/local/yara/lib/pkgconfig:$(PKG_CONFIG_PATH) go build -ldflags="-s -w" -buildvcs=false -v -o ./bin/genval .
