@@ -57,7 +57,7 @@ func runGenerateCmd(cmd *cobra.Command, args []string) error {
 		generateArgs.model = openai.GPT4o
 
 		// Ensure only one assistant is specified
-		if len(generateArgs.assistant) != 1 {
+		if len(generateArgs.assistant) == 0 {
 			return errors.New("please specify exactly one assistant (cue, cel, or rego)")
 		}
 		ctx, cancel := context.WithCancel(cmd.Context())
