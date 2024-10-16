@@ -1,9 +1,10 @@
 package llm
 
 import (
-	"errors"
 	"fmt"
+	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/intelops/genval/pkg/utils"
 )
@@ -19,7 +20,7 @@ func (sp *SystemPrompt) Format() string {
 
 // Load the content from a markdown/text file
 func loadPromptFromFile(promptType string) (*SystemPrompt, error) {
-	filePath := filepath.Join("prompts", promptType+"Prompt"+".md")
+	filePath := filepath.Join(os.Getenv("HOME"), System_Prompts+"/"+promptType+"Prompt"+".md")
 	content, err := utils.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load prompt file: %w", err)
@@ -33,14 +34,30 @@ func loadPromptFromFile(promptType string) (*SystemPrompt, error) {
 
 // GetSystemPrompt takes in the tool and returns the systemPrompt for the specific tool
 func GetSystemPrompt(tool string) (string, error) {
-	switch tool {
-	case "cue", "cel", "rego", "dockerfile", "regex":
-		prompt, err := loadPromptFromFile(tool)
-		if err != nil {
-			return "", err
-		}
-		return prompt.Format(), nil
-	default:
-		return "", errors.New("unsupported system prompt; options are: 'cue', 'cel', 'rego', 'dockerfile', 'regex'")
+	supportedTools, err := ExtractSupportedTools()
+	if err != nil {
+		return "", fmt.Errorf("error fetching list of supported tools: %v", err)
 	}
+
+	lowerCaseTool := strings.ToLower(tool)
+
+	if !isSupportedTool(lowerCaseTool, supportedTools) {
+		return "", fmt.Errorf("unsupported system prompt; options are: %v", supportedTools)
+	}
+
+	prompt, err := loadPromptFromFile(lowerCaseTool)
+	if err != nil {
+		return "", err
+	}
+	return prompt.Format(), nil
+}
+
+// isSupportedTool checks if the provided tool is in the supported tools list
+func isSupportedTool(tool string, supportedTools []string) bool {
+	for _, t := range supportedTools {
+		if strings.ToLower(t) == tool {
+			return true
+		}
+	}
+	return false
 }
