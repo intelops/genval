@@ -11,7 +11,7 @@ require (
 	github.com/google/go-containerregistry v0.20.2
 	github.com/google/go-github/v57 v57.0.0
 	github.com/hashicorp/hcl/v2 v2.21.0
-	github.com/jedib0t/go-pretty/v6 v6.5.9
+	github.com/jedib0t/go-pretty/v6 v6.6.1
 	github.com/joho/godotenv v1.5.1
 	github.com/open-policy-agent/opa v0.67.1
 	github.com/sigstore/cosign/v2 v2.4.0
