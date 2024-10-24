@@ -10,7 +10,6 @@ updates:
     schedule:
       interval: "weekly"
     target-branch: "pre-main"
-    interval: "weekly"
   - package-ecosystem: "github-actions"
     directory: "/"
     target-branch: "pre-main"
