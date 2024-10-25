@@ -15,8 +15,8 @@ const (
 	BaseURL          = "https://raw.githubusercontent.com/intelops/genval-prompts/refs/heads/main/genai/system_prompts/"
 )
 
-// LLMConfig holds the common configuration for both OpenAI and Ollama.
-type LLMConfig struct {
+// LLMSpec holds the common configuration for both OpenAI and Ollama.
+type LLMSpec struct {
 	// SystemPrompt, if any to be supplied by the user. Only applicable if the assistant is set to user
 	UserSystemPrompt string `yaml:"user-system-prompt,omitempty"`
 	// User Prompt to be supplied by the user
@@ -29,14 +29,25 @@ type LLMConfig struct {
 	APIKey string `yaml:"api_key,omitempty"`
 	// LLM Model to be used to interact with. Currently supported (OpenAI  and llama3)
 	Model            string  `yaml:"model,omitempty"`
-	MaxTokens        int     `yaml:"max_tokens,omitempty"`
-	PresencePenalty  float32 `yaml:"presence_penalty,omitempty"`
-	FrequencyPenalty float32 `yaml:"frequency_penalty,omitempty"`
-	TopP             float32 `yaml:"top_p,omitempty"`
+	MaxTokens        int     `yaml:"maxTokens,omitempty"`
+	PresencePenalty  float32 `yaml:"presencePenalty,omitempty"`
+	FrequencyPenalty float32 `yaml:"frequencyPenalty,omitempty"`
+	TopP             float32 `yaml:"topP,omitempty"`
 	Temperature      float32 `yaml:"temperature,omitempty"`
 	// URL for the LLM, if hosted locally
-	URL               string        `yaml:"url,omitempty"`
+	URL string `yaml:"url,omitempty"`
+	// TODO: Abstract the KeepAlive value into a utils func
 	KeepAliveDuration time.Duration `yaml:"keep_alive_duration,omitempty"`
+}
+
+type LLMMetadata struct {
+	name string
+}
+
+type LLMConfig struct {
+	apiVersion string
+	Metadata   LLMMetadata
+	LLMSpec    LLMSpec
 }
 
 type OllamaEndpoint struct {
@@ -46,14 +57,14 @@ type OllamaEndpoint struct {
 }
 
 // LoadConfig reads the configuration from the given file path.
-func LoadConfig(configFilePath string) (*LLMConfig, error) {
+func LoadConfig(configFilePath string) (*LLMSpec, error) {
 	file, err := os.Open(configFilePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open config file: %v", err)
 	}
 	defer file.Close()
 
-	config := &LLMConfig{}
+	config := &LLMSpec{}
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(config); err != nil {
 		return nil, fmt.Errorf("failed to decode config file: %v", err)
