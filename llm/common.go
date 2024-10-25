@@ -1,3 +1,5 @@
+// In llm/config.go
+
 package llm
 
 import (
@@ -17,37 +19,30 @@ const (
 
 // LLMSpec holds the common configuration for both OpenAI and Ollama.
 type LLMSpec struct {
-	// SystemPrompt, if any to be supplied by the user. Only applicable if the assistant is set to user
-	UserSystemPrompt string `yaml:"user-system-prompt,omitempty"`
-	// User Prompt to be supplied by the user
-	UserPrompt string `yaml:"userPrompt,omitempty"`
-	// LLM Backend
-	Backend string `yaml:"backend,omitempty"`
-	// Assistant to be used by the user for generating IaC files, supported are (Cue,CEL,Rego,Dockerfile,regex)
-	Assistant string `yaml:"assistant,omitempty"`
-	// API key to be supplied by the user. Currently used by the GPT4o Model only
-	APIKey string `yaml:"api_key,omitempty"`
-	// LLM Model to be used to interact with. Currently supported (OpenAI  and llama3)
-	Model            string  `yaml:"model,omitempty"`
-	MaxTokens        int     `yaml:"maxTokens,omitempty"`
-	PresencePenalty  float32 `yaml:"presencePenalty,omitempty"`
-	FrequencyPenalty float32 `yaml:"frequencyPenalty,omitempty"`
-	TopP             float32 `yaml:"topP,omitempty"`
-	Temperature      float32 `yaml:"temperature,omitempty"`
-	// URL for the LLM, if hosted locally
-	URL string `yaml:"url,omitempty"`
-	// TODO: Abstract the KeepAlive value into a utils func
-	KeepAliveDuration time.Duration `yaml:"keep_alive_duration,omitempty"`
+	UserSystemPrompt  string        `yaml:"userSystemPrompt,omitempty"`
+	UserPrompt        string        `yaml:"userPrompt,omitempty"`
+	Backend           string        `yaml:"backend,omitempty"`
+	Assistant         string        `yaml:"assistant"`
+	APIKey            string        `yaml:"apiKey,omitempty"`
+	Model             string        `yaml:"model,omitempty"`
+	MaxTokens         int           `yaml:"maxTokens,omitempty"`
+	PresencePenalty   float32       `yaml:"presencePenalty,omitempty"`
+	FrequencyPenalty  float32       `yaml:"frequencyPenalty,omitempty"`
+	TopP              float32       `yaml:"topP,omitempty"`
+	Temperature       float32       `yaml:"temperature,omitempty"`
+	URL               string        `yaml:"url,omitempty"`
+	KeepAliveDuration time.Duration `yaml:"keepAliveDuration,omitempty"`
 }
 
+// LLMMetadata and LLMConfig updated to match the YAML structure
 type LLMMetadata struct {
-	name string
+	Name string `yaml:"name"`
 }
 
 type LLMConfig struct {
-	apiVersion string
-	Metadata   LLMMetadata
-	LLMSpec    LLMSpec
+	APIVersion string      `yaml:"apiVersion,omitempty"`
+	Metadata   LLMMetadata `yaml:"metadata,omitempty"`
+	LLMSpec    LLMSpec     `yaml:"llmSpec"`
 }
 
 type OllamaEndpoint struct {
@@ -64,11 +59,12 @@ func LoadConfig(configFilePath string) (*LLMSpec, error) {
 	}
 	defer file.Close()
 
-	config := &LLMSpec{}
+	config := &LLMConfig{}
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(config); err != nil {
 		return nil, fmt.Errorf("failed to decode config file: %v", err)
 	}
 
-	return config, nil
+	// Return the LLMSpec part of the configuration
+	return &config.LLMSpec, nil
 }

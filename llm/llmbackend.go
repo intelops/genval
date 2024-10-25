@@ -28,18 +28,19 @@ type OllamaClient struct {
 
 // NewLLMClient initializes the correct LLM client based on the config.
 func NewLLMClient(cfg *LLMConfig) (interface{}, error) {
-	if cfg.LLMSpec.Backend == "openai" {
+	switch cfg.LLMSpec.Model {
+	case "GPT4":
 		// Create the OpenAI client
-		return &OpenAIClient{
-			client: openai.NewClient(cfg.LLMSpec.APIKey),
-			config: cfg,
-		}, nil
-	}
+		token, err := readEnv(cfg.LLMSpec.APIKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load OpenAI API key: %w", err)
+		}
+		client := openai.NewClient(token)
+		return &OpenAIClient{client: client, config: cfg}, nil
 
-	if cfg.LLMSpec.Backend == "ollama" {
+	case "ollama":
 		// Create and configure the Ollama client using only the relevant fields from LLMConfig
-		e := NewOllamaEndpoint("http", cfg.LLMSpec.URL, "11434") // Use the URL from cfg and default scheme/port
-
+		e := NewOllamaEndpoint("http", cfg.LLMSpec.URL, "11434")
 		client := ollama.NewClient(
 			&url.URL{
 				Scheme: e.Scheme,
@@ -47,36 +48,31 @@ func NewLLMClient(cfg *LLMConfig) (interface{}, error) {
 			},
 			http.DefaultClient,
 		)
-
 		if client == nil {
 			return nil, fmt.Errorf("failed to create Ollama client")
 		}
+		return &OllamaClient{client: client, config: cfg}, nil
 
-		// Return the Ollama client
-		return &OllamaClient{
-			client: client,
-			config: cfg,
-		}, nil
+	default:
+		return nil, fmt.Errorf("unsupported backend: %s", cfg.LLMSpec.Model)
 	}
-
-	// Unsupported backend error
-	return nil, fmt.Errorf("unsupported backend: %s", cfg.LLMSpec.Backend)
 }
 
 // readEnv returns the envvar set and returns error if env is empty or not set.
 func readEnv(key string) (string, error) {
-	key, found := os.LookupEnv(key)
-	if !found && key == "" {
+	value, found := os.LookupEnv(key)
+	if !found || value == "" {
 		return "", fmt.Errorf("environment variable %s not found", key)
 	}
-	return key, nil
+	return value, nil
 }
 
 func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (openai.ChatCompletionResponse, error) {
 	// Set up the configuration for OpenAI
 	cfg := &LLMConfig{
 		LLMSpec: LLMSpec{
-			APIKey: c.APIKey, // Ensure API key is set in LLMConfig
+			Model:  "GPT4",
+			APIKey: c.APIKey,
 		},
 	}
 
@@ -91,7 +87,7 @@ func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPro
 	if !ok {
 		return openai.ChatCompletionResponse{}, fmt.Errorf("failed to cast to OpenAIClient")
 	}
-	// TODO: Add validation to check if incorrect values in parameters supplied
+
 	// Prepare the ChatCompletion request
 	req := openai.ChatCompletionRequest{
 		Model:            c.Model,
@@ -138,15 +134,12 @@ func (c *LLMSpec) GenerateOllamaResponse(ctx context.Context, model, systemPromp
 	if c.Model == "" {
 		return "", errors.New("model name is required")
 	}
-	// Assume DefaultOllamaEndpoint returns scheme and host information
 	e := DefaultOllamaEndpoint()
-	// Extract the scheme and host from the URL
 	u, err := url.Parse(c.URL)
 	if err != nil {
 		return "", fmt.Errorf("error parsing endpoint: %v", err)
 	}
 	if u.Scheme == "" {
-		// Default to "http" if no scheme is provided
 		c.URL = net.JoinHostPort(e.Host, e.Port)
 	}
 	client := ollama.NewClient(
@@ -159,7 +152,7 @@ func (c *LLMSpec) GenerateOllamaResponse(ctx context.Context, model, systemPromp
 	if client == nil {
 		return "", errors.New("failed to create Ollama client")
 	}
-	// TODO: Add validation to check if incorrect values in parameters supplied
+
 	keepAliveDuration := c.KeepAliveDuration * time.Minute
 	req := &ollama.GenerateRequest{
 		Model:     c.Model,

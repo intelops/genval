@@ -20,7 +20,7 @@ func (sp *SystemPrompt) Format() string {
 
 // Load the content from a markdown/text file
 func loadPromptFromFile(promptType string) (*SystemPrompt, error) {
-	filePath := filepath.Join(os.Getenv("HOME"), "System_Prompts"+"/"+promptType+"Prompt"+".md")
+	filePath := filepath.Join(os.Getenv("HOME"), SystemPromptsDir+"/"+promptType+"Prompt"+".md")
 	content, err := utils.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load prompt file: %w", err)

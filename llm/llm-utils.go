@@ -113,7 +113,7 @@ func readMarkdownFile(filePath string) (string, error) {
 
 // ExtractSupportedTools takes the content of a Markdown file and extracts supported_tools into a slice.
 func ExtractSupportedTools() ([]string, error) {
-	filePath := filepath.Join(os.Getenv("HOME"), "Supported_Tools")
+	filePath := filepath.Join(os.Getenv("HOME"), SupportedTools)
 	content, err := readMarkdownFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("error reading list of supported tools: %v", err)
