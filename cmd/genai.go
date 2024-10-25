@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/llm"
@@ -137,7 +138,8 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	// Conditionally call the appropriate LLM backend based on the model defined
 	ctx := context.Background()
 	if cfg.Model == "GPT4" {
-		resp, err := cfg.GenerateOpenAIResponse(ctx, cfg.Backend, systemPrompt, userPromptContent)
+		cfg.Model = openai.GPT4o
+		resp, err := cfg.GenerateOpenAIResponse(ctx, cfg.Model, systemPrompt, userPromptContent)
 		if err != nil {
 			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
