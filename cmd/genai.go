@@ -83,8 +83,8 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 
 	var systemPrompt string
 
-	if genaiArgs.assistant == "user" || cfg.Assistant == "user" {
-		if genaiArgs.userSystemPrompt == "" || cfg.UserSystemPrompt == "" {
+	if cfg.Assistant == "user" {
+		if cfg.UserSystemPrompt == "" {
 			return fmt.Errorf("user-system-prompt must be provided when assistant is set to 'user'")
 		}
 
@@ -103,26 +103,47 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	var localFilePath, remoteFilePath string
 	if cfg.Assistant != "user" {
-		localFilePath = filepath.Join(os.Getenv("HOME"), llm.SystemPromptsDir+"/"+supportedTool+"Prompt.md")
-		remoteFilePath = llm.BaseURL + supportedTool + "Prompt.md"
+		localFilePath := filepath.Join(os.Getenv("HOME"), llm.SystemPromptsDir+"/"+supportedTool+"Prompt.md")
+		remoteFilePath := llm.BaseURL + supportedTool + "Prompt.md"
+
+		if err := llm.ValidateSystemPrompt(localFilePath, remoteFilePath); err != nil {
+			fmt.Errorf("error validatin local and remote files: %v", err)
+		}
 	}
 
-	if err := llm.ValidateSystemPrompt(localFilePath, remoteFilePath); err != nil {
-		fmt.Errorf("error validatin local and remote files: %v", err)
+	if cfg.UserSystemPrompt != "" {
+		usc, err := utils.ReadFile(cfg.UserSystemPrompt)
+		if err != nil {
+			fmt.Errorf("error reading user-system-prompt file: %v", err)
+		}
+		systemPrompt = string(usc)
 	}
 
-	// Conditionally call the appropriate LLM backend based on the model
+	var userPromptContent string
+
+	if cfg.UserPrompt != "" {
+		upc, err := utils.ReadFile(cfg.UserPrompt)
+		if err != nil {
+			return fmt.Errorf("error reading user prompt file path: %v", err)
+		}
+		userPromptContent = string(upc)
+
+		if genaiArgs.prompt != "" {
+			userPromptContent = genaiArgs.prompt
+		}
+	}
+
+	// Conditionally call the appropriate LLM backend based on the model defined
 	ctx := context.Background()
 	if cfg.Model == "GPT4" {
-		resp, err := cfg.GenerateOpenAIResponse(ctx, cfg.Backend, systemPrompt, cfg.UserPrompt)
+		resp, err := cfg.GenerateOpenAIResponse(ctx, cfg.Backend, systemPrompt, userPromptContent)
 		if err != nil {
 			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
 		fmt.Println("OpenAI Response:", resp)
 	} else if cfg.Model == "ollama" {
-		resp, err := cfg.GenerateOllamaResponse(ctx, cfg.Model, systemPrompt, cfg.UserPrompt)
+		resp, err := cfg.GenerateOllamaResponse(ctx, cfg.Model, systemPrompt, userPromptContent)
 		if err != nil {
 			return fmt.Errorf("failed to generate Ollama response: %w", err)
 		}
@@ -168,13 +189,7 @@ func mergeFlagsWithConfig(spec *llm.LLMSpec) {
 	if genaiArgs.endpoint != "" {
 		spec.URL = genaiArgs.endpoint
 	}
-	if genaiArgs.prompt != "" {
-		spec.UserPrompt = genaiArgs.prompt
-	}
 	if genaiArgs.assistant != "" {
 		spec.Assistant = genaiArgs.assistant
-	}
-	if genaiArgs.userSystemPrompt != "" {
-		spec.UserSystemPrompt = genaiArgs.userSystemPrompt
 	}
 }

@@ -91,7 +91,7 @@ func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPro
 	if !ok {
 		return openai.ChatCompletionResponse{}, fmt.Errorf("failed to cast to OpenAIClient")
 	}
-
+	// TODO: Add validation to check if incorrect values in parameters supplied
 	// Prepare the ChatCompletion request
 	req := openai.ChatCompletionRequest{
 		Model:            c.Model,
@@ -159,6 +159,7 @@ func (c *LLMSpec) GenerateOllamaResponse(ctx context.Context, model, systemPromp
 	if client == nil {
 		return "", errors.New("failed to create Ollama client")
 	}
+	// TODO: Add validation to check if incorrect values in parameters supplied
 	keepAliveDuration := c.KeepAliveDuration * time.Minute
 	req := &ollama.GenerateRequest{
 		Model:     c.Model,
