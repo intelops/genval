@@ -28,10 +28,22 @@ type OllamaClient struct {
 
 // NewLLMClient initializes the correct LLM client based on the config.
 func NewLLMClient(cfg *LLMConfig) (interface{}, error) {
+	var key string
+	if cfg.LLMSpec.APIKey == "" {
+		// Read the OPENAI_KEY environment variable directly if APIKey is not provided
+		key = "OPENAI_KEY"
+		if key == "" {
+			return nil, fmt.Errorf("OPENAI_KEY environment variable is not set")
+		}
+	} else {
+		// Use APIKey from the configuration
+		key = cfg.LLMSpec.APIKey
+	}
+
 	switch cfg.LLMSpec.Model {
 	case "GPT4":
 		// Create the OpenAI client
-		token, err := readEnv(cfg.LLMSpec.APIKey)
+		token, err := readEnv(key)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load OpenAI API key: %w", err)
 		}

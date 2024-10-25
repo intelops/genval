@@ -123,16 +123,16 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 
 	var userPromptContent string
 
-	if cfg.UserPrompt != "" {
+	// Check if the --prompt flag is provided, if so, use it directly as a string
+	if genaiArgs.prompt != "" {
+		userPromptContent = genaiArgs.prompt
+	} else if cfg.UserPrompt != "" {
+		// If no --prompt flag, check if a file path is provided in the config
 		upc, err := utils.ReadFile(cfg.UserPrompt)
 		if err != nil {
 			return fmt.Errorf("error reading user prompt file path: %v", err)
 		}
 		userPromptContent = string(upc)
-
-		if genaiArgs.prompt != "" {
-			userPromptContent = genaiArgs.prompt
-		}
 	}
 
 	// Conditionally call the appropriate LLM backend based on the model defined
