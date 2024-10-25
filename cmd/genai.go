@@ -3,10 +3,14 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/llm"
+	"github.com/intelops/genval/pkg/utils"
 )
 
 var genaiCmd = &cobra.Command{
@@ -56,17 +60,69 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
+	st, err := llm.ExtractSupportedTools()
+	if err != nil {
+		return err
+	}
+
+	var supportedTool string
+	found := false
+
+	for _, tool := range st {
+		tool = strings.ToLower(tool)
+		if genaiArgs.assistant == tool || cfg.Assistant == tool {
+			supportedTool = tool
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("unsupported tool %s provided", cfg.Assistant)
+	}
+
+	var systemPrompt string
+
+	if genaiArgs.assistant == "user" || cfg.Assistant == "user" {
+		if genaiArgs.userSystemPrompt == "" || cfg.UserSystemPrompt == "" {
+			return fmt.Errorf("user-system-prompt must be provided when assistant is set to 'user'")
+		}
+
+		// TODO: Read either geaiArgs or cfg userSystemnPrompt, whichever is provided
+		content, err := utils.ReadFile(cfg.UserSystemPrompt)
+		if err != nil {
+			return fmt.Errorf("error reading user system prompt file: %v", err)
+		}
+
+		systemPrompt = string(content)
+	} else {
+		var err error
+		systemPrompt, err = llm.GetSystemPrompt(supportedTool)
+		if err != nil {
+			return fmt.Errorf("error getting system prompt: %v", err)
+		}
+	}
+
+	var localFilePath, remoteFilePath string
+	if cfg.Assistant != "user" {
+		localFilePath = filepath.Join(os.Getenv("HOME"), llm.SystemPromptsDir+"/"+supportedTool+"Prompt.md")
+		remoteFilePath = llm.BaseURL + supportedTool + "Prompt.md"
+	}
+
+	if err := llm.ValidateSystemPrompt(localFilePath, remoteFilePath); err != nil {
+		fmt.Errorf("error validatin local and remote files: %v", err)
+	}
 
 	// Conditionally call the appropriate LLM backend based on the model
 	ctx := context.Background()
 	if cfg.Model == "GPT4" {
-		resp, err := cfg.GenerateOpenAIResponse(ctx, cfg.Backend, cfg.UserSystemPrompt, cfg.UserPrompt)
+		resp, err := cfg.GenerateOpenAIResponse(ctx, cfg.Backend, systemPrompt, cfg.UserPrompt)
 		if err != nil {
 			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
 		fmt.Println("OpenAI Response:", resp)
 	} else if cfg.Model == "ollama" {
-		resp, err := cfg.GenerateOllamaResponse(ctx, cfg.Model, cfg.UserSystemPrompt, cfg.UserPrompt)
+		resp, err := cfg.GenerateOllamaResponse(ctx, cfg.Model, systemPrompt, cfg.UserPrompt)
 		if err != nil {
 			return fmt.Errorf("failed to generate Ollama response: %w", err)
 		}
@@ -79,24 +135,23 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 }
 
 // loadConfig loads the configuration from either flags or config file.
-func loadConfig() (*llm.LLMConfig, error) {
-	// If config file is provided, load from it
+func loadConfig() (*llm.LLMSpec, error) {
 	if configFile != "" {
-		config, err := llm.LoadConfig(configFile)
+		spec, err := llm.LoadConfig(configFile)
 		if err != nil {
 			return nil, err
 		}
-		mergeFlagsWithConfig(config)
-		return config, nil
+		mergeFlagsWithConfig(spec)
+		return spec, nil
 	}
 
-	// If no config file is provided, load from flags
+	// No config file provided, load from flags
 	return loadConfigFromFlags(), nil
 }
 
 // loadConfigFromFlags loads configuration from Cobra flags.
-func loadConfigFromFlags() *llm.LLMConfig {
-	return &llm.LLMConfig{
+func loadConfigFromFlags() *llm.LLMSpec {
+	return &llm.LLMSpec{
 		Model:            genaiArgs.model,
 		URL:              genaiArgs.endpoint,
 		UserPrompt:       genaiArgs.prompt,
@@ -105,21 +160,21 @@ func loadConfigFromFlags() *llm.LLMConfig {
 	}
 }
 
-// mergeFlagsWithConfig merges the flag values with the config if the flag values are not empty.
-func mergeFlagsWithConfig(config *llm.LLMConfig) {
+// mergeFlagsWithConfig merges the flag values with the config (if flag values are not empty).
+func mergeFlagsWithConfig(spec *llm.LLMSpec) {
 	if genaiArgs.model != "" {
-		config.Model = genaiArgs.model
+		spec.Model = genaiArgs.model
 	}
 	if genaiArgs.endpoint != "" {
-		config.URL = genaiArgs.endpoint
+		spec.URL = genaiArgs.endpoint
 	}
 	if genaiArgs.prompt != "" {
-		config.UserPrompt = genaiArgs.prompt
+		spec.UserPrompt = genaiArgs.prompt
 	}
 	if genaiArgs.assistant != "" {
-		config.Assistant = genaiArgs.assistant
+		spec.Assistant = genaiArgs.assistant
 	}
 	if genaiArgs.userSystemPrompt != "" {
-		config.UserSystemPrompt = genaiArgs.userSystemPrompt
+		spec.UserSystemPrompt = genaiArgs.userSystemPrompt
 	}
 }

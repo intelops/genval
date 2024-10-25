@@ -28,17 +28,17 @@ type OllamaClient struct {
 
 // NewLLMClient initializes the correct LLM client based on the config.
 func NewLLMClient(cfg *LLMConfig) (interface{}, error) {
-	if cfg.Backend == "openai" {
+	if cfg.LLMSpec.Backend == "openai" {
 		// Create the OpenAI client
 		return &OpenAIClient{
-			client: openai.NewClient(cfg.APIKey),
+			client: openai.NewClient(cfg.LLMSpec.APIKey),
 			config: cfg,
 		}, nil
 	}
 
-	if cfg.Backend == "ollama" {
+	if cfg.LLMSpec.Backend == "ollama" {
 		// Create and configure the Ollama client using only the relevant fields from LLMConfig
-		e := NewOllamaEndpoint("http", cfg.URL, "11434") // Use the URL from cfg and default scheme/port
+		e := NewOllamaEndpoint("http", cfg.LLMSpec.URL, "11434") // Use the URL from cfg and default scheme/port
 
 		client := ollama.NewClient(
 			&url.URL{
@@ -60,7 +60,7 @@ func NewLLMClient(cfg *LLMConfig) (interface{}, error) {
 	}
 
 	// Unsupported backend error
-	return nil, fmt.Errorf("unsupported backend: %s", cfg.Backend)
+	return nil, fmt.Errorf("unsupported backend: %s", cfg.LLMSpec.Backend)
 }
 
 // readEnv returns the envvar set and returns error if env is empty or not set.
@@ -72,10 +72,12 @@ func readEnv(key string) (string, error) {
 	return key, nil
 }
 
-func (c *LLMConfig) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (openai.ChatCompletionResponse, error) {
+func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (openai.ChatCompletionResponse, error) {
 	// Set up the configuration for OpenAI
 	cfg := &LLMConfig{
-		APIKey: c.APIKey, // Ensure API key is set in LLMConfig
+		LLMSpec: LLMSpec{
+			APIKey: c.APIKey, // Ensure API key is set in LLMConfig
+		},
 	}
 
 	// Create the OpenAI client using NewLLMClient
@@ -132,7 +134,7 @@ func DefaultOllamaEndpoint() OllamaEndpoint {
 	return NewOllamaEndpoint("http", "localhost", "11434")
 }
 
-func (c *LLMConfig) GenerateOllamaResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
+func (c *LLMSpec) GenerateOllamaResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
 	if c.Model == "" {
 		return "", errors.New("model name is required")
 	}
@@ -171,7 +173,7 @@ func (c *LLMConfig) GenerateOllamaResponse(ctx context.Context, model, systemPro
 		return nil
 	}
 	if err := client.Generate(ctx, req, respFunc); err != nil {
-		return "", fmt.Errorf("error generating response from ollama", err)
+		return "", fmt.Errorf("error generating response from ollama: %v", err)
 	}
 	return reply, nil
 }
