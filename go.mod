@@ -1,6 +1,7 @@
 module github.com/intelops/genval
 
 go 1.22.5
+toolchain go1.23.2
 
 require (
 	cuelang.org/go v0.10.0
@@ -24,7 +25,7 @@ require (
 	golang.org/x/oauth2 v0.22.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
-	sigs.k8s.io/release-utils v0.8.4
+	sigs.k8s.io/release-utils v0.8.5
 )
 
 require (
