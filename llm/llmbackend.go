@@ -79,7 +79,7 @@ func readEnv(key string) (string, error) {
 	return value, nil
 }
 
-func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (openai.ChatCompletionResponse, error) {
+func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (string, error) {
 	// Set up the configuration for OpenAI
 	cfg := &LLMConfig{
 		LLMSpec: LLMSpec{
@@ -91,13 +91,13 @@ func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPro
 	// Create the OpenAI client using NewLLMClient
 	client, err := NewLLMClient(cfg)
 	if err != nil {
-		return openai.ChatCompletionResponse{}, fmt.Errorf("failed to initialize LLM client: %w", err)
+		return "", fmt.Errorf("failed to initialize LLM client: %w", err)
 	}
 
 	// Cast the client to OpenAIClient since we are working with OpenAI
 	openaiClient, ok := client.(*OpenAIClient)
 	if !ok {
-		return openai.ChatCompletionResponse{}, fmt.Errorf("failed to cast to OpenAIClient")
+		return "", fmt.Errorf("failed to cast to OpenAIClient")
 	}
 
 	// Prepare the ChatCompletion request
@@ -121,11 +121,11 @@ func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPro
 	// Send the request to OpenAI API
 	resp, err := openaiClient.client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		return openai.ChatCompletionResponse{}, fmt.Errorf("failed to generate OpenAI response: %w", err)
+		return "", fmt.Errorf("failed to generate OpenAI response: %w", err)
 	}
 
 	// Return the response
-	return resp, nil
+	return resp.Choices[0].Message.Content, nil
 }
 
 // NewOllamaEndpoint creates a new OllamaEndpoint with the provided scheme, host, and port.
