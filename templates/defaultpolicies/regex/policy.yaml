@@ -1,0 +1,10 @@
+apiVersion: genval/v1beta1
+metadata:
+  name: test-pattern
+  description: Checks for sensitive information in the file
+  severity: Critical
+  benchmark: xyz
+spec:
+  pattern:
+    - "password123"
+    - "token[:=]\\s*['\"]?[a-zA-Z0-9]+['\"]?"
