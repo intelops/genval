@@ -25,6 +25,7 @@ type LLMSpec struct {
 	Assistant         string        `yaml:"assistant"`
 	APIKey            string        `yaml:"apiKey,omitempty"`
 	Model             string        `yaml:"model,omitempty"`
+	Output            string        `yaml:"output,omitempty"`
 	MaxTokens         int           `yaml:"maxTokens,omitempty"`
 	PresencePenalty   float32       `yaml:"presencePenalty,omitempty"`
 	FrequencyPenalty  float32       `yaml:"frequencyPenalty,omitempty"`

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/fatih/color"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 
@@ -34,6 +35,7 @@ type genaiFlags struct {
 	assistant        string
 	userSystemPrompt string
 	backend          string
+	output           string
 }
 
 var (
@@ -49,6 +51,7 @@ func init() {
 	genaiCmd.Flags().StringVarP(&genaiArgs.assistant, "assistant", "a", "", "Specify the assistant for generating IaC files")
 	genaiCmd.Flags().StringVarP(&genaiArgs.userSystemPrompt, "user-system-prompt", "u", "", "Provide the system prompt. Only if assistant is set to user")
 	genaiCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to config file (YAML format)")
+	genaiCmd.Flags().StringVarP(&genaiArgs.output, "output", "o", "", "Path to output file to store output from the LLM agent")
 
 	// Add the genai command to root
 	rootCmd.AddCommand(genaiCmd)
@@ -134,24 +137,31 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		}
 		userPromptContent = string(upc)
 	}
-
+	outputPath := getOutputPath(genaiArgs, cfg)
 	// Conditionally call the appropriate LLM backend based on the model defined
 	ctx := context.Background()
-	if cfg.Model == "GPT4" {
-		cfg.Model = openai.GPT4o
-		resp, err := cfg.GenerateOpenAIResponse(ctx, cfg.Model, systemPrompt, userPromptContent)
-		if err != nil {
-			return fmt.Errorf("failed to generate OpenAI response: %w", err)
-		}
-		fmt.Println("OpenAI Response:", resp)
-	} else if cfg.Model == "ollama" {
-		resp, err := cfg.GenerateOllamaResponse(ctx, cfg.Model, systemPrompt, userPromptContent)
-		if err != nil {
-			return fmt.Errorf("failed to generate Ollama response: %w", err)
-		}
-		fmt.Println("Ollama Response:", resp)
-	} else {
+	var response string
+
+	switch cfg.Model {
+	case "GPT4":
+		cfg.Model = openai.GPT4
+		response, err = cfg.GenerateOpenAIResponse(ctx, cfg.Model, systemPrompt, userPromptContent)
+	case "ollama":
+		response, err = cfg.GenerateOllamaResponse(ctx, cfg.Model, systemPrompt, userPromptContent)
+	default:
 		return fmt.Errorf("unsupported model: %s", cfg.Model)
+	}
+	if err != nil {
+		return fmt.Errorf("failed to generate response: %w", err)
+	}
+
+	if outputPath != "" {
+		if err := llm.WriteOutput(outputPath, response); err != nil {
+			return fmt.Errorf("error writing output to file: %v", err)
+		}
+		color.Green("Genval Response written to: [%s]\n", outputPath)
+	} else {
+		fmt.Printf("Genval Response:\n%s", response)
 	}
 
 	return nil
@@ -194,4 +204,12 @@ func mergeFlagsWithConfig(spec *llm.LLMSpec) {
 	if genaiArgs.assistant != "" {
 		spec.Assistant = genaiArgs.assistant
 	}
+}
+
+// getOutputPath returns the output path from either genaiArgs or cfg.
+func getOutputPath(args genaiFlags, cfg *llm.LLMSpec) string {
+	if args.output != "" {
+		return args.output
+	}
+	return cfg.Output
 }

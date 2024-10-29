@@ -38,8 +38,6 @@ func DownloadLLMResources() error {
 			return fmt.Errorf("failed to download from directory %s: %v", dir, err)
 		}
 	}
-
-	fmt.Println("All files downloaded successfully with directory hierarchy.")
 	return nil
 }
 
@@ -84,8 +82,6 @@ func downloadFile(url string, destDir, fileName string) error {
 	if _, err = io.Copy(out, resp.Body); err != nil {
 		return fmt.Errorf("failed to copy file contents: %v", err)
 	}
-
-	fmt.Printf("%s downloaded successfully.\n", fileName)
 	return nil
 }
 
@@ -130,4 +126,34 @@ func ExtractSupportedTools() ([]string, error) {
 	}
 
 	return keywords, nil
+}
+
+// WriteOutput takes content from LLM backend and writes it to a specified file.
+// It creates the file if it does not exist.
+func WriteOutput(filename string, resp string) error {
+	if filename == "" {
+		return fmt.Errorf("filename cannot be empty")
+	}
+
+	// Ensure the directory exists before creating the file
+	dir := filepath.Dir(filename)
+	if dir != "" { // Check if there's a directory part in the path
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			return fmt.Errorf("error creating directory for output file: %w", err)
+		}
+	}
+
+	// Create the file with write-only permissions, setting permissions to 0644
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("error opening/creating file: %w", err)
+	}
+	defer file.Close()
+
+	// Write content to file after converting it to a string
+	_, err = fmt.Fprint(file, resp)
+	if err != nil {
+		return fmt.Errorf("error writing to file: %w", err)
+	}
+	return nil
 }

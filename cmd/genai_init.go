@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/llm"
@@ -26,6 +27,6 @@ func runGenAIInitCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("error downloading LLM resources: %v", err)
 	}
 
-	fmt.Println("Initialization complete. You can now use 'genval genai' with your configuration.")
+	color.Green("Initialization complete. You can now use 'genval genai' with your configuration.\n")
 	return nil
 }
