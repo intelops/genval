@@ -1,21 +1,39 @@
 package llm
 
-// LLMSpec holds the common configuration for both OpenAI and Ollama.
+import (
+	"fmt"
+	"os"
+	"time"
+
+	"gopkg.in/yaml.v3"
+)
+
 type LLMSpec struct {
-	UserSystemPrompt  string        `yaml:"userSystemPrompt,omitempty"`
-	UserPrompt        string        `yaml:"userPrompt,omitempty"`
-	Backend           string        `yaml:"backend,omitempty"`
-	Assistant         string        `yaml:"assistant"`
-	APIKey            string        `yaml:"apiKey,omitempty"`
-	Model             string        `yaml:"model,omitempty"`
-	Output            string        `yaml:"output,omitempty"`
-	MaxTokens         int           `yaml:"maxTokens,omitempty"`
-	PresencePenalty   float32       `yaml:"presencePenalty,omitempty"`
-	FrequencyPenalty  float32       `yaml:"frequencyPenalty,omitempty"`
-	TopP              float32       `yaml:"topP,omitempty"`
-	Temperature       float32       `yaml:"temperature,omitempty"`
-	URL               string        `yaml:"url,omitempty"`
-	KeepAliveDuration time.Duration `yaml:"keepAliveDuration,omitempty"`
+	CommonSpec *commonSpec
+	OpenAISpec *openAISpec
+	OllamaSpec *ollamaSpec
+}
+
+type commonSpec struct {
+	UserPrompt       string
+	UserSystemPrompt string
+	Assistant        string
+	Output           string
+}
+
+type openAISpec struct {
+	Model      string
+	APIKey     string
+	Temprature float32
+	TopP       float32
+	Streaming  bool
+	MaxTokens  int
+}
+
+type ollamaSpec struct {
+	Endpoint          string
+	KeepAliveSuration time.Duration
+	URL               string
 }
 
 // LLMMetadata and LLMConfig updated to match the YAML structure
