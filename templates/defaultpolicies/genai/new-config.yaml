@@ -2,7 +2,7 @@ apiVersion: genval/genai/v1beta1
 metadata:
   name: test-config
 llmSpec:
-  providers: #Required
+  common: #Required
     userPrompt:
     userSystemPrompt: # Optional, when assistant is set to user
     assistant:
