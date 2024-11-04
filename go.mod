@@ -6,7 +6,7 @@ toolchain go1.23.2
 require (
 	cuelang.org/go v0.10.0
 	github.com/briandowns/spinner v1.23.1
-	github.com/fatih/color v1.17.0
+	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.12.0
 	github.com/google/cel-go v0.21.0
 	github.com/google/go-containerregistry v0.20.2
