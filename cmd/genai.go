@@ -40,7 +40,6 @@ var (
 )
 
 func init() {
-	// Define Cobra flags
 	genaiCmd.Flags().StringVarP(&genaiArgs.model, "model", "m", "", "Select the AI model (e.g., GPT4 or Ollama)")
 	genaiCmd.Flags().StringVarP(&genaiArgs.endpoint, "endpoint", "e", "", "Specify the endpoint for the LLM")
 	genaiCmd.Flags().StringVarP(&genaiArgs.prompt, "prompt", "p", "", "Provide the user prompt for LLM")
@@ -61,13 +60,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// Step 1: Ensure required resources are downloaded
-	err = llm.DownloadLLMResources()
-	if err != nil {
-		return fmt.Errorf("error downloading LLM resources: %v", err)
-	}
-
-	// Step 2: Extract supported tools and validate assistant
+	// Extract supported tools and validate assistant
 	st, err := llm.ExtractSupportedTools()
 	if err != nil {
 		return err
@@ -89,47 +82,89 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unsupported tool %s provided", cfg.Common.Assistant)
 	}
 
-	// Step 3: Retrieve system prompt based on the assistant
-	systemPrompt, err := getSystemPrompt(cfg, supportedTool)
-	if err != nil {
-		return err
+	var systemPrompt string
+
+	if cfg.Common.Assistant == "user" {
+		if cfg.Common.UserSystemPrompt == "" {
+			return fmt.Errorf("user-system-prompt 'must' be set when Assistant is set to 'user': %v", err)
+		}
+		content, err := utils.ReadFile(cfg.Common.UserSystemPrompt)
+		if err != nil {
+			return fmt.Errorf("error reading user-system-prompt file: %v", err)
+		}
+		systemPrompt = string(content)
+	} else {
+		var err error
+		// Step 3: Retrieve system prompt based on the assistant
+		systemPrompt, err = llm.GetSystemPrompt(supportedTool)
+		if err != nil {
+			return err
+		}
 	}
 
-	// Step 4: Get user prompt content
-	userPromptContent, err := getUserPrompt(cfg, genaiArgs)
-	if err != nil {
-		return err
+	if cfg.Common.Assistant != "user" {
+		localFilePath := filepath.Join(os.Getenv("HOME"), llm.SystemPromptsDir+"/"+supportedTool+"Prompt.md")
+		remoteFilePath := llm.BaseURL + supportedTool + "Prompt.md"
+
+		if err := llm.ValidateSystemPrompt(localFilePath, remoteFilePath); err != nil {
+			fmt.Errorf("provided systemPrompts do not match: %v", err)
+		}
 	}
 
-	// Step 5: Determine output path for LLM response
+	if cfg.Common.UserSystemPrompt != "" {
+		usc, err := utils.ReadFile(cfg.Common.UserSystemPrompt)
+		if err != nil {
+			return fmt.Errorf("error reading user-system-prompt fil: %v", err)
+		}
+		systemPrompt = string(usc)
+	}
+
+	var userPromptContent string
+
+	// Check if the --prompt flag is provided, if so, use it directly as a string
+	if genaiArgs.prompt != "" {
+		userPromptContent = genaiArgs.prompt
+	} else if cfg.Common.UserPrompt != "" {
+		// If no --prompt flag, check if a file path is provided in the config
+		upc, err := utils.ReadFile(cfg.Common.UserPrompt)
+		if err != nil {
+			return fmt.Errorf("error reading user prompt file path: %v", err)
+		}
+		userPromptContent = string(upc)
+	}
+	// Determine output path for LLM response
 	outputPath := getOutputPath(genaiArgs, cfg)
 
 	// Step 6: Generate response based on the model and backend
 	ctx := context.Background()
 	var response string
-	openAIConfig := cfg.LLMSpec.OpenAIConfig
-	ollamaConfig := cfg.LLMSpec.OllamaConfig
-	switch cfg.LLMSpec.OpenAIConfig.Model {
+	openAIConfig := cfg.LLMParams.OpenAIConfig
+	ollamaConfig := cfg.LLMParams.OllamaConfig
+	switch cfg.LLMParams.OpenAIConfig.Model {
 	case "GPT4":
 		openAIConfig.Model = openai.GPT4
-		response, err = openAIConfig.GenerateOpenAIResponse(ctx, cfg.LLMSpec.OpenAIConfig.Model, systemPrompt, userPromptContent)
+		response, err = openAIConfig.GenerateOpenAIResponse(ctx, cfg.LLMParams.OpenAIConfig.Model, systemPrompt, userPromptContent)
 	case "ollama":
-		response, err = ollamaConfig.GenerateOllamaResponse(ctx, cfg.LLMSpec.OllamaConfig.Model, systemPrompt, userPromptContent)
+		response, err = ollamaConfig.GenerateOllamaResponse(ctx, cfg.LLMParams.OllamaConfig.Model, systemPrompt, userPromptContent)
 	default:
-		return fmt.Errorf("unsupported model: %s", cfg.LLMSpec.OpenAIConfig.Model)
+		return fmt.Errorf("unsupported model: %s", cfg.LLMParams.OpenAIConfig.Model)
 	}
 
 	if err != nil {
 		return fmt.Errorf("error generating response: %v", err)
 	}
 
-	// Step 7: Write response to the output file
-	err = llm.WriteOutput(outputPath, response)
-	if err != nil {
-		return fmt.Errorf("error writing output to file: %v", err)
+	if cfg.Common.Output != "" {
+		// Write response to the output file
+		err = llm.WriteOutput(outputPath, response)
+		if err != nil {
+			return fmt.Errorf("error writing output to file: %v", err)
+		}
+		color.Green("Response successfully written to: %s", outputPath)
+	} else {
+		fmt.Printf("Genval Response: %v\n", response)
 	}
 
-	color.Green("Response successfully written to: %s", outputPath)
 	return nil
 }
 
@@ -220,6 +255,8 @@ func loadConfigFromFlags() *llm.RequirementSpec {
 // mergeFlagsWithConfig selectively overrides config values with CLI flag values if they are set.
 func mergeFlagsWithConfig(spec *llm.RequirementSpec) {
 	// Overwrite values in the loaded config only if a corresponding flag is set
+	// TODO: Handle Assistant decleraed in both Common and LLMSpec
+	// Prioritize Assistant in LLMSpec if provided in both blocks
 	if genaiArgs.assistant != "" {
 		spec.Common.Assistant = genaiArgs.assistant
 	}
