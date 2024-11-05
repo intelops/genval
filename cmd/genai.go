@@ -107,15 +107,16 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	// Step 6: Generate response based on the model and backend
 	ctx := context.Background()
 	var response string
-
+	openAIConfig := cfg.LLMSpec.OpenAIConfig
+	ollamaConfig := cfg.LLMSpec.OllamaConfig
 	switch cfg.LLMSpec.OpenAIConfig.Model {
 	case "GPT4":
-		cfg.LLMSpec.OpenAIConfig.Model = openai.GPT4
-		response, err = cfg.GenerateOpenAIResponse(ctx, cfg.LLMSpec.OpenAIConfig.Model, systemPrompt, userPromptContent)
+		openAIConfig.Model = openai.GPT4
+		response, err = openAIConfig.GenerateOpenAIResponse(ctx, cfg.LLMSpec.OpenAIConfig.Model, systemPrompt, userPromptContent)
 	case "ollama":
-		response, err = cfg.GenerateOllamaResponse(ctx, cfg.OllamaSpec.Model, systemPrompt, userPromptContent)
+		response, err = ollamaConfig.GenerateOllamaResponse(ctx, cfg.LLMSpec.OllamaConfig.Model, systemPrompt, userPromptContent)
 	default:
-		return fmt.Errorf("unsupported model: %s", cfg.OpenAISpec.Model)
+		return fmt.Errorf("unsupported model: %s", cfg.LLMSpec.OpenAIConfig.Model)
 	}
 
 	if err != nil {
