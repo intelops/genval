@@ -130,6 +130,8 @@ func ExtractSupportedTools() ([]string, error) {
 
 // WriteOutput takes content from LLM backend and writes it to a specified file.
 // It creates the file if it does not exist.
+// TODO: Extract any codeblocks in the LLM response and save it in a var
+// will be used for providing for further analysys to LLM
 func WriteOutput(filename string, resp string) error {
 	if filename == "" {
 		return fmt.Errorf("filename cannot be empty")

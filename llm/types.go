@@ -22,8 +22,8 @@ type Metadata struct {
 
 // LLMSpec contains the specifications for LLM
 type RequirementSpec struct {
-	Common  CommonSpec `yaml:"common"`
-	LLMSpec LLMSpec    `yaml:"llmSpec"`
+	Common    CommonSpec `yaml:"common"`
+	LLMParams LLMSpec    `yaml:"llmSpec"`
 }
 
 // CommonSpec holds common specifications
@@ -42,7 +42,7 @@ type LLMSpec struct {
 
 // OpenAIConfig holds configuration for OpenAI
 type OpenAIConfig struct {
-	Model            string  `yaml:"model"`                 // Required field
+	Model            string  `yaml:"model"`
 	Assistant        string  `yaml:"assistant,omitempty"`   // Optional field
 	APIKey           string  `yaml:"apiKey"`                // Required field
 	Temperature      float32 `yaml:"temperature,omitempty"` // Optional with default

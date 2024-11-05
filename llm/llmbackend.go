@@ -28,7 +28,7 @@ type OllamaClient struct {
 
 // NewLLMClient initializes the correct LLM client based on the config.
 func NewLLMClient(cfg *Config) (interface{}, error) {
-	llmSpec := cfg.RequirementSpec.LLMSpec
+	llmSpec := cfg.RequirementSpec.LLMParams
 	if llmSpec.OpenAIConfig != nil && llmSpec.OpenAIConfig.APIKey != "" {
 		return createOpenAIClient(llmSpec.OpenAIConfig)
 	} else if llmSpec.OllamaConfig != nil {
@@ -77,7 +77,7 @@ func (c *OpenAIConfig) GenerateOpenAIResponse(ctx context.Context, backend, syst
 	// Set up the configuration for OpenAI
 	cfg := &Config{
 		RequirementSpec: RequirementSpec{
-			LLMSpec: LLMSpec{
+			LLMParams: LLMSpec{
 				OpenAIConfig: c,
 			},
 		},
