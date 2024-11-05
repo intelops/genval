@@ -17,57 +17,51 @@ import (
 // OpenAIClient handles interactions with OpenAI API.
 type OpenAIClient struct {
 	client *openai.Client
-	config *LLMConfig
+	config *OpenAIConfig
 }
 
 // OllamaClient handles interactions with Ollama API.
 type OllamaClient struct {
 	client *ollama.Client
-	config *LLMConfig
+	config *OllamaConfig
 }
 
 // NewLLMClient initializes the correct LLM client based on the config.
-func NewLLMClient(cfg *LLMConfig) (interface{}, error) {
-	var key string
-	if cfg.LLMSpec.APIKey == "" {
-		// Read the OPENAI_KEY environment variable directly if APIKey is not provided
-		key = "OPENAI_KEY"
-		if key == "" {
-			return nil, fmt.Errorf("OPENAI_KEY environment variable is not set")
-		}
+func NewLLMClient(cfg *Config) (interface{}, error) {
+	llmSpec := cfg.RequirementSpec.LLMSpec
+	if llmSpec.OpenAIConfig != nil && llmSpec.OpenAIConfig.APIKey != "" {
+		return createOpenAIClient(llmSpec.OpenAIConfig)
+	} else if llmSpec.OllamaConfig != nil {
+		return createOllamaClient(llmSpec.OllamaConfig)
 	} else {
-		// Use APIKey from the configuration
-		key = cfg.LLMSpec.APIKey
+		return nil, errors.New("no valid LLM configuration found")
 	}
+}
 
-	switch cfg.LLMSpec.Model {
-	case "GPT4":
-		// Create the OpenAI client
-		token, err := readEnv(key)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load OpenAI API key: %w", err)
-		}
-		client := openai.NewClient(token)
-		return &OpenAIClient{client: client, config: cfg}, nil
-
-	case "ollama":
-		// Create and configure the Ollama client using only the relevant fields from LLMConfig
-		e := NewOllamaEndpoint("http", cfg.LLMSpec.URL, "11434")
-		client := ollama.NewClient(
-			&url.URL{
-				Scheme: e.Scheme,
-				Host:   e.Host,
-			},
-			http.DefaultClient,
-		)
-		if client == nil {
-			return nil, fmt.Errorf("failed to create Ollama client")
-		}
-		return &OllamaClient{client: client, config: cfg}, nil
-
-	default:
-		return nil, fmt.Errorf("unsupported backend: %s", cfg.LLMSpec.Model)
+// createOpenAIClient initializes and returns an OpenAIClient.
+func createOpenAIClient(config *OpenAIConfig) (*OpenAIClient, error) {
+	token, err := readEnv("OPENAI_KEY")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load OpenAI API key: %w", err)
 	}
+	client := openai.NewClient(token)
+	return &OpenAIClient{client: client, config: config}, nil
+}
+
+// createOllamaClient initializes and returns an OllamaClient.
+func createOllamaClient(config *OllamaConfig) (*OllamaClient, error) {
+	e := NewOllamaEndpoint("http", config.Endpoint, "11434")
+	client := ollama.NewClient(
+		&url.URL{
+			Scheme: e.Scheme,
+			Host:   e.Host,
+		},
+		http.DefaultClient,
+	)
+	if client == nil {
+		return nil, fmt.Errorf("failed to create Ollama client")
+	}
+	return &OllamaClient{client: client, config: config}, nil
 }
 
 // readEnv returns the envvar set and returns error if env is empty or not set.
@@ -79,12 +73,13 @@ func readEnv(key string) (string, error) {
 	return value, nil
 }
 
-func (c *LLMSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (string, error) {
+func (c *OpenAIConfig) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (string, error) {
 	// Set up the configuration for OpenAI
-	cfg := &LLMConfig{
-		LLMSpec: LLMSpec{
-			Model:  "GPT4",
-			APIKey: c.APIKey,
+	cfg := &Config{
+		RequirementSpec: RequirementSpec{
+			LLMSpec: LLMSpec{
+				OpenAIConfig: c,
+			},
 		},
 	}
 
@@ -142,22 +137,22 @@ func DefaultOllamaEndpoint() OllamaEndpoint {
 	return NewOllamaEndpoint("http", "localhost", "11434")
 }
 
-func (c *LLMSpec) GenerateOllamaResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
+func (c *OllamaConfig) GenerateOllamaResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
 	if c.Model == "" {
 		return "", errors.New("model name is required")
 	}
 	e := DefaultOllamaEndpoint()
-	u, err := url.Parse(c.URL)
+	u, err := url.Parse(c.Endpoint)
 	if err != nil {
 		return "", fmt.Errorf("error parsing endpoint: %v", err)
 	}
 	if u.Scheme == "" {
-		c.URL = net.JoinHostPort(e.Host, e.Port)
+		c.Endpoint = net.JoinHostPort(e.Host, e.Port)
 	}
 	client := ollama.NewClient(
 		&url.URL{
 			Scheme: e.Scheme,
-			Host:   c.URL,
+			Host:   c.Endpoint,
 		},
 		http.DefaultClient,
 	)
