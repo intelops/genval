@@ -1,19 +1,15 @@
 apiVersion: genval/genai/v1beta1
 metadata:
   name: test-config
-llmSpec:
-  common: #Required
-    userPrompt:
-    userSystemPrompt: # Optional, when assistant is set to user
-    assistant:
-    output:
-  openAIConfig: ## Optional, with sane defaults defined in the code base. If user doesn't provide any values, the defaults would be read.
-    model: # Required
-    apiKey: # Required
-    temperature: 0.7
-    topP: 0.3 # As above
-    streaming: True # As above
-    maxTokens: # As above
-  ollamaConfig:
-    endpoint:
-    keepAliveDuration:
+requirementSpec:
+  common:
+    userPrompt: ./templates/inputs/genai/prompt.txt
+    assistant: dockerfile
+    model: GPT4
+  llmSpec:
+    openAIConfig:
+      apiKey: OPENAI_KEY
+      temperature: 0.7
+      topP: 0.3
+      streaming: True
+      maxTokens: 2048

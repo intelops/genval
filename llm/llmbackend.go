@@ -73,15 +73,18 @@ func readEnv(key string) (string, error) {
 	return value, nil
 }
 
-func (c *OpenAIConfig) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (string, error) {
+// TODO: Instead on defining method on Config, make RequirementSpec a receiver
+// So we dont need to update calling these methods in cmd
+func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (string, error) {
 	// Set up the configuration for OpenAI
 	cfg := &Config{
 		RequirementSpec: RequirementSpec{
 			LLMParams: LLMSpec{
-				OpenAIConfig: c,
+				OpenAIConfig: c.LLMParams.OpenAIConfig,
 			},
 		},
 	}
+	common := cfg.RequirementSpec.Common.Model
 
 	// Create the OpenAI client using NewLLMClient
 	client, err := NewLLMClient(cfg)
@@ -97,12 +100,12 @@ func (c *OpenAIConfig) GenerateOpenAIResponse(ctx context.Context, backend, syst
 
 	// Prepare the ChatCompletion request
 	req := openai.ChatCompletionRequest{
-		Model:            c.Model,
-		PresencePenalty:  c.PresencePenalty,
-		FrequencyPenalty: c.FrequencyPenalty,
-		TopP:             c.TopP,
-		Temperature:      c.Temperature,
-		MaxTokens:        c.MaxTokens,
+		Model:            common,
+		PresencePenalty:  c.LLMParams.OpenAIConfig.PresencePenalty,
+		FrequencyPenalty: c.LLMParams.OpenAIConfig.FrequencyPenalty,
+		TopP:             c.LLMParams.OpenAIConfig.TopP,
+		Temperature:      c.LLMParams.OpenAIConfig.Temperature,
+		MaxTokens:        c.LLMParams.OpenAIConfig.MaxTokens,
 	}
 	req.Messages = append(req.Messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleSystem,
@@ -137,22 +140,26 @@ func DefaultOllamaEndpoint() OllamaEndpoint {
 	return NewOllamaEndpoint("http", "localhost", "11434")
 }
 
-func (c *OllamaConfig) GenerateOllamaResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
-	if c.Model == "" {
+// TODO: Instead on defining method on Config, make RequirementSpec a receiver
+// So we dont need to update calling these methods in cmd
+func (c *RequirementSpec) GenerateOllamaResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
+	m := c.Common
+	if m.Model == "" {
 		return "", errors.New("model name is required")
 	}
+	o := c.LLMParams.OllamaConfig
 	e := DefaultOllamaEndpoint()
-	u, err := url.Parse(c.Endpoint)
+	u, err := url.Parse(c.LLMParams.OllamaConfig.Endpoint)
 	if err != nil {
 		return "", fmt.Errorf("error parsing endpoint: %v", err)
 	}
 	if u.Scheme == "" {
-		c.Endpoint = net.JoinHostPort(e.Host, e.Port)
+		o.Endpoint = net.JoinHostPort(e.Host, e.Port)
 	}
 	client := ollama.NewClient(
 		&url.URL{
 			Scheme: e.Scheme,
-			Host:   c.Endpoint,
+			Host:   o.Endpoint,
 		},
 		http.DefaultClient,
 	)
@@ -160,9 +167,9 @@ func (c *OllamaConfig) GenerateOllamaResponse(ctx context.Context, model, system
 		return "", errors.New("failed to create Ollama client")
 	}
 
-	keepAliveDuration := c.KeepAliveDuration * time.Minute
+	keepAliveDuration := o.KeepAliveDuration * time.Minute
 	req := &ollama.GenerateRequest{
-		Model:     c.Model,
+		Model:     m.Model,
 		Prompt:    userPrompt,
 		System:    systemPrompt,
 		Stream:    new(bool),
