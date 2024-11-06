@@ -59,7 +59,12 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
+	// *******************Debug Commands*********************** //
+	fmt.Printf("Assistant: %v", cfg.Common.Assistant)
+	fmt.Printf("Model: %v", cfg.Common.Model)
+	fmt.Printf("cfg: %v", cfg)
 
+	// ******End Debug *******//
 	// Extract supported tools and validate assistant
 	st, err := llm.ExtractSupportedTools()
 	if err != nil {
@@ -138,16 +143,16 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	// Step 6: Generate response based on the model and backend
 	ctx := context.Background()
 	var response string
-	openAIConfig := cfg.LLMParams.OpenAIConfig
-	ollamaConfig := cfg.LLMParams.OllamaConfig
-	switch cfg.LLMParams.OpenAIConfig.Model {
+	// openAIConfig :=
+	// ollamaConfig := cfg.LLMParams.OllamaConfig
+	switch cfg.Common.Model {
 	case "GPT4":
-		openAIConfig.Model = openai.GPT4
-		response, err = openAIConfig.GenerateOpenAIResponse(ctx, cfg.LLMParams.OpenAIConfig.Model, systemPrompt, userPromptContent)
+		cfg.Common.Model = openai.GPT4
+		response, err = cfg.GenerateOpenAIResponse(ctx, cfg.Common.Model, systemPrompt, userPromptContent)
 	case "ollama":
-		response, err = ollamaConfig.GenerateOllamaResponse(ctx, cfg.LLMParams.OllamaConfig.Model, systemPrompt, userPromptContent)
+		response, err = cfg.GenerateOllamaResponse(ctx, cfg.Common.Model, systemPrompt, userPromptContent)
 	default:
-		return fmt.Errorf("unsupported model: %s", cfg.LLMParams.OpenAIConfig.Model)
+		return fmt.Errorf("unsupported model: %s", cfg.Common.Model)
 	}
 
 	if err != nil {
@@ -211,33 +216,37 @@ func getOutputPath(args genaiFlags, cfg *llm.RequirementSpec) string {
 	return filepath.Join(os.TempDir(), "genai_response.txt")
 }
 
-// loadConfig loads the configuration from either the config file or directly from CLI flags.
 func loadConfig() (*llm.RequirementSpec, error) {
 	var spec *llm.RequirementSpec
 
-	// Load configuration from file if the config file path is provided
 	if configFile != "" {
-		// Load config from YAML file as llm.Config type
 		config, err := llm.LoadConfig(configFile)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load config from file: %w", err)
 		}
 
-		// Map llm.Config to llm.RequirementSpec
+		// Debugging: print loaded config
+		fmt.Printf("Loaded config from file: %+v\n", config)
+
 		spec = &llm.RequirementSpec{
 			Common: llm.CommonSpec{
 				UserPrompt:       config.RequirementSpec.Common.UserPrompt,
 				Assistant:        config.RequirementSpec.Common.Assistant,
 				UserSystemPrompt: config.RequirementSpec.Common.UserSystemPrompt,
+				Model:            config.RequirementSpec.Common.Model,
 			},
 		}
 	} else {
-		// No config file provided, load directly from flags
 		spec = loadConfigFromFlags()
 	}
 
-	// Merge CLI flags with the loaded config (if applicable)
+	// Debugging: print spec before merging flags
+	fmt.Printf("Spec before merging flags: %+v\n", spec)
+
 	mergeFlagsWithConfig(spec)
+
+	// Debugging: print spec after merging flags
+	fmt.Printf("Spec after merging flags: %+v\n", spec)
 	return spec, nil
 }
 
@@ -248,6 +257,7 @@ func loadConfigFromFlags() *llm.RequirementSpec {
 			UserPrompt:       genaiArgs.prompt,
 			Assistant:        genaiArgs.assistant,
 			UserSystemPrompt: genaiArgs.userSystemPrompt,
+			Model:            genaiArgs.model,
 		},
 	}
 }
@@ -260,10 +270,15 @@ func mergeFlagsWithConfig(spec *llm.RequirementSpec) {
 	if genaiArgs.assistant != "" {
 		spec.Common.Assistant = genaiArgs.assistant
 	}
+	if genaiArgs.model != "" {
+		spec.Common.Model = genaiArgs.model
+	}
 	if genaiArgs.userSystemPrompt != "" {
 		spec.Common.UserSystemPrompt = genaiArgs.userSystemPrompt
 	}
 	if genaiArgs.prompt != "" {
 		spec.Common.UserPrompt = genaiArgs.prompt
 	}
+	// Debugging: print spec in merge function
+	fmt.Printf("Spec in mergeFlagsWithConfig: %+v\n", spec)
 }

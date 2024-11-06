@@ -32,6 +32,7 @@ type CommonSpec struct {
 	UserSystemPrompt string `yaml:"userSystemPrompt,omitempty"` // Optional field
 	Assistant        string `yaml:"assistant,omitempty"`
 	Output           string `yaml:"output,omitempty"`
+	Model            string `yaml:"model"`
 }
 
 // SpecificLLMSpec holds specific configurations for different LLMs
@@ -42,7 +43,6 @@ type LLMSpec struct {
 
 // OpenAIConfig holds configuration for OpenAI
 type OpenAIConfig struct {
-	Model            string  `yaml:"model"`
 	Assistant        string  `yaml:"assistant,omitempty"`   // Optional field
 	APIKey           string  `yaml:"apiKey"`                // Required field
 	Temperature      float32 `yaml:"temperature,omitempty"` // Optional with default
@@ -55,7 +55,6 @@ type OpenAIConfig struct {
 
 // OllamaConfig holds configuration for Ollama
 type OllamaConfig struct {
-	Model             string        `yaml:"model"`
 	Assistant         string        `yaml:"assistant,omitempty"` // Optional field
 	Endpoint          string        `yaml:"endpoint"`
 	KeepAliveDuration time.Duration `yaml:"keepAliveDuration,omitempty"` // Optional field
@@ -77,7 +76,7 @@ func LoadConfig(configFilePath string) (*Config, error) {
 
 	var config Config
 	decoder := yaml.NewDecoder(file)
-	if err := decoder.Decode(config); err != nil {
+	if err := decoder.Decode(&config); err != nil {
 		return nil, fmt.Errorf("failed to decode config file: %v", err)
 	}
 	return &config, nil
