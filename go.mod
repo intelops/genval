@@ -4,7 +4,7 @@ go 1.22.5
 toolchain go1.23.2
 
 require (
-	cuelang.org/go v0.10.0
+	cuelang.org/go v0.10.1
 	github.com/briandowns/spinner v1.23.1
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.12.0
