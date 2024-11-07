@@ -1,0 +1,50 @@
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: test-config
+requirementSpec:
+  common:
+    userPrompt: ./templates/inputs/genai/prompt.txt
+    assistant: dockerfile
+  llmSpec:
+    openAIConfig:
+      model: GPT4 # Can not create a nested feilds within this
+        useTheModel: true
+        apiKey: OPENAI_KEY
+        temperature: 0.7
+        topP: 0.3
+        streaming: True
+        maxTokens: 2048
+      model: 4o
+    ollamaSpec:
+      model:
+        useTheModel:
+        endpoint:
+        keepAlive:
+
+
+# Updated config
+
+
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: test-config
+requirementSpec:
+  common:
+    userPrompt: ./templates/inputs/genai/prompt.txt
+    assistant: dockerfile
+    userSystemPrompt:  # Oprional, set only when 'assistant=user'
+  llmSpec:
+    openAIConfig:
+      - model: GPT4
+        useTheModel: true  # Can we name this 'apply' or something else?
+        apiKey: OPENAI_KEY
+        temperature: 0.7
+        topP: 0.3
+        streaming: true
+        maxTokens: 2048
+      - model: 4o
+    ollamaSpec:
+      - model: llama
+        useTheModel: true
+        endpoint: https://localhost:11434
+        keepAlive: 120
