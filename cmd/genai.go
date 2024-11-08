@@ -60,15 +60,12 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var appliedModel string
+	// Fetch active models and assign the first one found
 	activeModels := cfg.LLMSpec.GetActiveModels()
-	for _, model := range activeModels {
-		fmt.Printf("Type: %s, Model: %s\n", model["type"], model["model"])
-		appliedModel = model["model"]
+	if len(activeModels) > 0 {
+		appliedModel = activeModels[0]["model"]
 	}
 	// *******************Debug Commands*********************** //
-	fmt.Printf("Assistant: %v", cfg.Common.Assistant)
-	fmt.Printf("Model: %v", appliedModel)
-	fmt.Printf("cfg: %v", cfg)
 
 	// ******End Debug *******//
 	// Extract supported tools and validate assistant
@@ -156,7 +153,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	switch appliedModel {
 	case "GPT4":
 		appliedModel = openai.GPT4
-		response, err = cfg.GenerateOpenAIResponse(ctx, systemPrompt, userPromptContent)
+		response, err = cfg.GenerateOpenAIResponse(ctx, appliedModel, systemPrompt, userPromptContent)
 	case "ollama":
 		response, err = cfg.GenerateOllamaResponse(ctx, systemPrompt, userPromptContent)
 	default:
@@ -175,7 +172,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		}
 		color.Green("Response successfully written to: %s", outputPath)
 	} else {
-		fmt.Printf("Genval Response: %v\n", response)
+		fmt.Printf("Genval Response: \n%v\n", response)
 	}
 
 	return nil
@@ -233,27 +230,23 @@ func loadConfig() (*llm.RequirementSpec, error) {
 			return nil, fmt.Errorf("failed to load config from file: %w", err)
 		}
 
-		// Debugging: print loaded config
-		fmt.Printf("Loaded config from file: %+v\n", config)
-
 		spec = &llm.RequirementSpec{
 			Common: llm.CommonSpec{
 				UserPrompt:       config.RequirementSpec.Common.UserPrompt,
 				Assistant:        config.RequirementSpec.Common.Assistant,
 				UserSystemPrompt: config.RequirementSpec.Common.UserSystemPrompt,
 			},
+			LLMSpec: llm.LLMSpec{
+				OpenAIConfig: config.RequirementSpec.LLMSpec.OpenAIConfig,
+				OllamaSpec:   config.RequirementSpec.LLMSpec.OllamaSpec,
+			},
 		}
 	} else {
 		spec = loadConfigFromFlags()
 	}
 
-	// Debugging: print spec before merging flags
-	fmt.Printf("Spec before merging flags: %+v\n", spec)
-
 	mergeFlagsWithConfig(spec)
 
-	// Debugging: print spec after merging flags
-	fmt.Printf("Spec after merging flags: %+v\n", spec)
 	return spec, nil
 }
 
@@ -282,6 +275,4 @@ func mergeFlagsWithConfig(spec *llm.RequirementSpec) {
 	if genaiArgs.prompt != "" {
 		spec.Common.UserPrompt = genaiArgs.prompt
 	}
-	// Debugging: print spec in merge function
-	fmt.Printf("Spec in mergeFlagsWithConfig: %+v\n", spec)
 }

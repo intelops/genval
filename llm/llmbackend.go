@@ -76,7 +76,7 @@ func readEnv(key string) (string, error) {
 }
 
 // GenerateOpenAIResponse generates a response using OpenAI.
-func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
 	var openAIConfig *OpenAIModel
 	for _, config := range c.LLMSpec.OpenAIConfig {
 		if config.UseTheModel {
@@ -95,7 +95,7 @@ func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, systemProm
 	}
 
 	req := openai.ChatCompletionRequest{
-		Model:       openAIConfig.Model,
+		Model:       model,
 		Temperature: openAIConfig.Temperature,
 		TopP:        openAIConfig.TopP,
 		MaxTokens:   openAIConfig.MaxTokens,
