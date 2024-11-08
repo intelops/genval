@@ -27,6 +27,7 @@ type CommonSpec struct {
 	UserPrompt       string `yaml:"userPrompt"`
 	Assistant        string `yaml:"assistant"`
 	UserSystemPrompt string `yaml:"userSystemPrompt,omitempty"`
+	Output           string `yaml:"output,omitempty"`
 }
 
 type LLMSpec struct {

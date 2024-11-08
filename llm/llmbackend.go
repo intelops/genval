@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 
 	ollama "github.com/ollama/ollama/api"
 	openai "github.com/sashabaranov/go-openai"
@@ -17,29 +16,32 @@ import (
 // OpenAIClient handles interactions with OpenAI API.
 type OpenAIClient struct {
 	client *openai.Client
-	config *OpenAIConfig
+	config *OpenAIModel
 }
 
 // OllamaClient handles interactions with Ollama API.
 type OllamaClient struct {
 	client *ollama.Client
-	config *OllamaConfig
+	config *OllamaModel
 }
 
 // NewLLMClient initializes the correct LLM client based on the config.
-func NewLLMClient(cfg *Config) (interface{}, error) {
-	llmSpec := cfg.RequirementSpec.LLMParams
-	if llmSpec.OpenAIConfig != nil && llmSpec.OpenAIConfig.APIKey != "" {
-		return createOpenAIClient(llmSpec.OpenAIConfig)
-	} else if llmSpec.OllamaConfig != nil {
-		return createOllamaClient(llmSpec.OllamaConfig)
-	} else {
-		return nil, errors.New("no valid LLM configuration found")
+func NewLLMClient(cfg *RequirementSpec) (interface{}, error) {
+	for _, openAIConfig := range cfg.LLMSpec.OpenAIConfig {
+		if openAIConfig.UseTheModel && openAIConfig.APIKey != "" {
+			return createOpenAIClient(&openAIConfig)
+		}
 	}
+	for _, ollamaConfig := range cfg.LLMSpec.OllamaSpec {
+		if ollamaConfig.UseTheModel {
+			return createOllamaClient(&ollamaConfig)
+		}
+	}
+	return nil, errors.New("no valid LLM configuration found")
 }
 
 // createOpenAIClient initializes and returns an OpenAIClient.
-func createOpenAIClient(config *OpenAIConfig) (*OpenAIClient, error) {
+func createOpenAIClient(config *OpenAIModel) (*OpenAIClient, error) {
 	token, err := readEnv("OPENAI_KEY")
 	if err != nil {
 		return nil, fmt.Errorf("failed to load OpenAI API key: %w", err)
@@ -49,7 +51,7 @@ func createOpenAIClient(config *OpenAIConfig) (*OpenAIClient, error) {
 }
 
 // createOllamaClient initializes and returns an OllamaClient.
-func createOllamaClient(config *OllamaConfig) (*OllamaClient, error) {
+func createOllamaClient(config *OllamaModel) (*OllamaClient, error) {
 	e := NewOllamaEndpoint("http", config.Endpoint, "11434")
 	client := ollama.NewClient(
 		&url.URL{
@@ -73,56 +75,42 @@ func readEnv(key string) (string, error) {
 	return value, nil
 }
 
-// TODO: Instead on defining method on Config, make RequirementSpec a receiver
-// So we dont need to update calling these methods in cmd
-func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, backend, systemPrompt, userPrompt string) (string, error) {
-	// Set up the configuration for OpenAI
-	cfg := &Config{
-		RequirementSpec: RequirementSpec{
-			LLMParams: LLMSpec{
-				OpenAIConfig: c.LLMParams.OpenAIConfig,
-			},
-		},
+// GenerateOpenAIResponse generates a response using OpenAI.
+func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	var openAIConfig *OpenAIModel
+	for _, config := range c.LLMSpec.OpenAIConfig {
+		if config.UseTheModel {
+			openAIConfig = &config
+			break
+		}
 	}
-	common := cfg.RequirementSpec.Common.Model
 
-	// Create the OpenAI client using NewLLMClient
-	client, err := NewLLMClient(cfg)
+	if openAIConfig == nil {
+		return "", errors.New("no OpenAI model configured for use")
+	}
+
+	client, err := createOpenAIClient(openAIConfig)
 	if err != nil {
-		return "", fmt.Errorf("failed to initialize LLM client: %w", err)
+		return "", fmt.Errorf("failed to initialize OpenAI client: %w", err)
 	}
 
-	// Cast the client to OpenAIClient since we are working with OpenAI
-	openaiClient, ok := client.(*OpenAIClient)
-	if !ok {
-		return "", fmt.Errorf("failed to cast to OpenAIClient")
-	}
-
-	// Prepare the ChatCompletion request
 	req := openai.ChatCompletionRequest{
-		Model:            common,
-		PresencePenalty:  c.LLMParams.OpenAIConfig.PresencePenalty,
-		FrequencyPenalty: c.LLMParams.OpenAIConfig.FrequencyPenalty,
-		TopP:             c.LLMParams.OpenAIConfig.TopP,
-		Temperature:      c.LLMParams.OpenAIConfig.Temperature,
-		MaxTokens:        c.LLMParams.OpenAIConfig.MaxTokens,
+		Model:       openAIConfig.Model,
+		Temperature: openAIConfig.Temperature,
+		TopP:        openAIConfig.TopP,
+		MaxTokens:   openAIConfig.MaxTokens,
 	}
-	req.Messages = append(req.Messages, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleSystem,
-		Content: systemPrompt,
-	})
-	req.Messages = append(req.Messages, openai.ChatCompletionMessage{
-		Role:    openai.ChatMessageRoleUser,
-		Content: userPrompt,
-	})
 
-	// Send the request to OpenAI API
-	resp, err := openaiClient.client.CreateChatCompletion(ctx, req)
+	req.Messages = []openai.ChatCompletionMessage{
+		{Role: openai.ChatMessageRoleSystem, Content: systemPrompt},
+		{Role: openai.ChatMessageRoleUser, Content: userPrompt},
+	}
+
+	resp, err := client.client.CreateChatCompletion(ctx, req)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate OpenAI response: %w", err)
 	}
 
-	// Return the response
 	return resp.Choices[0].Message.Content, nil
 }
 
@@ -140,26 +128,33 @@ func DefaultOllamaEndpoint() OllamaEndpoint {
 	return NewOllamaEndpoint("http", "localhost", "11434")
 }
 
-// TODO: Instead on defining method on Config, make RequirementSpec a receiver
-// So we dont need to update calling these methods in cmd
-func (c *RequirementSpec) GenerateOllamaResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
-	m := c.Common
-	if m.Model == "" {
-		return "", errors.New("model name is required")
+// GenerateOllamaResponse generates a response using Ollama.
+func (c *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+	var ollamaConfig *OllamaModel
+	for _, config := range c.LLMSpec.OllamaSpec {
+		if config.UseTheModel {
+			ollamaConfig = &config
+			break
+		}
 	}
-	o := c.LLMParams.OllamaConfig
+
+	if ollamaConfig == nil {
+		return "", errors.New("no Ollama model configured for use")
+	}
+
 	e := DefaultOllamaEndpoint()
-	u, err := url.Parse(c.LLMParams.OllamaConfig.Endpoint)
+	u, err := url.Parse(ollamaConfig.Endpoint)
 	if err != nil {
 		return "", fmt.Errorf("error parsing endpoint: %v", err)
 	}
 	if u.Scheme == "" {
-		o.Endpoint = net.JoinHostPort(e.Host, e.Port)
+		ollamaConfig.Endpoint = net.JoinHostPort(e.Host, e.Port)
 	}
+
 	client := ollama.NewClient(
 		&url.URL{
 			Scheme: e.Scheme,
-			Host:   o.Endpoint,
+			Host:   ollamaConfig.Endpoint,
 		},
 		http.DefaultClient,
 	)
@@ -167,21 +162,47 @@ func (c *RequirementSpec) GenerateOllamaResponse(ctx context.Context, model, sys
 		return "", errors.New("failed to create Ollama client")
 	}
 
-	keepAliveDuration := o.KeepAliveDuration * time.Minute
 	req := &ollama.GenerateRequest{
-		Model:     m.Model,
+		Model:     ollamaConfig.Model,
 		Prompt:    userPrompt,
 		System:    systemPrompt,
-		Stream:    new(bool),
-		KeepAlive: &ollama.Duration{Duration: keepAliveDuration},
+		KeepAlive: &ollama.Duration{Duration: ollamaConfig.KeepAlive},
 	}
-	reply := ""
+
+	var reply string
 	respFunc := func(resp ollama.GenerateResponse) error {
 		reply = resp.Response
 		return nil
 	}
+
 	if err := client.Generate(ctx, req, respFunc); err != nil {
-		return "", fmt.Errorf("error generating response from ollama: %v", err)
+		return "", fmt.Errorf("error generating response from Ollama: %v", err)
 	}
 	return reply, nil
+}
+
+func (spec *LLMSpec) GetActiveModels() []map[string]string {
+	var activeModels []map[string]string
+
+	// Iterate over OpenAIConfig and add models where useTheModel is true
+	for _, model := range spec.OpenAIConfig {
+		if model.Model != "" && model.UseTheModel {
+			activeModels = append(activeModels, map[string]string{
+				"type":  "OpenAI",
+				"model": model.Model,
+			})
+		}
+	}
+
+	// Iterate over OllamaSpec and add models where useTheModel is true
+	for _, model := range spec.OllamaSpec {
+		if model.Model != "" && model.UseTheModel {
+			activeModels = append(activeModels, map[string]string{
+				"type":  "Ollama",
+				"model": model.Model,
+			})
+		}
+	}
+
+	return activeModels
 }

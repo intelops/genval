@@ -30,7 +30,6 @@ type genaiFlags struct {
 	prompt           string
 	assistant        string
 	userSystemPrompt string
-	backend          string
 	output           string
 }
 
@@ -59,13 +58,22 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
+
+	var appliedModel string
+	activeModels := cfg.LLMSpec.GetActiveModels()
+	for _, model := range activeModels {
+		fmt.Printf("Type: %s, Model: %s\n", model["type"], model["model"])
+		appliedModel = model["model"]
+	}
 	// *******************Debug Commands*********************** //
 	fmt.Printf("Assistant: %v", cfg.Common.Assistant)
-	fmt.Printf("Model: %v", cfg.Common.Model)
+	fmt.Printf("Model: %v", appliedModel)
 	fmt.Printf("cfg: %v", cfg)
 
 	// ******End Debug *******//
 	// Extract supported tools and validate assistant
+	// Assuming cfg is already loaded with your configuration
+
 	st, err := llm.ExtractSupportedTools()
 	if err != nil {
 		return err
@@ -145,14 +153,14 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	var response string
 	// openAIConfig :=
 	// ollamaConfig := cfg.LLMParams.OllamaConfig
-	switch cfg.Common.Model {
+	switch appliedModel {
 	case "GPT4":
-		cfg.Common.Model = openai.GPT4
-		response, err = cfg.GenerateOpenAIResponse(ctx, cfg.Common.Model, systemPrompt, userPromptContent)
+		appliedModel = openai.GPT4
+		response, err = cfg.GenerateOpenAIResponse(ctx, systemPrompt, userPromptContent)
 	case "ollama":
-		response, err = cfg.GenerateOllamaResponse(ctx, cfg.Common.Model, systemPrompt, userPromptContent)
+		response, err = cfg.GenerateOllamaResponse(ctx, systemPrompt, userPromptContent)
 	default:
-		return fmt.Errorf("unsupported model: %s", cfg.Common.Model)
+		return fmt.Errorf("unsupported model: %s", appliedModel)
 	}
 
 	if err != nil {
@@ -233,7 +241,6 @@ func loadConfig() (*llm.RequirementSpec, error) {
 				UserPrompt:       config.RequirementSpec.Common.UserPrompt,
 				Assistant:        config.RequirementSpec.Common.Assistant,
 				UserSystemPrompt: config.RequirementSpec.Common.UserSystemPrompt,
-				Model:            config.RequirementSpec.Common.Model,
 			},
 		}
 	} else {
@@ -257,7 +264,6 @@ func loadConfigFromFlags() *llm.RequirementSpec {
 			UserPrompt:       genaiArgs.prompt,
 			Assistant:        genaiArgs.assistant,
 			UserSystemPrompt: genaiArgs.userSystemPrompt,
-			Model:            genaiArgs.model,
 		},
 	}
 }
@@ -269,9 +275,6 @@ func mergeFlagsWithConfig(spec *llm.RequirementSpec) {
 	// Prioritize Assistant in LLMSpec if provided in both blocks
 	if genaiArgs.assistant != "" {
 		spec.Common.Assistant = genaiArgs.assistant
-	}
-	if genaiArgs.model != "" {
-		spec.Common.Model = genaiArgs.model
 	}
 	if genaiArgs.userSystemPrompt != "" {
 		spec.Common.UserSystemPrompt = genaiArgs.userSystemPrompt
