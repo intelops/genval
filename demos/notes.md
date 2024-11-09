@@ -21,3 +21,8 @@
 # - Validate K8s YAML using Rego, CEL, Regex
 
 # - Validate and Generate Kubernetes manifest using Cue
+
+
+## Command:
+
+`pass show my-keys/chandu-openAI | head -n 1 | xclip -selection clipboard`

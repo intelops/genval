@@ -36,7 +36,9 @@ type LLMSpec struct {
 }
 
 type OpenAIModel struct {
-	Model       string  `yaml:"model"`
+	Model string `yaml:"model"`
+	// TODO: Add Assistant with precedence
+	// Assistant:g
 	UseTheModel bool    `yaml:"useTheModel"`
 	APIKey      string  `yaml:"apiKey"`
 	Temperature float32 `yaml:"temperature"`
@@ -46,10 +48,11 @@ type OpenAIModel struct {
 }
 
 type OllamaModel struct {
-	Model       string        `yaml:"model"`
-	UseTheModel bool          `yaml:"useTheModel"`
-	Endpoint    string        `yaml:"endpoint"`
-	KeepAlive   time.Duration `yaml:"keepAlive,omitempty"`
+	Model       string `yaml:"model"`
+	UseTheModel bool   `yaml:"useTheModel"`
+	// Assiatant:
+	Endpoint  string        `yaml:"endpoint"`
+	KeepAlive time.Duration `yaml:"keepAlive,omitempty"`
 }
 
 type OllamaEndpoint struct {

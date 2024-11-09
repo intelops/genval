@@ -172,6 +172,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		}
 		color.Green("Response successfully written to: %s", outputPath)
 	} else {
+		// TODO: Add a processing comment and a spinner
 		fmt.Printf("Genval Response: \n%v\n", response)
 	}
 
