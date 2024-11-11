@@ -4,12 +4,12 @@ metadata:
 requirementSpec:
   common:
     userPrompt: ./templates/inputs/genai/prompt.txt
-    assistant: dockerfile
-    userSystemPrompt: # Oprional, set only when 'assistant=user'
+    userSystemPrompt:
   llmSpec:
     openAIConfig:
       - model: GPT4
-        useTheModel: true # Can we name this 'apply' or something else?
+        assistant:
+        useTheModel: true
         apiKey: OPENAI_KEY
         temperature: 0.7
         topP: 0.3

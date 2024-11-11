@@ -47,13 +47,11 @@ func init() {
 	genaiCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to config file (YAML format)")
 	genaiCmd.Flags().StringVarP(&genaiArgs.output, "output", "o", "", "Path to output file to store output from the LLM agent")
 
-	// Add the genai command to root
 	rootCmd.AddCommand(genaiCmd)
 }
 
-// runGenaiCmd is the main execution function for the genai command
 func runGenaiCmd(cmd *cobra.Command, args []string) error {
-	spin := utils.StartSpinner("Processing you request, please wait for a moment...")
+	spin := utils.StartSpinner("Processing your request, please hold-on for a moment...")
 	defer spin.Stop()
 
 	// Load configuration
@@ -69,6 +67,12 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		appliedModel = activeModels[0]["model"]
 	}
 
+	assistant, err := cfg.SelectActiveAssistant(appliedModel)
+	fmt.Printf("Applied Assistant: %v\b", assistant)
+	if err != nil {
+		return fmt.Errorf("error selecting assistant: %v", err)
+	}
+
 	st, err := llm.ExtractSupportedTools()
 	if err != nil {
 		return err
@@ -79,7 +83,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 
 	for _, tool := range st {
 		tool = strings.ToLower(tool)
-		if genaiArgs.assistant == tool || cfg.Common.Assistant == tool {
+		if genaiArgs.assistant == tool || assistant == tool {
 			supportedTool = tool
 			found = true
 			break
@@ -87,12 +91,12 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if !found {
-		return fmt.Errorf("unsupported tool %s provided", cfg.Common.Assistant)
+		return fmt.Errorf("unsupported tool %s provided", assistant)
 	}
 
 	var systemPrompt string
 
-	if cfg.Common.Assistant == "user" {
+	if assistant == "user" {
 		if cfg.Common.UserSystemPrompt == "" {
 			return fmt.Errorf("user-system-prompt 'must' be set when Assistant is set to 'user': %v", err)
 		}
@@ -110,12 +114,13 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	if cfg.Common.Assistant != "user" {
+	if assistant != "user" {
 		localFilePath := filepath.Join(os.Getenv("HOME"), llm.SystemPromptsDir+"/"+supportedTool+"Prompt.md")
 		remoteFilePath := llm.BaseURL + supportedTool + "Prompt.md"
 
 		if err := llm.ValidateSystemPrompt(localFilePath, remoteFilePath); err != nil {
-			fmt.Errorf("provided systemPrompts do not match: %v", err)
+			orange := color.New(color.FgHiWhite).Add(color.BgHiBlack).Add(color.Attribute(38), color.Attribute(5), 208)
+			orange.Printf("[WARN}: Provided system prompt do not match with original content: %v", err)
 		}
 	}
 
@@ -143,11 +148,9 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	// Determine output path for LLM response
 	outputPath := getOutputPath(genaiArgs, cfg)
 
-	// Step 6: Generate response based on the model and backend
+	// Generate response based on the model and backend
 	ctx := context.Background()
 	var response string
-	// openAIConfig :=
-	// ollamaConfig := cfg.LLMParams.OllamaConfig
 	switch appliedModel {
 	case "GPT4":
 		appliedModel = openai.GPT4
@@ -170,44 +173,11 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		}
 		color.Green("Response successfully written to: %s", outputPath)
 	} else {
-		// TODO: Add a processing comment and a spinner
 		fmt.Printf("Genval Response: \n%v\n", response)
 	}
 
 	spin.Stop()
 	return nil
-}
-
-// getSystemPrompt retrieves the system prompt based on the assistant or user-specified file.
-func getSystemPrompt(cfg *llm.RequirementSpec, supportedTool string) (string, error) {
-	if cfg.Common.Assistant == "user" {
-		content, err := utils.ReadFile(cfg.Common.UserSystemPrompt)
-		if err != nil {
-			return "", fmt.Errorf("error reading user system prompt file: %v", err)
-		}
-		return string(content), nil
-	}
-
-	systemPrompt, err := llm.GetSystemPrompt(supportedTool)
-	if err != nil {
-		return "", fmt.Errorf("error getting system prompt: %v", err)
-	}
-
-	return systemPrompt, nil
-}
-
-// getUserPrompt retrieves the user prompt from CLI flags or config file.
-func getUserPrompt(cfg *llm.RequirementSpec, args genaiFlags) (string, error) {
-	if args.prompt != "" {
-		return args.prompt, nil
-	} else if cfg.Common.UserPrompt != "" {
-		upc, err := utils.ReadFile(cfg.Common.UserPrompt)
-		if err != nil {
-			return "", fmt.Errorf("error reading user prompt file: %v", err)
-		}
-		return string(upc), nil
-	}
-	return "", fmt.Errorf("user prompt not provided")
 }
 
 // getOutputPath determines the output path for the LLM response.
@@ -264,8 +234,6 @@ func loadConfigFromFlags() *llm.RequirementSpec {
 // mergeFlagsWithConfig selectively overrides config values with CLI flag values if they are set.
 func mergeFlagsWithConfig(spec *llm.RequirementSpec) {
 	// Overwrite values in the loaded config only if a corresponding flag is set
-	// TODO: Handle Assistant decleraed in both Common and LLMSpec
-	// Prioritize Assistant in LLMSpec if provided in both blocks
 	if genaiArgs.assistant != "" {
 		spec.Common.Assistant = genaiArgs.assistant
 	}

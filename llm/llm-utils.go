@@ -161,21 +161,36 @@ func WriteOutput(filename string, resp string) error {
 	return nil
 }
 
+// SelectActiveAssistant selects provided assistant and prioritizes Assistant set in LLMSpec, if defined both in Common
+// and LLMSpec
 func (spec *RequirementSpec) SelectActiveAssistant(model string) (string, error) {
 	// Helper function to iterate through configs and return the Assistant if matched
 	checkModels := func(models interface{}) (string, bool) {
 		switch m := models.(type) {
 		case []OpenAIModel:
 			for _, config := range m {
-				if config.Model == model && config.Assistant != "" {
+				if config.Model == model && (spec.Common.Assistant != "" && config.Assistant != "") {
+					return config.Assistant, true
+				}
+				if config.Model == model && (spec.Common.Assistant != "" && config.Assistant == "") {
+					return spec.Common.Assistant, true
+				}
+				if config.Model == model && (spec.Common.Assistant == "" && config.Assistant != "") {
 					return config.Assistant, true
 				}
 			}
 		case []OllamaModel:
 			for _, config := range m {
-				if config.Model == model && config.Assistant != "" {
+				if config.Model == model && (spec.Common.Assistant != "" && config.Assistant != "") {
 					return config.Assistant, true
 				}
+				if config.Model == model && (spec.Common.Assistant != "" && config.Assistant == "") {
+					return spec.Common.Assistant, true
+				}
+				if config.Model == model && (spec.Common.Assistant == "" && config.Assistant != "") {
+					return config.Assistant, true
+				}
+
 			}
 		}
 		return "", false

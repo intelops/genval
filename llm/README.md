@@ -47,16 +47,18 @@ Defines the core settings to configure behavior and parameters of the language m
 apiVersion: genval/genai/v1beta1
 metadata:
   name: test-config
-llmSpec:
-  model: GPT4
-  assistant: dockerfile
-  apiKey: OPENAI_KEY
-  userPrompt: ./templates/inputs/genai/prompt.txt
-  maxTokens: 2048
-  presencePenalty: 0.0
-  frequencyPenalty: 0.0
-  # Reccomended value 0.3
-  topP: 0.3
-  temperature: 0.7
-  output: ./output/llmResponse.md
+requirementSpec:
+  common:
+    userPrompt: ./templates/inputs/genai/prompt.txt
+    userSystemPrompt:
+  llmSpec:
+    openAIConfig:
+      - model: GPT4
+        assistant:
+        useTheModel: true
+        apiKey: OPENAI_KEY
+        temperature: 0.7
+        topP: 0.3
+        streaming: true
+        maxTokens: 2048
 ```
