@@ -77,6 +77,9 @@ func readEnv(key string) (string, error) {
 
 // GenerateOpenAIResponse generates a response using OpenAI.
 func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
+	// spin := utils.StartSpinner("Processing you request, please wait for a moment...")
+	// defer spin.Stop()
+
 	var openAIConfig *OpenAIModel
 	for _, config := range c.LLMSpec.OpenAIConfig {
 		if config.UseTheModel {
@@ -110,7 +113,7 @@ func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, sys
 	if err != nil {
 		return "", fmt.Errorf("failed to generate OpenAI response: %w", err)
 	}
-
+	// spin.Stop()
 	return resp.Choices[0].Message.Content, nil
 }
 

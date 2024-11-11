@@ -3,6 +3,7 @@ package llm
 import (
 	"bufio"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -158,4 +159,38 @@ func WriteOutput(filename string, resp string) error {
 		return fmt.Errorf("error writing to file: %w", err)
 	}
 	return nil
+}
+
+func (spec *RequirementSpec) SelectActiveAssistant(model string) (string, error) {
+	// Helper function to iterate through configs and return the Assistant if matched
+	checkModels := func(models interface{}) (string, bool) {
+		switch m := models.(type) {
+		case []OpenAIModel:
+			for _, config := range m {
+				if config.Model == model && config.Assistant != "" {
+					return config.Assistant, true
+				}
+			}
+		case []OllamaModel:
+			for _, config := range m {
+				if config.Model == model && config.Assistant != "" {
+					return config.Assistant, true
+				}
+			}
+		}
+		return "", false
+	}
+
+	// Check OpenAIConfig for the matching model
+	if assistant, found := checkModels(spec.LLMSpec.OpenAIConfig); found {
+		return assistant, nil
+	}
+
+	// Check OllamaModel for the matching model
+	if assistant, found := checkModels(spec.LLMSpec.OllamaSpec); found {
+		return assistant, nil
+	}
+
+	// Return an error if no active assistant found for the given model
+	return "", errors.New("no active assistant found for the provided model")
 }

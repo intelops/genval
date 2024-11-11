@@ -53,6 +53,9 @@ func init() {
 
 // runGenaiCmd is the main execution function for the genai command
 func runGenaiCmd(cmd *cobra.Command, args []string) error {
+	spin := utils.StartSpinner("Processing you request, please wait for a moment...")
+	defer spin.Stop()
+
 	// Load configuration
 	cfg, err := loadConfig()
 	if err != nil {
@@ -65,11 +68,6 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	if len(activeModels) > 0 {
 		appliedModel = activeModels[0]["model"]
 	}
-	// *******************Debug Commands*********************** //
-
-	// ******End Debug *******//
-	// Extract supported tools and validate assistant
-	// Assuming cfg is already loaded with your configuration
 
 	st, err := llm.ExtractSupportedTools()
 	if err != nil {
@@ -176,6 +174,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		fmt.Printf("Genval Response: \n%v\n", response)
 	}
 
+	spin.Stop()
 	return nil
 }
 
