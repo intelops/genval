@@ -27,8 +27,6 @@ func init() {
 	gendocCmd.Flags().StringVarP(&gendocArgs.endpoint, "endpoint", "e", "", "Endpoint for the AI model")
 	gendocCmd.Flags().StringVarP(&gendocArgs.prompt, "prompt", "p", "", "Your prompt to the model")
 	gendocCmd.Flags().StringVarP(&gendocArgs.path, "path", "d", "", "Path to the code file/s to generate code explanation mardown docs")
-	// gendocCmd.Flags().StringVarP(&gendocArgs.assistant, "assistant", "a", "", "Specify the assistant to use (cue, cel, rego, etc.)")
-	// gendocCmd.Flags().StringVarP(&gendocArgs.userSystemPrompt, "user-systemPrompt", "u", "", "Availabe only if assistant set as user. Path to the user-provided system prompt file")
 
 	genaiCmd.AddCommand(gendocCmd)
 }
