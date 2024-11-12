@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/intelops/genval/pkg/utils"
-	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/intelops/genval/pkg/utils"
+	"github.com/intelops/genval/pkg/validate"
 )
 
 type dockerfilevalFlags struct {
@@ -86,7 +87,6 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-
 		if err := validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
 			policy,
 			cmd.Name(),
@@ -102,6 +102,8 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Infof(color.GreenString("Dockerfile: %v validation completed!\n", input))
+	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
+
+	log.Infof(logMessage)
 	return nil
 }

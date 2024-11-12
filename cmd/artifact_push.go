@@ -17,10 +17,11 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
 	"github.com/google/go-containerregistry/pkg/v1/tarball"
 	"github.com/google/go-containerregistry/pkg/v1/types"
-	"github.com/intelops/genval/pkg/oci"
-	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/intelops/genval/pkg/oci"
+	"github.com/intelops/genval/pkg/utils"
 )
 
 var pushCmd = &cobra.Command{
@@ -200,8 +201,13 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Infof(color.GreenString("✔ Artifact pushed successfully to: %v", pushArgs.dest))
-	log.Infof(color.GreenString("✔ Digest: %v", digest))
-	log.Infof(color.GreenString("✔ Digest URL: %v\n", digestURL))
+	// Create formatted messages # Fix govet warnings
+	artifactMessage := color.GreenString("✔ Artifact pushed successfully to: %v", pushArgs.dest)
+	digestMessage := color.GreenString("✔ Digest: %v", digest)
+	digestURLMessage := color.GreenString("✔ Digest URL: %v\n", digestURL)
+
+	log.Infof(artifactMessage)
+	log.Infof(digestMessage)
+	log.Infof(digestURLMessage)
 	return nil
 }

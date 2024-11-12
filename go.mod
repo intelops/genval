@@ -1,6 +1,7 @@
 module github.com/intelops/genval
 
-go 1.22.5
+go 1.23
+
 toolchain go1.23.2
 
 require (
@@ -14,6 +15,7 @@ require (
 	github.com/hashicorp/hcl/v2 v2.21.0
 	github.com/jedib0t/go-pretty/v6 v6.6.1
 	github.com/joho/godotenv v1.5.1
+	github.com/labstack/gommon v0.4.2
 	github.com/open-policy-agent/opa v0.70.0
 	github.com/sigstore/cosign/v2 v2.4.0
 	github.com/sigstore/sigstore v1.8.8
@@ -225,6 +227,8 @@ require (
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/transparency-dev/merkle v0.0.2 // indirect
+	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/valyala/fasttemplate v1.2.2 // indirect
 	github.com/vbatts/tar-split v0.11.5 // indirect
 	github.com/xanzy/go-gitlab v0.107.0 // indirect
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
