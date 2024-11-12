@@ -62,10 +62,7 @@ func ScanResourceFile(resourcePath string, patterns []string) bool {
 	}
 
 	fmt.Printf("Scanning file: %s\n", resourcePath)
-	if scanForPattern(string(content), patterns) {
-		return false // Sensitive pattern found
-	}
-	return true // No sensitive patterns found
+	return !scanForPattern(string(content), patterns)
 }
 
 // PrintResultTable prints the metadata and result in a formatted table

@@ -26,13 +26,13 @@ type OllamaClient struct {
 }
 
 // NewLLMClient initializes the correct LLM client based on the config.
-func NewLLMClient(cfg *RequirementSpec) (interface{}, error) {
-	for _, openAIConfig := range cfg.LLMSpec.OpenAIConfig {
+func NewLLMClient(c *RequirementSpec) (interface{}, error) {
+	for _, openAIConfig := range c.LLMSpec.OpenAIConfig {
 		if openAIConfig.UseTheModel && openAIConfig.APIKey != "" {
 			return createOpenAIClient(&openAIConfig)
 		}
 	}
-	for _, ollamaConfig := range cfg.LLMSpec.OllamaSpec {
+	for _, ollamaConfig := range c.LLMSpec.OllamaSpec {
 		if ollamaConfig.UseTheModel {
 			return createOllamaClient(&ollamaConfig)
 		}
@@ -128,9 +128,9 @@ func DefaultOllamaEndpoint() OllamaEndpoint {
 }
 
 // GenerateOllamaResponse generates a response using Ollama.
-func (c *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+func (spec *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	var ollamaConfig *OllamaModel
-	for _, config := range c.LLMSpec.OllamaSpec {
+	for _, config := range spec.LLMSpec.OllamaSpec {
 		if config.UseTheModel {
 			ollamaConfig = &config
 			break
