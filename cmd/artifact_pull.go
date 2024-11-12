@@ -7,11 +7,11 @@ import (
 	"path/filepath"
 
 	"github.com/fatih/color"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/utils"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 var pullCmd = &cobra.Command{
@@ -106,8 +106,8 @@ func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
 	defer spin.Stop()
 
 	if err := oci.PullArtifact(context.Background(), pullArgs.creds, pullArgs.dest, pullArgs.path); err != nil {
-		fe := color.RedString("Error pulling artifact from remote: %v", err)
-		return fmt.Errorf(fe)
+		errorMessage := color.RedString("Error pulling artifact from remote: %v", err)
+		return fmt.Errorf("%s", errorMessage)
 	}
 	spin.Stop()
 	color.Green("Artifact from %s pulled and stored in :%s", pullArgs.dest, pullArgs.path)

@@ -5,9 +5,10 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/intelops/genval/pkg/validate"
 )
 
 type infrafileFlags struct {
@@ -94,6 +95,7 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("validating %v failed: %v", inputFile, err)
 		}
 	}
-	log.Infof(color.GreenString("infrafile validation for: %v completed", inputFile))
+	logMessage := color.GreenString("infrafile validation for: %v completed", inputFile)
+	log.Info(logMessage)
 	return nil
 }

@@ -5,10 +5,11 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/intelops/genval/pkg/parser"
-	"github.com/intelops/genval/pkg/validate"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/validate"
 )
 
 type terraformFlags struct {
@@ -99,6 +100,7 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 			log.Errorf("Validation %v failed", err)
 		}
 	}
-	log.Infof(color.GreenString("Terraform resource validation for: %v completed", inputFile))
+	logMessage := color.GreenString("Terraform resource validation for: %v completed", inputFile)
+	log.Info(logMessage)
 	return nil
 }
