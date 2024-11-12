@@ -128,9 +128,9 @@ func DefaultOllamaEndpoint() OllamaEndpoint {
 }
 
 // GenerateOllamaResponse generates a response using Ollama.
-func (spec *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+func (c *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	var ollamaConfig *OllamaModel
-	for _, config := range spec.LLMSpec.OllamaSpec {
+	for _, config := range c.LLMSpec.OllamaSpec {
 		if config.UseTheModel {
 			ollamaConfig = &config
 			break
@@ -180,11 +180,11 @@ func (spec *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemP
 	return reply, nil
 }
 
-func (spec *LLMSpec) GetActiveModels() []map[string]string {
+func (c *LLMSpec) GetActiveModels() []map[string]string {
 	var activeModels []map[string]string
 
 	// Iterate over OpenAIConfig and add models where useTheModel is true
-	for _, model := range spec.OpenAIConfig {
+	for _, model := range c.OpenAIConfig {
 		if model.Model != "" && model.UseTheModel {
 			activeModels = append(activeModels, map[string]string{
 				"type":  "OpenAI",
@@ -194,7 +194,7 @@ func (spec *LLMSpec) GetActiveModels() []map[string]string {
 	}
 
 	// Iterate over OllamaSpec and add models where useTheModel is true
-	for _, model := range spec.OllamaSpec {
+	for _, model := range c.OllamaSpec {
 		if model.Model != "" && model.UseTheModel {
 			activeModels = append(activeModels, map[string]string{
 				"type":  "Ollama",
