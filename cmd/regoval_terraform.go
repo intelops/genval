@@ -101,6 +101,6 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 	logMessage := color.GreenString("Terraform resource validation for: %v completed", inputFile)
-	log.Infof(logMessage)
+	log.Info(logMessage)
 	return nil
 }

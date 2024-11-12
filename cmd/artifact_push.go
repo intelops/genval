@@ -206,8 +206,8 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 	digestMessage := color.GreenString("✔ Digest: %v", digest)
 	digestURLMessage := color.GreenString("✔ Digest URL: %v\n", digestURL)
 
-	log.Infof(artifactMessage)
-	log.Infof(digestMessage)
-	log.Infof(digestURLMessage)
+	log.Info(artifactMessage)
+	log.Info(digestMessage)
+	log.Info(digestURLMessage)
 	return nil
 }

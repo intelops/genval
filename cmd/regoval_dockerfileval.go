@@ -104,6 +104,6 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 
 	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
 
-	log.Infof(logMessage)
+	log.Info(logMessage)
 	return nil
 }

@@ -43,7 +43,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
 							logMessage := color.New(color.FgRed).Sprintf("policy evaluation for '%s' failed", key)
-							log.Infof(logMessage)
+							log.Info(logMessage)
 						}
 					} else {
 						// Handle other types of values (non-slice)
@@ -54,7 +54,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
 							statusMessage := (color.New(color.FgRed).Sprintf("policy evaluation for '%s' failed", key))
-							log.Infof(statusMessage)
+							log.Info(statusMessage)
 						}
 					}
 					t.AppendRow([]interface{}{key, status, meta.Description, meta.Severity, meta.Benchmark, meta.Category})
