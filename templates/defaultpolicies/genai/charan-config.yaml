@@ -1,0 +1,96 @@
+# NOTE: `api_key` supports using environment variables as its value.
+# If a direct API key is passed, the whole string is considered the key.
+# To use an environment variable, pass the key in the format `$<env_variable_name>`.
+
+default:
+  # Default LLM configuration, used when agent-specific values are not set
+  llm_config:
+    provider: "openai"
+    model: "gpt-4o-2024-08-06"
+    config:
+      temperature: 0.3
+      max_retries: 4
+      streaming: True
+  max_retries: 3 # Maximum retries for internal handling, not specific to any provider
+  retry_backoff: 3 # Time (in seconds) to wait before retrying a request
+  max_graph_recursion_limit: 1000
+
+# Configuration for supported LLM providers and their respective models
+providers:
+  openai:
+    name: "openai"
+    setting:
+      max_retries: 3
+      retry_backoff: 3
+      api_key: "$OPENAI_API_KEY" # Default API key for OpenAI; used if model-specific keys are not provided
+    models:
+      chatgpt_4o_latest:
+        name: "chatgpt-4o-latest"
+        description: "The latest version of ChatGPT, optimized for dynamic and conversational AI tasks."
+        api_key: ""
+      gpt_4o_2024_08_06:
+        name: "gpt-4o-2024-08-06"
+        description: "GPT-4 optimized model from the August 2024 release."
+        api_key: ""
+      gpt_4o_2024_05_13:
+        name: "gpt-4o-2024-05-13"
+        description: "May 2024 release of GPT-4 optimized for efficient text generation and multi-turn dialogue."
+        api_key: ""
+      o1_preview_2024_09_12:
+        name: "o1-preview-2024-09-12"
+        description: "Preview model for OpenAI's One model, released in September 2024."
+        api_key: ""
+      o1_mini_2024_09_12:
+        name: "o1-mini-2024-09-12"
+        description: "Preview model for OpenAI's One model, released in September 2024."
+        api_key: ""
+  ollama:
+    name: "ollama"
+    setting:
+      api_key: ""
+    models:
+      llama3:
+        name: "llama3"
+        description: "Llama3 model, a high-performance open-source LLM suited for general-purpose language understanding and generation."
+        api_key: ""
+  anthropic:
+    name: "anthropic"
+    setting:
+      api_key: "$ANTHROPIC_API_KEY"
+      models:
+        claude_3_5_sonnet_20240620:
+          name: "claude-3-5-sonnet-20240620"
+          description: ""
+          api_key: ""
+
+# Configuration for project agents and their LLM settings
+agents:
+  supervisor:
+    description: "Oversees and coordinates the task execution of other agents, ensuring efficiency and alignment with goals."
+  architect:
+    description: "Designs the high-level system and architecture, responsible for creating requirements for project."
+  coder:
+    llm_config:
+      provider: "anthropic"
+      model: "claude-3-5-sonnet-20240620"
+      config:
+        stream_usage: True
+    description: "Writes and optimizes code based on the architecture, focusing on implementing functionality with clean coding practices."
+  rag:
+    description: "Responsible for retrieval-augmented generation tasks, combining data retrieval with language generation for enhanced accuracy."
+  planner:
+    description: "Manages project planning, timelines, and task prioritization, ensuring smooth progress and resource allocation."
+  tests_generator:
+    llm_config:
+      provider: "anthropic"
+      model: "claude-3-5-sonnet-20240620"
+      config:
+        stream_usage: True
+    description: "Generates and validates test cases to ensure that code meets the required standards and passes all quality checks."
+  human:
+    description: "Represents human interactions and decisions in the loop, handling tasks that require human oversight or creative judgment."
+  reviewer:
+    description: "Performs code reviews, suggests improvements, and ensures that all outputs meet quality and performance standards."
+
+vector_collections_name: "MISMO-version-3.6-docs"
+max_graph_recursion_limit: 750
