@@ -1,0 +1,9 @@
+{
+  "name": "CheckSingleENTRYPOINT",
+  "policy_file": "check_entrypoint.rego",
+  "policy_name": "check_entrypoint",
+  "severity": "Low",
+  "Description": "Ensure there is only one ENTRYPOINT instruction in a Dockerfile, if more the last ENTRYPOINT will take effect",
+  "Benchmark": "TBD",
+  "Category": "Infrastructure security"
+}

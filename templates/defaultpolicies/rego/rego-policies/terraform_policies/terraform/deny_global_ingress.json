@@ -1,0 +1,10 @@
+{
+  "name": "DenyGlobalIngress",
+  "policy_file": "deny_global_ingress.rego",
+  "policy_name": "deny_global_ingress",
+  "severity": "High",
+  "Description": "Ensure AWS security group does not allow ingress from internet",
+  "Benchmark": "TBD",
+  "Category": "Infrastructure security"
+}
+
