@@ -10,7 +10,7 @@ input.kind ==	"Deployment"
 c:= input.spec.template.spec.containers[i]
 not valid_key(c.resources.limits,"cpu")
 msg:="CPU Limits are set for Deployment"
-}   
+}
 
 
 valid_key(obj, key) {

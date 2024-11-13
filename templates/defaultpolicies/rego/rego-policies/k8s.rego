@@ -32,7 +32,7 @@ deny_secret contains msg if {
 	env.valueFrom != []
     msg:= "Deployment does not use 'valueFrom' in ENV"
 }
-' 
+'
 deny_priviliged_pod contains msg if {
 	input.kind == "Deployment"
 	not input.spec.template.spec.securityContext
