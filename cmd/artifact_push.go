@@ -200,8 +200,13 @@ func runPushCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Infof(color.GreenString("✔ Artifact pushed successfully to: %v", pushArgs.dest))
-	log.Infof(color.GreenString("✔ Digest: %v", digest))
-	log.Infof(color.GreenString("✔ Digest URL: %v\n", digestURL))
+	// Create formatted messages # Fix govet warnings
+	artifactMessage := color.GreenString("✔ Artifact pushed successfully to: %v", pushArgs.dest)
+	digestMessage := color.GreenString("✔ Digest: %v", digest)
+	digestURLMessage := color.GreenString("✔ Digest URL: %v\n", digestURL)
+
+	log.Info(artifactMessage)
+	log.Info(digestMessage)
+	log.Info(digestURLMessage)
 	return nil
 }

@@ -94,6 +94,7 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("validating %v failed: %v", inputFile, err)
 		}
 	}
-	log.Infof(color.GreenString("infrafile validation for: %v completed", inputFile))
+	logMessage := color.GreenString("infrafile validation for: %v completed", inputFile)
+	log.Info(logMessage)
 	return nil
 }
