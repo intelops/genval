@@ -86,7 +86,6 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-
 		if err := validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
 			policy,
 			cmd.Name(),
@@ -102,6 +101,8 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	log.Infof(color.GreenString("Dockerfile: %v validation completed!\n", input))
+	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
+
+	log.Info(logMessage)
 	return nil
 }
