@@ -10,7 +10,7 @@ source.
 
 - Clone the Genval repository: `git clone https://github.com/intelops/genval.git`
 - Navigate to the project directory: `cd genval`
-- Use the build target to gen the genvval executable: `make build`. This command will drop the `genval` executable in the `./bin` directory. Now you can use the genvall application with `./bin/genval <command? <options>`
+- Use the Makefile target to generate the genval executable: `make build`. This command will place the `genval` executable in the `./bin` directory. You can then use the genval application with `./bin/genval <command? <options>`
 
 ## Dockerfile generation and validation
 
