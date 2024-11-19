@@ -10,7 +10,7 @@ source.
 
 - Clone the Genval repository: `git clone https://github.com/intelops/genval.git`
 - Navigate to the project directory: `cd genval`
-- Use the Makefile target to generate the genval executable: `make build`. This command will place the `genval` executable in the `./bin` directory. You can then use the genval application with `./bin/genval <command? <options>`
+- Use the Makefile target to generate the genval executable: `make build`. This command will place the `genval` executable in the `./bin` directory. You can then use the genval application with `./bin/genval <command> <options>`
 
 ## Dockerfile generation and validation
 
@@ -18,7 +18,7 @@ All the policies and input can also be provided from Remote URLs like Github as 
 A auth needs to be set up for genval to communicate with remote for pulling the input and policies.
 This is how you can do that:
 
-`export GITHUB_TOEN=<Your GITHUB TOEN>`
+`export GITHUB_TOEKN=<Your GITHUB TOKEN>`
 
 ```shell
 ./bin/genval dockerfile --reqinput ./templates/inputs/dockerfile_input/clang_input.json \
@@ -156,7 +156,7 @@ INFO[0027] Digest URL: ghcr.io/santoshkal/policyhub/dockerfile-policies@sha256:d
 > The contents of the artifact will be extracted in the directory provided in the `path` flag, `./output` in above command.
 
 ```shell
-➜  ./bin/genval-demo git:(main) ✗ ./genval artifact pull --dest oci://ghcr.io/santoshkal/policyhub/dockerfile-policies:v0.0.1 \
+➜  genval-demo git:(main) ✗ ./bin/genval artifact pull --dest oci://ghcr.io/santoshkal/policyhub/dockerfile-policies:v0.0.1 \
 > --path ./output \
 > --verify true
 ⣯ Verifying artifact
@@ -177,14 +177,13 @@ Create a workspace using `cuemod` command for working with cue:
 - create a `cue.mod` and necessary structure for working with `cue` command
 
 ```shell
-./bin/genval ccuemod init --tool=k8s:1.29
+./bin/genval cuemod init --tool=k8s:latest
 ```
 
-Now place all the policies `.cue` policis files under `./K8S_1.29/extracted_content/policy` directory and provide the path to `--policy` flag while using `cue` command as following:
+Now place all the `.cue` policies files under `./K8S_1.29/extracted_content/policy` directory and provide the path to `--policy` flag while using `cue` command as following:
 
 Generate application Kubernetes configuration from bare minimum config files :
 
-> **Due to some breaking changes in `cue:v0.9.0` on 12th June some functionality has changed.**
 
 ```shell
 ./bin/genval cue --reqinput ./templates/inputs/cue/combined \

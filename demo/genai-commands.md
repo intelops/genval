@@ -24,9 +24,9 @@ requirementSpec:
     openAIConfig:
       # LLM backend model to use for generating security policies
       - model: GPT4
-        # assistant defined under `llmSpec` takes precedence, if defined in common as well
+        # assistant defined under `llmSpec` takes precedence if defined in common as well
         assistant: dockerfile
-        # Bool to define whether to use the model defined above
+        # Boolean value to define whether to use the model defined above
         useTheModel: true
         # API key for authenticating with a backend (if required)
         apiKey: OPENAI_KEY
@@ -34,7 +34,7 @@ requirementSpec:
         topP: 0.3
         streaming: true
         maxTokens: 2048
-      # Can define other models from OpanAI
+      # Can define other models from OpenAI
       - model:
     # Another vendor defined below
     # ollamaSpec:
