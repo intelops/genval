@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/llm"
@@ -152,8 +151,8 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	var response string
 	switch appliedModel {
-	case "GPT4":
-		appliedModel = openai.GPT4
+	case "gpt-4":
+		appliedModel = "gpt-4"
 		response, err = cfg.GenerateOpenAIResponse(ctx, appliedModel, systemPrompt, userPromptContent)
 	case "ollama":
 		response, err = cfg.GenerateOllamaResponse(ctx, systemPrompt, userPromptContent)
