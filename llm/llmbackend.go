@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 
+	"github.com/charmbracelet/lipgloss"
 	ollama "github.com/ollama/ollama/api"
 	"github.com/tmc/langchaingo/llms"
 	openai "github.com/tmc/langchaingo/llms/openai"
@@ -71,6 +72,24 @@ func readEnv(key string) (string, error) {
 	return value, nil
 }
 
+// DrawBorderedOutputWithLipgloss draws a bordered box around the provided content.
+func drawBorderedOutput(content string) string {
+	// Define the style for the border.
+	borderStyle := lipgloss.NewStyle().
+		// Set normal border with all sides.
+		Border(lipgloss.NormalBorder(), true).
+		// Set the border color.
+		BorderForeground(lipgloss.Color("63")).
+		// Add padding inside the border.
+		Padding(1, 2).
+		// Set a fixed width.
+		// Width(150)
+		// Wraps whole screen width
+		Width(200)
+
+	return borderStyle.Render(content)
+}
+
 // GenerateOpenAIResponse generates a response using OpenAI.
 func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
 	var openAIConfig *OpenAIModel
@@ -105,7 +124,7 @@ func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, sys
 		return "", fmt.Errorf("error generating response from OpenAI: %v", err)
 	}
 
-	return resp.Choices[0].Content, err
+	return drawBorderedOutput(resp.Choices[0].Content), err
 }
 
 // NewOllamaEndpoint creates a new OllamaEndpoint with the provided scheme, host, and port.
