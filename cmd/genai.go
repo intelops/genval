@@ -1,16 +1,17 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/llm"
+	"github.com/intelops/genval/pkg/otm"
 	"github.com/intelops/genval/pkg/utils"
 )
 
@@ -51,14 +52,17 @@ func init() {
 
 func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	spin := utils.StartSpinner("Processing your request, please hold-on for a moment...")
-	defer spin.Stop()
 
+	ctx, span := otm.StartSpanForCommand(tracer, cmd)
+	defer span.End()
 	// Load configuration
 	cfg, err := loadConfig()
 	if err != nil {
 		return fmt.Errorf("failed to load configuration: %w", err)
 	}
-
+	if cfg == nil {
+		return fmt.Errorf("loadConfig returned a nil configuration")
+	}
 	var appliedModel string
 	// Fetch active models and assign the first one found
 	activeModels := cfg.LLMSpec.GetActiveModels()
@@ -148,11 +152,11 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	outputPath := getOutputPath(genaiArgs, cfg)
 
 	// Generate response based on the model and backend
-	ctx := context.Background()
+	// ctx := context.Background()
 	var response string
 	switch appliedModel {
 	case "GPT4":
-		appliedModel = "gpt-4"
+		appliedModel = openai.GPT4
 		response, err = cfg.GenerateOpenAIResponse(ctx, appliedModel, systemPrompt, userPromptContent)
 	case "ollama":
 		response, err = cfg.GenerateOllamaResponse(ctx, systemPrompt, userPromptContent)

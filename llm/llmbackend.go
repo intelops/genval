@@ -9,11 +9,18 @@ import (
 	"net/url"
 	"os"
 
-	"github.com/charmbracelet/lipgloss"
 	ollama "github.com/ollama/ollama/api"
-	"github.com/tmc/langchaingo/llms"
-	openai "github.com/tmc/langchaingo/llms/openai"
+	openai "github.com/sashabaranov/go-openai"
+	"go.opentelemetry.io/otel"
 )
+
+var tracer = otel.Tracer("llm")
+
+// OpenAIClient handles interactions with OpenAI API.
+type OpenAIClient struct {
+	client *openai.Client
+	config *OpenAIModel
+}
 
 // OllamaClient handles interactions with Ollama API.
 type OllamaClient struct {
@@ -21,30 +28,29 @@ type OllamaClient struct {
 	config *OllamaModel
 }
 
-func NewOpenAIClient(config *RequirementSpec) (*openai.LLM, error) {
-	var opts openai.Option
-	for _, openAIConfig := range config.LLMSpec.OpenAIConfig {
+// NewLLMClient initializes the correct LLM client based on the config.
+func NewLLMClient(c *RequirementSpec) (interface{}, error) {
+	for _, openAIConfig := range c.LLMSpec.OpenAIConfig {
 		if openAIConfig.UseTheModel && openAIConfig.APIKey != "" {
-			opts = openai.WithToken(openAIConfig.APIKey)
-			opts = openai.WithModel(openAIConfig.Model)
+			return createOpenAIClient(&openAIConfig)
 		}
 	}
-	llm, err := openai.New(opts)
-	if err != nil {
-		return nil, fmt.Errorf("error creating openAI client: %v", err)
+	for _, ollamaConfig := range c.LLMSpec.OllamaSpec {
+		if ollamaConfig.UseTheModel {
+			return createOllamaClient(&ollamaConfig)
+		}
 	}
-	return llm, nil
+	return nil, errors.New("no valid LLM configuration found")
 }
 
-// CreateCallOptions create CallOptions with LLM parameters
-
-func createCallOptions(c *OpenAIModel) (llms.CallOption, error) {
-	var copts llms.CallOption
-	copts = llms.WithMaxTokens(c.MaxTokens)
-	copts = llms.WithTemperature(c.Temperature)
-	copts = llms.WithModel(c.Model)
-
-	return copts, nil
+// createOpenAIClient initializes and returns an OpenAIClient.
+func createOpenAIClient(config *OpenAIModel) (*OpenAIClient, error) {
+	token, err := readEnv("OPENAI_KEY")
+	if err != nil {
+		return nil, fmt.Errorf("failed to load OpenAI API key: %w", err)
+	}
+	client := openai.NewClient(token)
+	return &OpenAIClient{client: client, config: config}, nil
 }
 
 // createOllamaClient initializes and returns an OllamaClient.
@@ -72,26 +78,10 @@ func readEnv(key string) (string, error) {
 	return value, nil
 }
 
-// DrawBorderedOutputWithLipgloss draws a bordered box around the provided content.
-func drawBorderedOutput(content string) string {
-	// Define the style for the border.
-	borderStyle := lipgloss.NewStyle().
-		// Set normal border with all sides.
-		Border(lipgloss.NormalBorder(), true).
-		// Set the border color.
-		BorderForeground(lipgloss.Color("63")).
-		// Add padding inside the border.
-		Padding(1, 2).
-		// Set a fixed width.
-		// Width(150)
-		// Wraps whole screen width
-		Width(200)
-
-	return borderStyle.Render(content)
-}
-
 // GenerateOpenAIResponse generates a response using OpenAI.
 func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
+	ctx, span := tracer.Start(context.Background(), "GenerateOpenAIResponse")
+	defer span.End()
 	var openAIConfig *OpenAIModel
 	for _, config := range c.LLMSpec.OpenAIConfig {
 		if config.UseTheModel {
@@ -104,27 +94,28 @@ func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, sys
 		return "", errors.New("no OpenAI model configured for use")
 	}
 
-	client, err := NewOpenAIClient(c)
+	client, err := createOpenAIClient(openAIConfig)
 	if err != nil {
-		return "", fmt.Errorf("error creating new openAI client: %v", err)
-	}
-	messages := []llms.MessageContent{
-		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
-		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
-	}
-	var copts llms.CallOption
-	for _, openAIModel := range c.LLMSpec.OpenAIConfig {
-		copts, err = createCallOptions(&openAIModel)
-		if err != nil {
-			return "", fmt.Errorf("error creating parameters for OpenAI: %v", err)
-		}
-	}
-	resp, err := client.GenerateContent(ctx, messages, copts)
-	if err != nil {
-		return "", fmt.Errorf("error generating response from OpenAI: %v", err)
+		return "", fmt.Errorf("failed to initialize OpenAI client: %w", err)
 	}
 
-	return drawBorderedOutput(resp.Choices[0].Content), err
+	req := openai.ChatCompletionRequest{
+		Model:       model,
+		Temperature: openAIConfig.Temperature,
+		TopP:        openAIConfig.TopP,
+		MaxTokens:   openAIConfig.MaxTokens,
+	}
+
+	req.Messages = []openai.ChatCompletionMessage{
+		{Role: openai.ChatMessageRoleSystem, Content: systemPrompt},
+		{Role: openai.ChatMessageRoleUser, Content: userPrompt},
+	}
+
+	resp, err := client.client.CreateChatCompletion(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("failed to generate OpenAI response: %w", err)
+	}
+	return resp.Choices[0].Message.Content, nil
 }
 
 // NewOllamaEndpoint creates a new OllamaEndpoint with the provided scheme, host, and port.

@@ -1,6 +1,7 @@
 package validate
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -10,6 +11,9 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
 	"github.com/jedib0t/go-pretty/v6/table"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 	"gopkg.in/yaml.v2"
 )
 
@@ -50,7 +54,23 @@ func evaluateCEL(input string, celPolicy string) (string, error) {
 	return "Failed", nil
 }
 
+var tracer = otel.Tracer("validate")
+
 func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer) error {
+	_, span := tracer.Start(context.Background(), "EvaluateCELPolicies")
+	defer span.End()
+
+	// Example: Add attributes to the span
+	span.SetAttributes(
+		attribute.String("input.file", inputFile),
+		attribute.Int("policies.count", len(policies)),
+	)
+
+	// Example: Add an event
+	span.AddEvent("Started evaluating policies", trace.WithAttributes(
+		attribute.String("status", "initializing"),
+	))
+
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()
 

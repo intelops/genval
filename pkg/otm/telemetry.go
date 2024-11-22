@@ -3,19 +3,22 @@ package otm
 import (
 	"context"
 	"log"
+	"strings"
 	"time"
 
-	"go.opencensus.io/trace"
+	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/instrumentation"
 	metricsdk "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"go.opentelemetry.io/otel/trace"
 )
 
 var tracer trace.Tracer
@@ -111,6 +114,8 @@ func SetupTracer() (*sdktrace.TracerProvider, error) {
 		return nil, err
 	}
 
+	prop := newPropagator()
+	otel.SetTextMapPropagator(prop)
 	r, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
 		semconv.SchemaURL, semconv.ServiceName("genval")))
 	if err != nil {
@@ -122,3 +127,41 @@ func SetupTracer() (*sdktrace.TracerProvider, error) {
 	)
 	return tp, nil
 }
+
+func newPropagator() propagation.TextMapPropagator {
+	return propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	)
+}
+
+func StartSpanForCommand(tracer trace.Tracer, cmd *cobra.Command) (context.Context, trace.Span) {
+	// via https://stackoverflow.com/a/78486358/2257038
+	commandParts := strings.Fields(cmd.CommandPath())
+	command := commandParts[0]
+	subcommand := ""
+	if len(commandParts) > 1 {
+		subcommand = commandParts[1]
+	}
+
+	// we ignore the linting finding, as we're making sure that the span is `End`'d as part of a `PersistentPostRunE`
+	ctx, span := tracer.Start( //nolint: spancheck
+		cmd.Context(),
+		cmd.CommandPath(),
+		trace.WithAttributes(
+			AttributeKeyCobraCommand.String(command),
+			AttributeKeyCobraSubcommand.String(subcommand),
+			AttributeKeyCobraCommandPath.String(cmd.CommandPath()),
+		))
+
+	cmd.SetContext(ctx)
+	span = trace.SpanFromContext(ctx)
+
+	return ctx, span //nolint: spancheck
+}
+
+const (
+	AttributeKeyCobraCommand     attribute.Key = "cobra.command"
+	AttributeKeyCobraSubcommand  attribute.Key = "cobra.subcommand"
+	AttributeKeyCobraCommandPath attribute.Key = "cobra.commandpath"
+)
