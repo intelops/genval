@@ -151,7 +151,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	var response string
 	switch appliedModel {
-	case "gpt-4":
+	case "GPT4":
 		appliedModel = "gpt-4"
 		response, err = cfg.GenerateOpenAIResponse(ctx, appliedModel, systemPrompt, userPromptContent)
 	case "ollama":
