@@ -80,8 +80,9 @@ func readEnv(key string) (string, error) {
 
 // GenerateOpenAIResponse generates a response using OpenAI.
 func (c *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, systemPrompt, userPrompt string) (string, error) {
-	ctx, span := tracer.Start(context.Background(), "GenerateOpenAIResponse")
+	_, span := tracer.Start(context.Background(), "GenerateOpenAIResponse")
 	defer span.End()
+
 	var openAIConfig *OpenAIModel
 	for _, config := range c.LLMSpec.OpenAIConfig {
 		if config.UseTheModel {

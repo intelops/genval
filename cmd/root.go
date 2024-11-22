@@ -2,23 +2,24 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"os"
-	"runtime"
-	"time"
 
 	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/intelops/genval/pkg/otm"
 )
 
 var (
-	tracer  trace.Tracer
+	tracer       trace.Tracer
+	otelShutdown func(context.Context) error
+	// cmdSpan is the currently processing `cobra.Command`'s Span
+	cmdSpan trace.Span
+
 	rootCmd = &cobra.Command{
 		Use:   "genval",
 		Short: "An agnostic configuration management tool for generating and validating IaC files",
@@ -29,71 +30,33 @@ var (
 		`,
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
-
-			// Setup TracerProvider
-			tp, err := otm.SetupTracer()
+			shutdown, err := otm.SetupOTelSDK(cmd.Context(), "intelops/genval", "v0.1.7")
 			if err != nil {
-				return err
-			}
-			defer func() {
-				_ = tp.Shutdown(ctx)
-			}()
-			otel.SetTracerProvider(tp)
-
-			tracer = otel.Tracer("genval.pkg.cmd")
-
-			// Capture additional attributes
-			attributes := []attribute.KeyValue{
-				attribute.String("command.use", cmd.CommandPath()),
-				attribute.StringSlice("command.args", args),
-				attribute.String("execution.status", "success"),
-				attribute.Float64("execution.duration", float64(time.Second)),
-				// System and environment details
-				attribute.String("os", runtime.GOOS),
-				attribute.String("architecture", runtime.GOARCH),
-				attribute.Int("cpu.count", runtime.NumCPU()),
-				attribute.String("working.directory", getWorkingDirectory()),
-				attribute.String("user.name", os.Getenv("USER")),
-				attribute.String("home.directory", os.Getenv("HOME")),
-				// Command-specific metadata
-				attribute.String("command.id", cmd.Name()),
-				attribute.Int("command.arg.count", len(args)),
+				return fmt.Errorf("failed to set up OpenTelemetry: %w", err)
 			}
 
-			ctx, span := tracer.Start(ctx, "rootCmd.execution",
-				trace.WithAttributes(
-					attributes...,
-				))
-			defer span.End()
+			tracer = otel.Tracer("intelops/genval")
 
-			// Setup Metrics
-			shutdownMetrics := otm.SetupMetrics()
-			defer shutdownMetrics()
-			// Record initial metrics
-			meter := otel.Meter("genval")
-			counter, err := meter.Int64Counter(
-				"command.execution.count",
-				metric.WithDescription("Counts the number of command executions"),
-			)
-			if err != nil {
-				return err
-			}
-			counter.Add(ctx, 1, metric.WithAttributes(attribute.String("command.use", cmd.Use)))
+			otelShutdown = shutdown
 
-			log.Infof("Command '%s' started with args: %v", cmd.Use, args)
+			// wrap the whole command in a Span
+			_, span := otm.StartSpanForCommand(tracer, cmd)
+			cmdSpan = span
+
 			return nil
 		},
-		RunE: func(cmd *cobra.Command, args []string) error {
-			ctx := context.Background()
-			// Start a span for the core command execution
-			_, span := tracer.Start(ctx, "rootCmd.run")
-			defer span.End()
+		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
+			// and then make sure it's ended
+			cmdSpan.End()
 
-			// Simulated command logic for demonstration
-			time.Sleep(2 * time.Second) // Replace with actual command logic
+			if otelShutdown != nil {
+				err := otelShutdown(cmd.Context())
+				if err != nil {
+					// we don't want to fail the process if telemetry can't be sent
+					log.Error("Failed to shut down OpenTelemetry", "err", err)
+				}
+			}
 
-			log.Info("Command executed successfully")
 			return nil
 		},
 	}

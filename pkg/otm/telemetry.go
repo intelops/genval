@@ -2,130 +2,85 @@ package otm
 
 import (
 	"context"
-	"log"
-	"strings"
+	"errors"
+	"fmt"
 	"time"
 
-	"github.com/spf13/cobra"
+	"go.opentelemetry.io/contrib/exporters/autoexport"
 	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
+	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
 	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/instrumentation"
-	metricsdk "go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/metric/metricdata"
+	"go.opentelemetry.io/otel/sdk/log"
+	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
-	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
-	"go.opentelemetry.io/otel/trace"
 )
 
-var tracer trace.Tracer
+type Command string
 
-func SetupMetrics() func() {
-	now := time.Now() // Define the current time
-
-	// Create a resource with attributes
-	res, err := resource.New(
-		context.Background(),
-		resource.WithAttributes(
-			attribute.String("service.name", "genval"),
-			attribute.String("library.language", "Golang"),
+func defaultResources(command Command, version string) (*resource.Resource, error) {
+	return resource.Merge(
+		resource.Default(),
+		resource.NewWithAttributes(
+			semconv.SchemaURL,
+			semconv.ServiceName(string(command)),
+			semconv.ServiceVersion(version),
 		),
 	)
-	if err != nil {
-		log.Fatalf("failed to create resource: %v", err)
-	}
-
-	// Define mock data
-	mockData := metricdata.ResourceMetrics{
-		Resource: res,
-		ScopeMetrics: []metricdata.ScopeMetrics{
-			{
-				Scope: instrumentation.Scope{Name: "genval", Version: "0.1.7"},
-				Metrics: []metricdata.Metrics{
-					{
-						Name:        "system.cpu.time",
-						Description: "Accumulated CPU time spent",
-						Unit:        "s",
-						Data: metricdata.Sum[float64]{
-							IsMonotonic: true,
-							Temporality: metricdata.CumulativeTemporality,
-							DataPoints: []metricdata.DataPoint[float64]{
-								{
-									Attributes: attribute.NewSet(attribute.String("state", "user")),
-									StartTime:  now,
-									Time:       now.Add(1 * time.Second),
-									Value:      0.5,
-								},
-							},
-						},
-					},
-					{
-						Name:        "system.memory.usage",
-						Description: "Memory usage",
-						Unit:        "By",
-						Data: metricdata.Gauge[int64]{
-							DataPoints: []metricdata.DataPoint[int64]{
-								{
-									Attributes: attribute.NewSet(attribute.String("state", "used")),
-									Time:       now.Add(1 * time.Second),
-									Value:      100,
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	// Create an exporter to output metrics to stdout
-	exporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
-	if err != nil {
-		log.Fatalf("failed to initialize stdout exporter: %v", err)
-	}
-
-	// Create a MeterProvider with the exporter
-	provider := metricsdk.NewMeterProvider(
-		metricsdk.WithResource(res),
-		metricsdk.WithReader(metricsdk.NewPeriodicReader(exporter)),
-	)
-	otel.SetMeterProvider(provider)
-
-	// Export mock data (for demonstration purposes)
-	err = exporter.Export(context.Background(), &mockData)
-	if err != nil {
-		log.Fatalf("failed to export mock data: %v", err)
-	}
-
-	// Return shutdown function
-	return func() {
-		if err := provider.Shutdown(context.Background()); err != nil {
-			log.Fatalf("failed to shutdown MeterProvider: %v", err)
-		}
-	}
 }
 
-func SetupTracer() (*sdktrace.TracerProvider, error) {
-	exporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+func SetupOTelSDK(ctx context.Context, command Command, version string) (shutdown func(context.Context) error, err error) {
+	res, err := defaultResources(command, version)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to set up default Resource configuration: %w", err)
+	}
+
+	var shutdownFuncs []func(context.Context) error
+
+	shutdown = func(ctx context.Context) error {
+		var err error
+		for _, fn := range shutdownFuncs {
+			err = errors.Join(err, fn(ctx))
+		}
+		shutdownFuncs = nil
+		return err
+	}
+
+	handleErr := func(inErr error) {
+		err = errors.Join(inErr, shutdown(ctx))
 	}
 
 	prop := newPropagator()
 	otel.SetTextMapPropagator(prop)
-	r, err := resource.Merge(resource.Default(), resource.NewWithAttributes(
-		semconv.SchemaURL, semconv.ServiceName("genval")))
+
+	tracerProvider, err := newTraceProvider(ctx, res)
 	if err != nil {
-		log.Fatal(err)
+		handleErr(err)
+		return
 	}
-	tp := sdktrace.NewTracerProvider(
-		sdktrace.WithBatcher(exporter),
-		sdktrace.WithResource(r),
-	)
-	return tp, nil
+	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
+	otel.SetTracerProvider(tracerProvider)
+
+	meterProvider, err := newMeterProvider(ctx, res)
+	if err != nil {
+		handleErr(err)
+		return
+	}
+	shutdownFuncs = append(shutdownFuncs, meterProvider.Shutdown)
+	otel.SetMeterProvider(meterProvider)
+
+	loggerProvider, err := newLoggerProvider(ctx, res)
+	if err != nil {
+		handleErr(err)
+		return
+	}
+	shutdownFuncs = append(shutdownFuncs, loggerProvider.Shutdown)
+	global.SetLoggerProvider(loggerProvider)
+
+	return
 }
 
 func newPropagator() propagation.TextMapPropagator {
@@ -135,33 +90,47 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-func StartSpanForCommand(tracer trace.Tracer, cmd *cobra.Command) (context.Context, trace.Span) {
-	// via https://stackoverflow.com/a/78486358/2257038
-	commandParts := strings.Fields(cmd.CommandPath())
-	command := commandParts[0]
-	subcommand := ""
-	if len(commandParts) > 1 {
-		subcommand = commandParts[1]
+func newTraceProvider(ctx context.Context, res *resource.Resource) (*trace.TracerProvider, error) {
+	traceExporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+	if err != nil {
+		return nil, err
 	}
 
-	// we ignore the linting finding, as we're making sure that the span is `End`'d as part of a `PersistentPostRunE`
-	ctx, span := tracer.Start( //nolint: spancheck
-		cmd.Context(),
-		cmd.CommandPath(),
-		trace.WithAttributes(
-			AttributeKeyCobraCommand.String(command),
-			AttributeKeyCobraSubcommand.String(subcommand),
-			AttributeKeyCobraCommandPath.String(cmd.CommandPath()),
-		))
-
-	cmd.SetContext(ctx)
-	span = trace.SpanFromContext(ctx)
-
-	return ctx, span //nolint: spancheck
+	traceProvider := trace.NewTracerProvider(
+		trace.WithResource(res),
+		trace.WithBatcher(
+			traceExporter,
+			trace.WithBatchTimeout(time.Second),
+		),
+	)
+	return traceProvider, nil
 }
 
-const (
-	AttributeKeyCobraCommand     attribute.Key = "cobra.command"
-	AttributeKeyCobraSubcommand  attribute.Key = "cobra.subcommand"
-	AttributeKeyCobraCommandPath attribute.Key = "cobra.commandpath"
-)
+func newMeterProvider(ctx context.Context, res *resource.Resource) (*metric.MeterProvider, error) {
+	metricReader, err := autoexport.NewMetricReader(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	meterProvider := metric.NewMeterProvider(
+		metric.WithResource(res),
+		metric.WithReader(
+			metricReader,
+		),
+	)
+	return meterProvider, nil
+}
+
+func newLoggerProvider(_ context.Context, res *resource.Resource) (*log.LoggerProvider, error) {
+	// and we only support the console-based logging
+	logExporter, err := stdoutlog.New()
+	if err != nil {
+		return nil, err
+	}
+
+	loggerProvider := log.NewLoggerProvider(
+		log.WithResource(res),
+		log.WithProcessor(log.NewBatchProcessor(logExporter)),
+	)
+	return loggerProvider, nil
+}
