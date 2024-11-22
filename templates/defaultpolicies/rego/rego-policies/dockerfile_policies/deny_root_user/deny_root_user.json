@@ -1,0 +1,9 @@
+{
+  "name": "DenyRootUser",
+  "policy_file": "deny_root_user.rego",
+  "policy_name": "deny_root_user",
+  "severity": "Critical",
+  "Description": "Ensure that the Dockerfile for the container image contains USER instruction",
+  "Benchmark": "CIS-4.1",
+  "Category": "Infrastructure security"
+}

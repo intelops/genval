@@ -1,0 +1,9 @@
+{
+  "name": "DenySudo",
+  "policy_file": "deny_sudo.rego",
+  "policy_name": "deny_sudo",
+  "severity": "Critical",
+  "Description": "Ensure sudo is not used in RUN instructions",
+  "Benchmark": "CIS-4.1",
+  "Category": "Infrastructure security"
+}

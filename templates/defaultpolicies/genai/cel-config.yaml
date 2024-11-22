@@ -1,0 +1,18 @@
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: cel-config
+requirementSpec:
+  common:
+    userPrompt: ./templates/inputs/genai/user-prompts/cel-prompt.md
+    output: ./output/cel-llmResponse.md
+    # assistant: cel
+  llmSpec:
+    openAIConfig:
+      - model: GPT4
+        assistant: cel
+        useTheModel: true
+        apiKey: OPENAI_KEY
+        temperature: 0.7
+        topP: 0.3
+        streaming: true
+        maxTokens: 2048
