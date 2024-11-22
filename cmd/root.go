@@ -9,11 +9,9 @@ import (
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/stdout/stdoutmetric"
 	"go.opentelemetry.io/otel/metric"
-	metricsdk "go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/resource"
-	semconv "go.opentelemetry.io/otel/semconv/v1.17.0"
+
+	"github.com/intelops/genval/pkg/otm"
 )
 
 // rootCommand returns a cobra command for genvalctl CLI tool
@@ -28,9 +26,28 @@ var rootCmd = &cobra.Command{
 	SilenceUsage: true,
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
+		var err error
+
+		tp, err := otm.SetupTracer()
+		if err != nil {
+			log.Errorf("failed to initialize new trace provuder: %v", err)
+			return err
+		}
+
+		cleanup := func() {
+			_ = tp.Shutdown(context.Background())
+		}
+		defer cleanup()
+
+		otel.SetTracerProvider(tp)
+
+		tracer := otel.Tracer("genval")
+
+		_, span := tracer.Start(ctx, cmd.Use)
+		defer span.End()
 
 		// Instrumentation setup
-		shutdown := setupMetrics()
+		shutdown := otm.SetupMetrics()
 		defer shutdown()
 
 		log.Print("Starting runtime instrumentation")
@@ -60,33 +77,5 @@ func init() {
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		os.Exit(1)
-	}
-}
-
-// Global variables for resource and exporter
-var res = resource.NewWithAttributes(
-	semconv.SchemaURL,
-	semconv.ServiceNameKey.String("genval"),
-)
-
-func setupMetrics() func() {
-	// Create an exporter to output metrics to stdout
-	exporter, err := stdoutmetric.New(stdoutmetric.WithPrettyPrint())
-	if err != nil {
-		log.Fatalf("failed to initialize stdout exporter: %v", err)
-	}
-
-	// Create a MeterProvider with the exporter
-	provider := metricsdk.NewMeterProvider(
-		metricsdk.WithResource(res),
-		metricsdk.WithReader(metricsdk.NewPeriodicReader(exporter)),
-	)
-	otel.SetMeterProvider(provider)
-
-	// Return shutdown function
-	return func() {
-		if err := provider.Shutdown(context.Background()); err != nil {
-			log.Fatalf("failed to shutdown MeterProvider: %v", err)
-		}
 	}
 }
