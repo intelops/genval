@@ -14,7 +14,7 @@ require (
 	github.com/google/go-github/v55 v55.0.0
 	github.com/google/go-github/v57 v57.0.0
 	github.com/hashicorp/hcl/v2 v2.23.0
-	github.com/jedib0t/go-pretty/v6 v6.6.1
+	github.com/jedib0t/go-pretty/v6 v6.6.2
 	github.com/joho/godotenv v1.5.1
 	github.com/ollama/ollama v0.3.0
 	github.com/open-policy-agent/opa v0.70.0
