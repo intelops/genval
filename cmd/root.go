@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 
@@ -55,6 +57,11 @@ var (
 					// we don't want to fail the process if telemetry can't be sent
 					log.Error("Failed to shut down OpenTelemetry", "err", err)
 				}
+			}
+			// Collect runtime metrics
+			err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
+			if err != nil {
+				log.Fatalf("error ")
 			}
 
 			return nil

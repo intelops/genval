@@ -4,19 +4,23 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"os/signal"
 	"time"
 
-	"go.opentelemetry.io/contrib/exporters/autoexport"
+	log "github.com/sirupsen/logrus"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/exporters/stdout/stdoutlog"
-	"go.opentelemetry.io/otel/exporters/stdout/stdouttrace"
 	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/log"
+	olog "go.opentelemetry.io/otel/sdk/log"
 	"go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	"go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	"google.golang.org/grpc"
 )
 
 type Command string
@@ -33,6 +37,15 @@ func defaultResources(command Command, version string) (*resource.Resource, erro
 }
 
 func SetupOTelSDK(ctx context.Context, command Command, version string) (shutdown func(context.Context) error, err error) {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	conn, err := InitConn()
+	if err != nil {
+		log.Errorf("error initialing grpc client: %v", err)
+		return nil, err
+	}
+
 	res, err := defaultResources(command, version)
 	if err != nil {
 		return nil, fmt.Errorf("failed to set up default Resource configuration: %w", err)
@@ -56,7 +69,7 @@ func SetupOTelSDK(ctx context.Context, command Command, version string) (shutdow
 	prop := newPropagator()
 	otel.SetTextMapPropagator(prop)
 
-	tracerProvider, err := newTraceProvider(ctx, res)
+	tracerProvider, err := newTraceProvider(ctx, res, conn)
 	if err != nil {
 		handleErr(err)
 		return
@@ -64,7 +77,7 @@ func SetupOTelSDK(ctx context.Context, command Command, version string) (shutdow
 	shutdownFuncs = append(shutdownFuncs, tracerProvider.Shutdown)
 	otel.SetTracerProvider(tracerProvider)
 
-	meterProvider, err := newMeterProvider(ctx, res)
+	meterProvider, err := newMeterProvider(ctx, res, conn)
 	if err != nil {
 		handleErr(err)
 		return
@@ -90,10 +103,10 @@ func newPropagator() propagation.TextMapPropagator {
 	)
 }
 
-func newTraceProvider(ctx context.Context, res *resource.Resource) (*trace.TracerProvider, error) {
-	traceExporter, err := stdouttrace.New(stdouttrace.WithPrettyPrint())
+func newTraceProvider(ctx context.Context, res *resource.Resource, conn *grpc.ClientConn) (*trace.TracerProvider, error) {
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(conn))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
 
 	traceProvider := trace.NewTracerProvider(
@@ -106,31 +119,31 @@ func newTraceProvider(ctx context.Context, res *resource.Resource) (*trace.Trace
 	return traceProvider, nil
 }
 
-func newMeterProvider(ctx context.Context, res *resource.Resource) (*metric.MeterProvider, error) {
-	metricReader, err := autoexport.NewMetricReader(ctx)
+func newMeterProvider(ctx context.Context, res *resource.Resource, conn *grpc.ClientConn) (*metric.MeterProvider, error) {
+	metricExporter, err := otlpmetricgrpc.New(ctx, otlpmetricgrpc.WithGRPCConn(conn))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create metrics exporter: %w", err)
 	}
 
 	meterProvider := metric.NewMeterProvider(
 		metric.WithResource(res),
-		metric.WithReader(
-			metricReader,
-		),
+		metric.WithReader(metric.NewPeriodicReader(metricExporter)),
 	)
+	otel.SetMeterProvider(meterProvider)
+
 	return meterProvider, nil
 }
 
-func newLoggerProvider(_ context.Context, res *resource.Resource) (*log.LoggerProvider, error) {
+func newLoggerProvider(_ context.Context, res *resource.Resource) (*olog.LoggerProvider, error) {
 	// and we only support the console-based logging
 	logExporter, err := stdoutlog.New()
 	if err != nil {
 		return nil, err
 	}
 
-	loggerProvider := log.NewLoggerProvider(
-		log.WithResource(res),
-		log.WithProcessor(log.NewBatchProcessor(logExporter)),
+	loggerProvider := olog.NewLoggerProvider(
+		olog.WithResource(res),
+		olog.WithProcessor(olog.NewBatchProcessor(logExporter)),
 	)
 	return loggerProvider, nil
 }

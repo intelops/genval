@@ -2,6 +2,8 @@ package otm
 
 import (
 	"context"
+	"os"
+	"runtime"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -26,6 +28,11 @@ func StartSpanForCommand(tracer trace.Tracer, cmd *cobra.Command) (context.Conte
 			AttributeKeyCobraCommand.String(command),
 			AttributeKeyCobraSubcommand.String(subcommand),
 			AttributeKeyCobraCommandPath.String(cmd.CommandPath()),
+			attribute.Int("process.id", os.Getpid()),
+			attribute.Int("user.id", os.Getuid()),
+			attribute.Int("cpu.num", runtime.NumCPU()),
+			attribute.Int("num.goroutines", runtime.NumGoroutine()),
+			// attribute.StringSlice("read.trace", runtime.ReadTrace()),
 		))
 
 	cmd.SetContext(ctx)
