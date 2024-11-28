@@ -6,16 +6,15 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
 	"cuelang.org/go/cue/load"
 	"github.com/fatih/color"
+	"github.com/spf13/cobra"
+
 	"github.com/intelops/genval/pkg/cuecore"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
-	"github.com/spf13/cobra"
 )
 
 var cueCmd = &cobra.Command{

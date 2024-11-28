@@ -4,12 +4,13 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/spf13/cobra"
+
+	"github.com/intelops/genval/pkg/otm"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
-	"github.com/jedib0t/go-pretty/v6/table"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 type celDockerfileValFlags struct {
@@ -65,20 +66,25 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 	input := celDockerfileValArgs.reqinput
 	policy := celDockerfileValArgs.policy
 
+	hook := otm.NewOTelHook(tracer)
+	log.AddHook(hook)
+	ctx, span := otm.StartSpanForCommand(tracer, cmd)
+	defer span.End()
+
 	dockerfileContent, err := utils.ReadFile(input)
 	if err != nil {
-		log.Errorf("Error reading Dockerfile: %v, validation failed: %s\n", input, err)
+		log.WithContext(ctx).Errorf("Error reading Dockerfile: %v, validation failed: %s\n", input, err)
 	}
 
 	dockerInst := parser.ParseDockerfileContent(string(dockerfileContent))
 	dockerfileJSON, err := json.Marshal(dockerInst)
 	if err != nil {
-		log.Errorf("Error marshaling Dockerfile: %v", err)
+		log.WithContext(ctx).Errorf("Error marshaling Dockerfile: %v", err)
 		return err
 	}
 	policies, err := validate.ParseYAMLPolicies(policy)
 	if err != nil {
-		log.Fatalf("Error parsing YAML policies: %v", err)
+		log.WithContext(ctx).Fatalf("Error parsing YAML policies: %v", err)
 	}
 
 	t := table.NewWriter()

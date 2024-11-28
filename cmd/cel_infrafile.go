@@ -4,11 +4,12 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/spf13/cobra"
+
+	"github.com/intelops/genval/pkg/otm"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/validate"
-	"github.com/jedib0t/go-pretty/v6/table"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 type celFlags struct {
@@ -70,19 +71,31 @@ func runCelCmd(cmd *cobra.Command, args []string) error {
 	policy := celArgs.policy
 
 	var data interface{}
+
+	ctx, span := otm.StartSpanForCommand(tracer, cmd)
+	defer span.End()
 	err := parser.ParseDockerfileInput(string(inputFile), &data)
 	if err != nil {
-		log.Fatalf("Unable to process input: %v", err)
+		log.WithContext(ctx).WithFields(map[string]interface{}{
+			"inputPath": inputFile,
+			"error":     err,
+		}).Errorf("Error reading input file")
+		os.Exit(1)
 	}
 	data = parser.ConvertToJSON(data)
 
 	jsonManifest, err := json.Marshal(data)
 	if err != nil {
-		log.Fatalf("Error marshaling manifest data to JSON: %v", err)
+		log.WithContext(ctx).WithFields(map[string]interface{}{
+			"error": err,
+		}).Errorf("Error marshalling data")
 	}
 	policies, err := validate.ParseYAMLPolicies(policy)
 	if err != nil {
-		log.Fatalf("Error parsing YAML policies: %v", err)
+		log.WithContext(ctx).WithFields(map[string]interface{}{
+			"policy": policies,
+			"error":  err,
+		}).Errorf("Error parsing YAML policy")
 	}
 
 	t := table.NewWriter()

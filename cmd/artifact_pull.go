@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/fatih/color"
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
 	"github.com/intelops/genval/pkg/oci"

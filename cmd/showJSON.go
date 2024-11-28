@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/spf13/cobra"
+
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 type showJSONFlags struct {

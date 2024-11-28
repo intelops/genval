@@ -2,18 +2,17 @@ receivers:
   otlp:
     protocols:
       grpc:
-        endpoint: 0.0.0.0:4317
+        endpoint: 0.0.0.0:7281
+      http:
 processors:
+  batch:
 extensions:
   health_check: {}
 exporters:
-  otlp:
-    endpoint: jaeger:4317
+  otlp/quickwit:
+    endpoint: quickwit:7281
     tls:
       insecure: true
-  prometheus:
-    endpoint: 0.0.0.0:9090
-    namespace: testapp
   debug:
 
 service:
@@ -21,10 +20,10 @@ service:
   pipelines:
     traces:
       receivers: [otlp]
-      processors: []
-      exporters: [otlp, debug]
+      processors: [batch]
+      exporters: [otlp/quickwit, debug]
 
     metrics:
       receivers: [otlp]
       processors: []
-      exporters: [prometheus, debug]
+      exporters: [otlp/quickwit, debug]

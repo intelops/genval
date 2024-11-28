@@ -9,7 +9,7 @@ import (
 
 // Initialize a gRPC connection to be used by both the tracer and meter
 // providers.
-func InitConn() (*grpc.ClientConn, error) {
+func initConn() (*grpc.ClientConn, error) {
 	// It connects the OpenTelemetry Collector through local gRPC connection.
 	// You may replace `localhost:4317` with your endpoint.
 	conn, err := grpc.NewClient("localhost:4317",

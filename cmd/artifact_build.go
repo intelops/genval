@@ -4,9 +4,9 @@ import (
 	"os"
 	"path/filepath"
 
-	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/intelops/genval/pkg/logger"
 	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/utils"
 )
@@ -38,7 +38,10 @@ type buildFlags struct {
 	output   string
 }
 
-var buildArgs buildFlags
+var (
+	buildArgs buildFlags
+	log       = logger.Init()
+)
 
 func init() {
 	buildCmd.Flags().StringVarP(&buildArgs.reqinput, "reqinput", "r", "", "Path to the source files to build artifact from")
@@ -58,13 +61,19 @@ func runBuildCmd(cmd *cobra.Command, args []string) error {
 	outputPath := buildArgs.output
 
 	if err := utils.CheckPathExists(inputPath); err != nil {
-		log.Errorf("Error reading %s: %s\n", inputPath, err)
+		log.WithFields(map[string]interface{}{
+			"inputPath": inputPath,
+			"error":     err,
+		}).Errorf("Error reading input path")
 		os.Exit(1)
 	}
 
 	outputDir := filepath.Dir(outputPath)
 	if err := utils.CheckPathExists(outputDir); err != nil {
-		log.Errorf("Error reading %s: %s\n", outputPath, err)
+		log.WithFields(map[string]interface{}{
+			"outputPath": outputPath,
+			"error":      err,
+		}).Errorf("Error reading output directory")
 		os.Exit(1)
 	}
 
@@ -72,7 +81,11 @@ func runBuildCmd(cmd *cobra.Command, args []string) error {
 
 	// Create a tarball from the input path
 	if err := oci.CreateTarball(inputPath, outputPath); err != nil {
-		log.Errorf("Error creating tarball: %s", err)
+		log.WithFields(map[string]interface{}{
+			"inputPath": inputPath,
+			"Error":     err,
+		}).Errorf("Error creating tarball")
+		// log.Errorf("Error creating tarball: %s", err)
 		return err
 	}
 	log.Printf("✔ Artifact created successfully at: %s\n", outputPath)

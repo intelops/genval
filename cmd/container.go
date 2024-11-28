@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/spf13/cobra"
+
 	generate "github.com/intelops/genval/pkg/generate/dockerfile_gen"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 type dockerfileFlags struct {

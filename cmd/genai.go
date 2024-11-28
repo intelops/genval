@@ -161,11 +161,16 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	case "ollama":
 		response, err = cfg.GenerateOllamaResponse(ctx, systemPrompt, userPromptContent)
 	default:
-		return fmt.Errorf("unsupported model: %s", appliedModel)
+		log.WithContext(ctx).Errorf("unsupported model")
+		return err
 	}
 
 	if err != nil {
-		return fmt.Errorf("error generating response: %v", err)
+		log.WithContext(ctx).WithFields(map[string]interface{}{
+			"Applied Model": appliedModel,
+			"Error":         err,
+		}).Error("Error generating response: %v", err)
+		return err
 	}
 
 	if cfg.Common.Output != "" {

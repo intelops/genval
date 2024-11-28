@@ -3,11 +3,11 @@ package cmd
 import (
 	"os"
 
+	"github.com/jedib0t/go-pretty/v6/table"
+	"github.com/spf13/cobra"
+
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/validate"
-	"github.com/jedib0t/go-pretty/v6/table"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 type celTerraformvalFlags struct {
