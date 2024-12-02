@@ -26,14 +26,35 @@ import (
 // type Command string
 
 func defaultResources(command string, version string) (*resource.Resource, error) {
-	return resource.Merge(
-		resource.Default(),
-		resource.NewWithAttributes(
-			semconv.SchemaURL,
-			semconv.ServiceName(string(command)),
-			semconv.ServiceVersion(version),
-		),
+	// Create a semantic resource with the command and version attributes
+	semResources := resource.NewWithAttributes(
+		semconv.SchemaURL,
+		semconv.ServiceNameKey.String(command),
+		semconv.ServiceVersionKey.String(version),
 	)
+
+	// Gather system-related attributes (OS, Process, Host)
+	systemResources, err := resource.New(
+		context.Background(),
+		resource.WithOS(),
+		resource.WithProcess(),
+		resource.WithHost(),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Merge default, system-related, and semantic resources step by step
+	merged, err := resource.Merge(resource.Default(), systemResources)
+	if err != nil {
+		return nil, err
+	}
+	merged, err = resource.Merge(merged, semResources)
+	if err != nil {
+		return nil, err
+	}
+
+	return merged, nil
 }
 
 func SetupOTelSDK(ctx context.Context, command string, version string) (shutdown func(context.Context) error, err error) {
@@ -114,6 +135,7 @@ func newTraceProvider(ctx context.Context, res *resource.Resource, conn *grpc.Cl
 			trace.WithBatchTimeout(time.Second),
 		),
 	)
+	otel.SetTracerProvider(traceProvider)
 	return traceProvider, nil
 }
 
@@ -144,5 +166,6 @@ func newLoggerProvider(ctx context.Context, res *resource.Resource, conn *grpc.C
 		olog.WithResource(res),
 		olog.WithProcessor(olog.NewBatchProcessor(logExporter)),
 	)
+	global.SetLoggerProvider(loggerProvider)
 	return loggerProvider, nil
 }

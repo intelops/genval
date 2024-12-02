@@ -53,6 +53,9 @@ func init() {
 func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	spin := utils.StartSpinner("Processing your request, please hold-on for a moment...")
 
+	hook := otm.NewHook("Genval.genai", otm.WithLoggerProvider(logProvider))
+	log.AddHook(hook)
+
 	ctx, span := otm.StartSpanForCommand(tracer, cmd)
 	defer span.End()
 	// Load configuration
@@ -169,7 +172,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 		log.WithContext(ctx).WithFields(map[string]interface{}{
 			"Applied Model": appliedModel,
 			"Error":         err,
-		}).Error("Error generating response: %v", err)
+		}).Error("Error generating response")
 		return err
 	}
 

@@ -10,13 +10,19 @@ import (
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
+	otellog "go.opentelemetry.io/otel/log"
+	"go.opentelemetry.io/otel/log/global"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/intelops/genval/pkg/logger"
 	"github.com/intelops/genval/pkg/otm"
 )
 
 var (
+	log = logger.Init()
+
 	tracer       trace.Tracer
+	logProvider  otellog.LoggerProvider
 	otelShutdown func(context.Context) error
 	// cmdSpan is the currently processing `cobra.Command`'s Span
 	cmdSpan trace.Span
@@ -37,17 +43,16 @@ var (
 			}
 
 			tracer = otel.Tracer("intelops/genval")
+			logProvider = global.GetLoggerProvider()
 			// Constructor to create the hook
-			hook := otm.NewOTelHook(tracer)
+			hook := otm.NewHook("intelops/genval", otm.WithLoggerProvider(logProvider))
 
 			log.AddHook(hook)
 			otelShutdown = shutdown
 
 			// wrap the whole command in a Span
 			_, span := otm.StartSpanForCommand(tracer, cmd)
-			log.WithContext(cmd.Context()).Info("This is an example log")
 			cmdSpan = span
-			defer cmdSpan.End()
 			return nil
 		},
 		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
@@ -90,14 +95,4 @@ func Execute() {
 		}).Errorf("Error initializing Command")
 		os.Exit(1)
 	}
-}
-
-// getWorkingDirectory retrieves the current working directory
-func getWorkingDirectory() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		log.Warn("Unable to retrieve working directory:", err)
-		return "unknown"
-	}
-	return dir
 }

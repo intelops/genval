@@ -6,6 +6,7 @@ import (
 
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/spf13/cobra"
+	"go.opentelemetry.io/otel/log/global"
 
 	"github.com/intelops/genval/pkg/otm"
 	"github.com/intelops/genval/pkg/parser"
@@ -65,8 +66,8 @@ export GITHUB_TOKEN=<your GitHub PAT>
 func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 	input := celDockerfileValArgs.reqinput
 	policy := celDockerfileValArgs.policy
-
-	hook := otm.NewOTelHook(tracer)
+	logProvider := global.GetLoggerProvider()
+	hook := otm.NewHook("Genval/dockerfileval", otm.WithLoggerProvider(logProvider))
 	log.AddHook(hook)
 	ctx, span := otm.StartSpanForCommand(tracer, cmd)
 	defer span.End()

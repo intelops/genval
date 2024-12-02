@@ -6,7 +6,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/intelops/genval/pkg/logger"
 	"github.com/intelops/genval/pkg/oci"
 	"github.com/intelops/genval/pkg/utils"
 )
@@ -38,10 +37,7 @@ type buildFlags struct {
 	output   string
 }
 
-var (
-	buildArgs buildFlags
-	log       = logger.Init()
-)
+var buildArgs buildFlags
 
 func init() {
 	buildCmd.Flags().StringVarP(&buildArgs.reqinput, "reqinput", "r", "", "Path to the source files to build artifact from")

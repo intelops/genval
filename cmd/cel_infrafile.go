@@ -70,6 +70,9 @@ func runCelCmd(cmd *cobra.Command, args []string) error {
 	inputFile := celArgs.reqinput
 	policy := celArgs.policy
 
+	hook := otm.NewHook("Genval/dockerfileval", otm.WithLoggerProvider(logProvider))
+	log.AddHook(hook)
+
 	var data interface{}
 
 	ctx, span := otm.StartSpanForCommand(tracer, cmd)
@@ -79,7 +82,7 @@ func runCelCmd(cmd *cobra.Command, args []string) error {
 		log.WithContext(ctx).WithFields(map[string]interface{}{
 			"inputPath": inputFile,
 			"error":     err,
-		}).Errorf("Error reading input file")
+		}).Errorf("Error reading input file: %s", err)
 		os.Exit(1)
 	}
 	data = parser.ConvertToJSON(data)
@@ -88,14 +91,15 @@ func runCelCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		log.WithContext(ctx).WithFields(map[string]interface{}{
 			"error": err,
-		}).Errorf("Error marshalling data")
+		}).Errorf("Error marshalling data: %s", err)
 	}
-	policies, err := validate.ParseYAMLPolicies(policy)
+	policies, err := validate.ParseYAMLPolicies(
+		policy)
 	if err != nil {
 		log.WithContext(ctx).WithFields(map[string]interface{}{
 			"policy": policies,
 			"error":  err,
-		}).Errorf("Error parsing YAML policy")
+		}).Errorf("Error parsing YAML policy: %s", err)
 	}
 
 	t := table.NewWriter()
