@@ -18,7 +18,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/ollama/ollama v0.3.0
 	github.com/open-policy-agent/opa v0.70.0
-	github.com/sashabaranov/go-openai v1.27.1
+	github.com/sashabaranov/go-openai v1.36.0
 	github.com/sigstore/cosign/v2 v2.4.1
 	github.com/sigstore/sigstore v1.8.9
 	github.com/sirupsen/logrus v1.9.3
