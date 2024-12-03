@@ -3,12 +3,11 @@ package cmd
 import (
 	"context"
 	"fmt"
+	_ "net/http/pprof"
 	"os"
-	"time"
 
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
-	"go.opentelemetry.io/contrib/instrumentation/runtime"
 	"go.opentelemetry.io/otel"
 	otellog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/log/global"
@@ -19,8 +18,8 @@ import (
 )
 
 var (
-	log = logger.Init()
-
+	log          = logger.Init()
+	cmdContext   context.Context
 	tracer       trace.Tracer
 	logProvider  otellog.LoggerProvider
 	otelShutdown func(context.Context) error
@@ -37,6 +36,9 @@ var (
 		`,
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
+			// Runtime CPU Profiling
+
+			// Otel instrumentation
 			shutdown, err := otm.SetupOTelSDK(cmd.Context(), cmd.Use, "v0.1.7")
 			if err != nil {
 				return fmt.Errorf("failed to set up OpenTelemetry: %w", err)
@@ -53,30 +55,22 @@ var (
 			// wrap the whole command in a Span
 			_, span := otm.StartSpanForCommand(tracer, cmd)
 			cmdSpan = span
-			return nil
-		},
-		PersistentPostRunE: func(cmd *cobra.Command, args []string) error {
-			// and then make sure it's ended
-			defer cmdSpan.End()
+			cmdContext = cmd.Context()
 
-			// Collect runtime metrics
-			err := runtime.Start(runtime.WithMinimumReadMemStatsInterval(time.Second))
-			if err != nil {
-				log.WithFields(map[string]interface{}{
-					"error": err,
-				}).Errorf("OTEL runtime instrumentation failed")
-			}
+			// We make sure all the spans created in the PersistentPreRunE are closed
+			cobra.OnFinalize(func() {
+				// and then make sure it's ended
+				cmdSpan.SpanContext()
+				cmdSpan.End()
 
-			if otelShutdown != nil {
-				err := otelShutdown(cmd.Context())
-				if err != nil {
-					log.WithContext(cmd.Context()).Errorf("failed shutting spans")
-					// log.WithFields(map[string]interface{}{
-					// 	"error": err,
-					// }).Errorf("Error shuttingDown")
+				if otelShutdown != nil {
+					err := otelShutdown(cmdContext)
+					if err != nil {
+						// we don't want to fail the process if telemetry can't be sent
+						log.Errorf("Failed to shut down OpenTelemetry: %s", err)
+					}
 				}
-			}
-
+			})
 			return nil
 		},
 	}

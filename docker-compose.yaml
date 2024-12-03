@@ -1,28 +1,26 @@
 version: "3.0"
 services:
-  # otel-collector:
-  #   image: otel/opentelemetry-collector-contrib:0.114.0
-  #   command: ["--config=/etc/otel-collector.yaml"]
-  #   volumes:
-  #     - ./otel-collector.yaml:/etc/otel-collector.yaml
-  #   ports:
-  #     - 7281:7281
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.114.0
+    volumes:
+      - ./otel-collector.yaml:/etc/otel-collector.yaml
+    ports:
+      - 7281:7281
+      - 4317:4317
+      - 4318:4318
   quickwit:
     image: quickwit/quickwit
-    environment:
-      QW_ENABLE_OPENTELEMETRY_OTLP_EXPORTER: "true"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://localhost:7281"
     ports:
       - 7280:7280
     command: ["run"]
 
-  grafana:
-    image: grafana/grafana-oss
-    container_name: grafana
-    ports:
-      - "${MAP_HOST_GRAFANA:-127.0.0.1}:3000:3000"
-    environment:
-      GF_INSTALL_PLUGINS: https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.3.1/quickwit-quickwit-datasource-0.3.1.zip;quickwit-quickwit-datasource
-      GF_AUTH_DISABLE_LOGIN_FORM: "true"
-      GF_AUTH_ANONYMOUS_ENABLED: "true"
-      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+  # grafana:
+  #   image: grafana/grafana-oss
+  #   container_name: grafana
+  #   ports:
+  #     - "${MAP_HOST_GRAFANA:-127.0.0.1}:3000:3000"
+  #   environment:
+  #     GF_INSTALL_PLUGINS: https://github.com/quickwit-oss/quickwit-datasource/releases/download/v0.3.1/quickwit-quickwit-datasource-0.3.1.zip;quickwit-quickwit-datasource
+  #     GF_AUTH_DISABLE_LOGIN_FORM: "true"
+  #     GF_AUTH_ANONYMOUS_ENABLED: "true"
+  #     GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
