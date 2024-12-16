@@ -14,7 +14,7 @@ require (
 	github.com/google/go-github/v55 v55.0.0
 	github.com/google/go-github/v57 v57.0.0
 	github.com/hashicorp/hcl/v2 v2.23.0
-	github.com/jedib0t/go-pretty/v6 v6.6.1
+	github.com/jedib0t/go-pretty/v6 v6.6.5
 	github.com/joho/godotenv v1.5.1
 	github.com/ollama/ollama v0.3.0
 	github.com/open-policy-agent/opa v0.70.0
@@ -248,10 +248,10 @@ require (
 	golang.org/x/crypto v0.28.0 // indirect
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
 	golang.org/x/mod v0.20.0 // indirect
-	golang.org/x/sync v0.8.0 // indirect
+	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.26.0 // indirect
 	golang.org/x/term v0.25.0 // indirect
-	golang.org/x/text v0.19.0 // indirect
+	golang.org/x/text v0.21.0 // indirect
 	golang.org/x/time v0.7.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 	google.golang.org/api v0.196.0 // indirect
