@@ -20,6 +20,8 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 
 	var allResults []Results
 	var idCounter int
+	var passedCount int
+	var failedCount int
 
 	for _, r := range result {
 		if len(r.Expressions) > 0 {
@@ -37,24 +39,30 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 					if policies, ok := value.([]interface{}); ok {
 						// Check if the slice is empty
 						if len(policies) > 0 {
+							passedCount++
 							saveStatus = "passed"
 							status = color.New(color.FgGreen).Sprint("passed")
 						} else {
+							failedCount++
 							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
 							logMessage := color.New(color.FgRed).Sprintf("policy evaluation for '%s' failed", key)
-							log.Info(logMessage)
+							// log.Info(logMessage)
+							log.Warn(logMessage)
 						}
 					} else {
 						// Handle other types of values (non-slice)
 						if value != nil {
+							passedCount++
 							saveStatus = "passed"
 							status = color.New(color.FgGreen).Sprint("passed")
 						} else {
+							failedCount++
 							saveStatus = "failed"
 							status = color.New(color.FgRed).Sprint("failed")
 							statusMessage := (color.New(color.FgRed).Sprintf("policy evaluation for '%s' failed", key))
-							log.Info(statusMessage)
+							// log.Info(statusMessage)
+							log.Warn(statusMessage)
 						}
 					}
 					t.AppendRow([]interface{}{key, status, meta.Description, meta.Severity, meta.Benchmark, meta.Category})
@@ -78,6 +86,8 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 
 	// Render the table after processing all results
 	t.Render()
+
+	fmt.Printf("Total Passed: %d, Total Failed: %d\n", passedCount, failedCount)
 
 	// Save all results to file as a single JSON array
 	if len(allResults) > 0 {
