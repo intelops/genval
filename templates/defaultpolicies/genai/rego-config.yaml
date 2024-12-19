@@ -1,0 +1,17 @@
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: rego-config
+requirementSpec:
+  common:
+    userPrompt: ./templates/inputs/genai/user-prompts/rego-prompt.md
+    # assistant: rego
+  llmSpec:
+    openAIConfig:
+      - model: GPT4
+        assistant: dockerfile
+        useTheModel: true
+        apiKey: OPENAI_KEY
+        temperature: 0.7
+        topP: 0.3
+        streaming: true
+        maxTokens: 2048

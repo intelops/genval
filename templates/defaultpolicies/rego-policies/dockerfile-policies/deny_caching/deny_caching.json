@@ -1,0 +1,9 @@
+{
+  "name": "DenyCaching",
+  "policy_file": "deny_caching.rego",
+  "policy_name": "deny_caching",
+  "severity": "High",
+  "Description": "Ensure cache is invalidated in update instructions",
+  "Benchmark": "CIS-4.7",
+  "Category": "Infrastructure security"
+}

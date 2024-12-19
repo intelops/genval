@@ -1,0 +1,9 @@
+{
+  "name": "DenyExposeingPort22",
+  "policy_file": "deny_port_22.rego",
+  "policy_name": "deny_port_22",
+  "severity": "Low",
+  "Description": "Expose only the ports that your application needs and avoid exposing ports like SSH (22)",
+  "Benchmark": "TBD",
+  "Category": "Infrastructure security"
+}

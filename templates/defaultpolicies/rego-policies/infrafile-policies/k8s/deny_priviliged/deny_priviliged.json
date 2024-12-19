@@ -1,0 +1,10 @@
+
+{
+  "name": "DenyPriviligedPod",
+  "policy_file": "deny_priviliged_pod.rego",
+  "policy_name": "deny_priviliged_pod",
+  "severity": "High",
+  "Description": "Ensure that the Deployment does not use a priviliged Pod",
+  "Benchmark": "NA",
+  "Category": "Infrastructure security"
+}

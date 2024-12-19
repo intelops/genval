@@ -13,4 +13,3 @@ todo.md
 results.json
 .env
 !pkg/validate/testdata/Dockerfile/
-demo/
