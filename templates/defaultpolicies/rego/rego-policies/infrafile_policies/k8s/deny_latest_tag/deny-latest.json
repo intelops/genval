@@ -1,0 +1,10 @@
+
+{
+  "name": "DenyLatest",
+  "policy_file": "deny_latest_tag.rego",
+  "policy_name": "deny_latest_tag",
+  "severity": "High",
+  "Description": "Ensure that the container does not use latest tag",
+  "Benchmark": "CIS-4.2",
+  "Category": "Infrastructure security"
+}

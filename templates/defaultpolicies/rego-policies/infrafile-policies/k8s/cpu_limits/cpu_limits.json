@@ -1,0 +1,10 @@
+
+{
+  "name": "CheckCPULimits",
+  "policy_file": "check_cpu_limits.rego",
+  "policy_name": "check_cpu_limits",
+  "severity": "High",
+  "Description": "Ensure CPU limits are set on a Deployment",
+  "Benchmark": "NA",
+  "Category": "Infrastructure security"
+}

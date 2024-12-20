@@ -1,0 +1,9 @@
+{
+  "name": "CheckSingleCMD",
+  "policy_file": "check_cmd.rego",
+  "policy_name": "check_cmd",
+  "severity": "Low",
+  "Description": "Ensure there is only one CMD instruction in a Dockerfile, if more the last CMD will take effect",
+  "Benchmark": "TBD",
+  "Category": "Infrastructure security"
+}
