@@ -20,6 +20,7 @@ type validateWithRegoTestCase struct {
 	inputContent  string
 	regoPolicy    string
 	expectedError bool
+	takeAction    bool
 }
 
 func TestValidateWithRego(t *testing.T) {
@@ -29,6 +30,7 @@ func TestValidateWithRego(t *testing.T) {
 			name:          "valid input and policy",
 			inputContent:  "deployment.json",
 			regoPolicy:    "/rego/test",
+			takeAction:    false,
 			expectedError: false,
 		},
 		{
@@ -36,24 +38,28 @@ func TestValidateWithRego(t *testing.T) {
 			inputContent:  "deployment.json",
 			regoPolicy:    "/rego/k8s-invalid.rego",
 			expectedError: true,
+			takeAction:    false,
 		},
 		{
 			name:          "Invalid input and valid policy",
 			inputContent:  "deployment-invalid.json",
 			regoPolicy:    "/rego/k8s.rego",
 			expectedError: true,
+			takeAction:    false,
 		},
 		{
 			name:          "valid Dockerfile and policy",
 			inputContent:  "Docker-file",
 			regoPolicy:    "/rego/dockerfilepolicies/",
 			expectedError: false,
+			takeAction:    false,
 		},
 		{
 			name:          "invalid Dockerfile and policy",
 			inputContent:  "Dockerfile-invalid",
 			regoPolicy:    "/rego/docker-invalid.rego",
 			expectedError: true,
+			takeAction:    false,
 		},
 	}
 
@@ -66,7 +72,7 @@ func TestValidateWithRego(t *testing.T) {
 			processor := getProcessorForInput(inputFilePath)
 
 			// Call the function under test
-			err := ValidateWithRego(inputFilePath, regoPolicyPath, processor)
+			_, _, _, err := ValidateWithRego(inputFilePath, regoPolicyPath, processor, false)
 
 			if tc.expectedError {
 				assert.Error(t, err)

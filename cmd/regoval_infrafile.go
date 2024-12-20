@@ -12,14 +12,16 @@ import (
 )
 
 type infrafileFlags struct {
-	reqinput string
-	policy   string
-	ociCreds string
+	takeAction bool
+	reqinput   string
+	policy     string
+	ociCreds   string
 }
 
 var infrafileArgs infrafileFlags
 
 func init() {
+	infrafileCmd.Flags().BoolVarP(&infrafileArgs.takeAction, "take-action", "t", false, "Remediate the failures")
 	infrafileCmd.Flags().StringVarP(&infrafileArgs.reqinput, "reqinput", "r", "", "Input JSON/YAML for validating Kubernetes configurations with Rego ")
 	if err := infrafileCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
@@ -82,15 +84,16 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 	processor := validate.GenericProcessor{}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if err := validate.ValidateWithOCIPolicies(inputFile,
+		if _, _, _, err := validate.ValidateWithOCIPolicies(inputFile,
 			policy,
 			cmd.Name(),
 			infrafileArgs.ociCreds,
-			processor); err != nil {
+			processor,
+			infrafileArgs.takeAction); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		err := validate.ValidateWithRego(inputFile, policy, processor)
+		_, _, _, err := validate.ValidateWithRego(inputFile, policy, processor, infrafileArgs.takeAction)
 		if err != nil {
 			return fmt.Errorf("validating %v failed: %v", inputFile, err)
 		}

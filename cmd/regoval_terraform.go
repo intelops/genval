@@ -13,14 +13,16 @@ import (
 )
 
 type terraformFlags struct {
-	reqinput string
-	policy   string
-	ociCreds string
+	takeAction bool
+	reqinput   string
+	policy     string
+	ociCreds   string
 }
 
 var terraformArgs terraformFlags
 
 func init() {
+	terraformCmd.Flags().BoolVarP(&terraformArgs.takeAction, "take-action", "t", false, "remediate the failures")
 	terraformCmd.Flags().StringVarP(&terraformArgs.reqinput, "reqinput", "r", "", "Input JSON for validating Terraform .tf files with rego")
 	if err := terraformCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
@@ -87,15 +89,16 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if err := validate.ValidateWithOCIPolicies(inputJSON,
+		if _, _, _, err := validate.ValidateWithOCIPolicies(inputJSON,
 			policy,
 			cmd.Name(),
 			terraformArgs.ociCreds,
-			processor); err != nil {
+			processor,
+			terraformArgs.takeAction); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		err = validate.ValidateWithRego(inputJSON, policy, processor)
+		_, _, _, err = validate.ValidateWithRego(inputJSON, policy, processor, terraformArgs.takeAction)
 		if err != nil {
 			log.Errorf("Validation %v failed", err)
 		}

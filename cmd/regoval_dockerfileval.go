@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -13,18 +14,22 @@ import (
 )
 
 type dockerfilevalFlags struct {
-	reqinput string
-	policy   string
-	ociCreds string
+	takeAction bool
+	reqinput   string
+	policy     string
+	ociCreds   string
+	model      string
 }
 
 var dockerfilevalArgs dockerfilevalFlags
 
 func init() {
+	dockerfilevalCmd.Flags().BoolVarP(&dockerfilevalArgs.takeAction, "takeaction", "t", false, "remediate the failures")
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.reqinput, "reqinput", "r", "", "Input JSON for validating Terraform .dockerfileval files with rego")
 	if err := dockerfilevalCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
+	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
 	dockerfilevalCmd.Flags().StringVarP(&dockerfileArgs.ociCreds, "credentials", "c", "", "credentials to interact with OCI registries")
 
@@ -77,9 +82,14 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 }
 
 func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
+	var failedCount int
 	input := dockerfilevalArgs.reqinput
 	policy := dockerfilevalArgs.policy
 	processor := validate.DockerfileProcessor{}
+	cfg, err := loadConfig()
+	if err != nil {
+		log.Errorf("Error loading config: %v", err)
+	}
 
 	dockerfilefileContent, err := utils.ReadFile(input)
 	if err != nil {
@@ -87,17 +97,31 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if err := validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
+		if _, _, failedCount, err = validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
 			policy,
 			cmd.Name(),
 			dockerfilevalArgs.ociCreds,
-			processor); err != nil {
+			processor,
+			dockerfilevalArgs.takeAction); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		err := validate.ValidateWithRego(string(dockerfilefileContent), policy, processor)
+		_, _, _, err := validate.ValidateWithRego(string(dockerfilefileContent), policy, processor, dockerfilevalArgs.takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
+		}
+	}
+
+	// NOTE: Extracted []Results from ValidateWithRego. Append this with reqinput
+
+	// TODO: Extract passedCount and FailedCount from policy evaluateion
+	// TODO: Combine allResults and reqinput to pass as userPrompt
+	// TODO: configure takeActionPrompt
+	if dockerfilevalArgs.takeAction && failedCount > 0 {
+		resp, err := cfg.GenerateOpenAIResponse(context.Background(), dockerfilevalArgs.model, takeActionPrompt, userPrompt)
+		if err != nil {
+			log.Errorf("Error generating response: %v", err)
 			return err
 		}
 	}

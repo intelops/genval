@@ -12,7 +12,7 @@ import (
 )
 
 // PrintResults prints the evaluation results along with the metadata
-func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
+func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool) (int, int, error) {
 	// Create the table
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
@@ -30,7 +30,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 				// Match policy metadata for each key
 				matchedKey, meta, err := MatchPolicyMetadata(metas, key)
 				if err != nil {
-					return fmt.Errorf("error matching key and metadata name: %v", err)
+					return passedCount, failedCount, fmt.Errorf("error matching key and metadata name: %v", err)
 				}
 				// Construct rows using the matched metadata
 				if key == matchedKey {
@@ -84,19 +84,20 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) error {
 		}
 	}
 
+	if !takeAction {
+		t.Render()
+		fmt.Printf("Total Passed: %d, Total Failed: %d\n", passedCount, failedCount)
+	}
 	// Render the table after processing all results
-	t.Render()
-
-	fmt.Printf("Total Passed: %d, Total Failed: %d\n", passedCount, failedCount)
 
 	// Save all results to file as a single JSON array
 	if len(allResults) > 0 {
 		if err := SaveResults("results.json", allResults); err != nil {
-			return fmt.Errorf("error saving results: %v", err)
+			return passedCount, failedCount, fmt.Errorf("error saving results: %v", err)
 		}
 	}
 
-	return nil
+	return passedCount, failedCount, nil
 }
 
 type Results struct {

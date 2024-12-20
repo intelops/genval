@@ -6,15 +6,17 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	generate "github.com/intelops/genval/pkg/generate/dockerfile_gen"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/cobra"
 )
 
 type dockerfileFlags struct {
+	takeAction   bool
 	reqinput     string
 	output       string
 	inputPolicy  string
@@ -25,6 +27,7 @@ type dockerfileFlags struct {
 var dockerfileArgs dockerfileFlags
 
 func init() {
+	dockerfileCmd.Flags().BoolVarP(&dockerfileArgs.takeAction, "takeaction", "t", false, "remdediate the failures")
 	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.reqinput, "reqinput", "r", "", "Input JSON for generating Dockerfile")
 	if err := dockerfileCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
@@ -124,15 +127,16 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if inputPolicyFile == "" || strings.HasPrefix(inputPolicyFile, "oci://") {
-		if err := validate.ValidateWithOCIPolicies(string(inputContent),
+		if _, _, _, err := validate.ValidateWithOCIPolicies(string(inputContent),
 			inputPolicyFile,
 			"inputPolicy",
 			dockerfileArgs.ociCreds,
-			dprocessor); err != nil {
+			dprocessor,
+			dockerfileArgs.takeAction); err != nil {
 			return fmt.Errorf("error validating with policies stored in registriy: %v", err)
 		}
 	} else {
-		err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor)
+		_, _, _, err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor, dockerfileArgs.takeAction)
 		if err != nil {
 			log.Fatalf("Validation error: %v", err)
 			return err
@@ -150,15 +154,16 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 	color.Green(fmt.Sprintf("Generated Dockerfile saved to: %s\n", outputPath))
 
 	if outputPolicyFile == "" || strings.HasPrefix(outputPolicyFile, "oci://") {
-		if err := validate.ValidateWithOCIPolicies(string(outputData),
+		if _, _, _, err := validate.ValidateWithOCIPolicies(string(outputData),
 			outputPolicyFile,
 			"dockerfileval",
 			dockerfileArgs.ociCreds,
-			dprocessor); err != nil {
+			dprocessor,
+			dockerfileArgs.takeAction); err != nil {
 			return fmt.Errorf("error validating with policies stored in registry: %v", err)
 		}
 	} else {
-		err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor)
+		_, _, _, err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor, dockerfileArgs.takeAction)
 		if err != nil {
 			log.Fatalf("Validation error: %v", err)
 			return err
