@@ -6,9 +6,11 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 )
@@ -19,6 +21,7 @@ type dockerfilevalFlags struct {
 	policy     string
 	ociCreds   string
 	model      string
+	output     string // Optional path to write the results or remediated Dockerfile after remediation by setting --takeaction = true
 }
 
 var dockerfilevalArgs dockerfilevalFlags
@@ -82,6 +85,7 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 }
 
 func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
+	var resultSlice []byte
 	var failedCount int
 	input := dockerfilevalArgs.reqinput
 	policy := dockerfilevalArgs.policy
@@ -97,7 +101,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if _, _, failedCount, err = validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
+		if resultSlice, failedCount, err = validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
 			policy,
 			cmd.Name(),
 			dockerfilevalArgs.ociCreds,
@@ -106,28 +110,38 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		_, _, _, err := validate.ValidateWithRego(string(dockerfilefileContent), policy, processor, dockerfilevalArgs.takeAction)
+		resultSlice, failedCount, err = validate.ValidateWithRego(string(dockerfilefileContent), policy, processor, dockerfilevalArgs.takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
 		}
 	}
 
-	// NOTE: Extracted []Results from ValidateWithRego. Append this with reqinput
+	userPrompt, err := llm.CombineResourceAndResults(string(dockerfilefileContent), string(resultSlice))
+	if err != nil {
+		log.Errorf("error combining resource and results: %v", err)
+		return err
+	}
+	// fmt.Printf("UserPrompt: %v", userPrompt)
+	tool := cmd.Use
+	// fmt.Printf("Tool Used: %v\n", tool)
+	takeActionPrompt, err := llm.GetSystemPrompt(tool)
 
-	// TODO: Extract passedCount and FailedCount from policy evaluateion
-	// TODO: Combine allResults and reqinput to pass as userPrompt
-	// TODO: configure takeActionPrompt
+	if dockerfilevalArgs.model == "" {
+		dockerfilevalArgs.model = openai.GPT4
+	}
+	var resp string
 	if dockerfilevalArgs.takeAction && failedCount > 0 {
-		resp, err := cfg.GenerateOpenAIResponse(context.Background(), dockerfilevalArgs.model, takeActionPrompt, userPrompt)
+		resp, err = cfg.GenerateOpenAIResponse(context.Background(), dockerfilevalArgs.model, takeActionPrompt, userPrompt)
 		if err != nil {
 			log.Errorf("Error generating response: %v", err)
 			return err
 		}
 	}
-
+	remediatedDockerfile := color.GreenString("Final Dockerfile: %v\n", resp)
 	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
 
+	log.Info(remediatedDockerfile)
 	log.Info(logMessage)
 	return nil
 }

@@ -12,16 +12,18 @@ import (
 )
 
 // PrintResults prints the evaluation results along with the metadata
-func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool) (int, int, error) {
+func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool) ([]byte, int, error) {
 	// Create the table
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
 	t.AppendHeader(table.Row{"Policy Name", "Status", "Description", "Severity", "Benchmark", "Category"})
 
+	var resultSlice []byte
 	var allResults []Results
 	var idCounter int
 	var passedCount int
 	var failedCount int
+	var err error
 
 	for _, r := range result {
 		if len(r.Expressions) > 0 {
@@ -30,7 +32,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool)
 				// Match policy metadata for each key
 				matchedKey, meta, err := MatchPolicyMetadata(metas, key)
 				if err != nil {
-					return passedCount, failedCount, fmt.Errorf("error matching key and metadata name: %v", err)
+					return nil, failedCount, fmt.Errorf("error matching key and metadata name: %v", err)
 				}
 				// Construct rows using the matched metadata
 				if key == matchedKey {
@@ -84,20 +86,18 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool)
 		}
 	}
 
-	if !takeAction {
-		t.Render()
-		fmt.Printf("Total Passed: %d, Total Failed: %d\n", passedCount, failedCount)
-	}
+	t.Render()
+	fmt.Printf("Total Passed: %d, Total Failed: %d\n", passedCount, failedCount)
+
 	// Render the table after processing all results
 
 	// Save all results to file as a single JSON array
 	if len(allResults) > 0 {
-		if err := SaveResults("results.json", allResults); err != nil {
-			return passedCount, failedCount, fmt.Errorf("error saving results: %v", err)
+		if resultSlice, err = SaveResults("results.json", allResults); err != nil {
+			return nil, failedCount, fmt.Errorf("error saving results: %v", err)
 		}
 	}
-
-	return passedCount, failedCount, nil
+	return resultSlice, failedCount, nil
 }
 
 type Results struct {
@@ -111,11 +111,11 @@ type Results struct {
 }
 
 // SaveResults saves the results to a file as a JSON array
-func SaveResults(filename string, newResults []Results) error {
+func SaveResults(filename string, newResults []Results) ([]byte, error) {
 	// Serialize the results slice to JSON
 	data, err := json.MarshalIndent(newResults, "", "  ")
 	if err != nil {
-		return fmt.Errorf("error marshalling results to JSON: %v", err)
+		return nil, fmt.Errorf("error marshalling results to JSON: %v", err)
 	}
 
 	// Check if the file exists
@@ -124,15 +124,15 @@ func SaveResults(filename string, newResults []Results) error {
 		// If the file does not exist, create it
 		file, err := os.Create(filename)
 		if err != nil {
-			return fmt.Errorf("error creating file: %v", err)
+			return nil, fmt.Errorf("error creating file: %v", err)
 		}
 		defer file.Close()
 	}
 
 	// Write the JSON data to the file
 	if err := os.WriteFile(filename, data, 0o644); err != nil {
-		return fmt.Errorf("error writing JSON data to file: %v", err)
+		return nil, fmt.Errorf("error writing JSON data to file: %v", err)
 	}
 
-	return nil
+	return data, nil
 }

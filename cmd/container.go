@@ -127,7 +127,7 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if inputPolicyFile == "" || strings.HasPrefix(inputPolicyFile, "oci://") {
-		if _, _, _, err := validate.ValidateWithOCIPolicies(string(inputContent),
+		if _, _, err := validate.ValidateWithOCIPolicies(string(inputContent),
 			inputPolicyFile,
 			"inputPolicy",
 			dockerfileArgs.ociCreds,
@@ -136,7 +136,7 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error validating with policies stored in registriy: %v", err)
 		}
 	} else {
-		_, _, _, err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor, dockerfileArgs.takeAction)
+		_, _, err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor, dockerfileArgs.takeAction)
 		if err != nil {
 			log.Fatalf("Validation error: %v", err)
 			return err
@@ -154,7 +154,7 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 	color.Green(fmt.Sprintf("Generated Dockerfile saved to: %s\n", outputPath))
 
 	if outputPolicyFile == "" || strings.HasPrefix(outputPolicyFile, "oci://") {
-		if _, _, _, err := validate.ValidateWithOCIPolicies(string(outputData),
+		if _, _, err := validate.ValidateWithOCIPolicies(string(outputData),
 			outputPolicyFile,
 			"dockerfileval",
 			dockerfileArgs.ociCreds,
@@ -163,7 +163,7 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error validating with policies stored in registry: %v", err)
 		}
 	} else {
-		_, _, _, err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor, dockerfileArgs.takeAction)
+		_, _, err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor, dockerfileArgs.takeAction)
 		if err != nil {
 			log.Fatalf("Validation error: %v", err)
 			return err

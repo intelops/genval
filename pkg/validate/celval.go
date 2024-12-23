@@ -87,7 +87,7 @@ func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer)
 	}
 
 	if len(allResults) > 0 {
-		if err := SaveResults("results.json", allResults); err != nil {
+		if _, err := SaveResults("results.json", allResults); err != nil {
 			return fmt.Errorf("error saving results: %v", err)
 		}
 	}

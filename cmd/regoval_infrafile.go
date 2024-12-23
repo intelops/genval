@@ -84,7 +84,7 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 	processor := validate.GenericProcessor{}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if _, _, _, err := validate.ValidateWithOCIPolicies(inputFile,
+		if _, _, err := validate.ValidateWithOCIPolicies(inputFile,
 			policy,
 			cmd.Name(),
 			infrafileArgs.ociCreds,
@@ -93,7 +93,7 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		_, _, _, err := validate.ValidateWithRego(inputFile, policy, processor, infrafileArgs.takeAction)
+		_, _, err := validate.ValidateWithRego(inputFile, policy, processor, infrafileArgs.takeAction)
 		if err != nil {
 			return fmt.Errorf("validating %v failed: %v", inputFile, err)
 		}

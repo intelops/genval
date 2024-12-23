@@ -45,34 +45,35 @@ func (g GenericProcessor) ProcessInput(content string) ([]byte, error) {
 	return jsonData, nil
 }
 
-func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProcessor, takeAction bool) (rego.ResultSet, int, int, error) {
+func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProcessor, takeAction bool) ([]byte, int, error) {
 	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
 	if err != nil {
-		return nil, 0, 0, err
+		return nil, 0, err
 	}
 	// Load metadata from JSON files
 	metas, err := LoadRegoMetadata(metaFiles)
 	if err != nil {
-		return nil, 0, 0, fmt.Errorf("error loading policy metadata: %v", err)
+		return nil, 0, fmt.Errorf("error loading policy metadata: %v", err)
 	}
 
+	var resultSlice []byte
 	var allResults rego.ResultSet
 
 	for _, regoFile := range regoPolicy {
 		// read input is a file
 		jsonData, err := processor.ProcessInput(inputContent)
 		if err != nil {
-			return nil, 0, 0, fmt.Errorf("error reading input content file: %v", err)
+			return nil, 0, fmt.Errorf("error reading input content file: %v", err)
 		}
 
 		k8sPolicy, err := utils.ReadFile(regoFile)
 		if err != nil {
-			return nil, 0, 0, fmt.Errorf("error reading the policy file %s: %v", regoFile, err)
+			return nil, 0, fmt.Errorf("error reading the policy file %s: %v", regoFile, err)
 		}
 
 		pkg, err := utils.ExtractPackageName(k8sPolicy)
 		if err != nil {
-			return nil, 0, 0, fmt.Errorf("unable to fetch package name: %v", err)
+			return nil, 0, fmt.Errorf("unable to fetch package name: %v", err)
 		}
 
 		policyName := filepath.Base(regoFile)
@@ -80,7 +81,7 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 		var commands interface{}
 		err = json.Unmarshal(jsonData, &commands)
 		if err != nil {
-			return nil, 0, 0, fmt.Errorf("error Unmarshalling jsonData: %v", err)
+			return nil, 0, fmt.Errorf("error Unmarshalling jsonData: %v", err)
 		}
 		ctx := context.Background()
 		compiler, err := ast.CompileModules(map[string]string{
@@ -88,7 +89,7 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 		})
 		if err != nil {
 			log.Fatal(err)
-			return nil, 0, 0, fmt.Errorf("failed to compile rego policy: %w", err)
+			return nil, 0, fmt.Errorf("failed to compile rego policy: %w", err)
 		}
 		// Create regoQuery for evaluation
 		regoQuery := rego.New(
@@ -100,15 +101,15 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 		// Evaluate the Rego query
 		rs, err := regoQuery.Eval(ctx)
 		if err != nil {
-			return nil, 0, 0, fmt.Errorf("error evaluating query:%v", err)
+			return nil, 0, fmt.Errorf("error evaluating query:%v", err)
 		}
 		allResults = append(allResults, rs...)
 	}
-	var passedCount, failedCount int
-	if passedCount, failedCount, err = PrintResults(allResults, metas, takeAction); err != nil {
-		return nil, 0, 0, fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
+	var failedCount int
+	if resultSlice, failedCount, err = PrintResults(allResults, metas, takeAction); err != nil {
+		return nil, 0, fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 	}
-	return allResults, passedCount, failedCount, nil
+	return resultSlice, failedCount, nil
 }
 
 func ApplyPolicyiesFromOCI(ociURL, creds, path string) (string, error) {
@@ -119,14 +120,14 @@ func ApplyPolicyiesFromOCI(ociURL, creds, path string) (string, error) {
 	return path, nil
 }
 
-func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor InputProcessor, takeAction bool) (rego.ResultSet, int, int, error) {
-	var allResults rego.ResultSet
-	var passedCount, failedCount int
+func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor InputProcessor, takeAction bool) ([]byte, int, error) {
+	var resultSlice []byte
+	var failedCount int
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
 
 		tempDir, cleanup, err := utils.TempDirWithCleanup()
 		if err != nil {
-			return nil, 0, 0, fmt.Errorf("error creating temporary directory: %v", err)
+			return nil, 0, fmt.Errorf("error creating temporary directory: %v", err)
 		}
 		defer cleanup()
 
@@ -135,25 +136,25 @@ func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor I
 			log.Info("Validating with default policies...")
 			policyLoc, err := oci.FetchPolicyFromRegistry(ociURL)
 			if err != nil {
-				return nil, 0, 0, fmt.Errorf("error fetching policy from registry: %v", err)
+				return nil, 0, fmt.Errorf("error fetching policy from registry: %v", err)
 			}
 
 			defaultRegoPolicies, err = ApplyPolicyiesFromOCI(policyLoc, creds, tempDir)
 			if err != nil {
-				return nil, 0, 0, fmt.Errorf("error applying default policies: %v", err)
+				return nil, 0, fmt.Errorf("error applying default policies: %v", err)
 			}
 		} else {
 			log.Infof("Pulling policies from '%v'", policy)
 			defaultRegoPolicies, err = ApplyPolicyiesFromOCI(policy, creds, tempDir)
 			if err != nil {
-				return nil, 0, 0, fmt.Errorf("error applying default policies: %v", err)
+				return nil, 0, fmt.Errorf("error applying default policies: %v", err)
 			}
 		}
-		allResults, passedCount, failedCount, err = ValidateWithRego(resource, defaultRegoPolicies, processor, takeAction)
+		resultSlice, failedCount, err = ValidateWithRego(resource, defaultRegoPolicies, processor, takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
-			return nil, 0, 0, err
+			return nil, 0, err
 		}
 	}
-	return allResults, passedCount, failedCount, nil
+	return resultSlice, failedCount, nil
 }

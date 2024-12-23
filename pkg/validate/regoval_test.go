@@ -72,7 +72,7 @@ func TestValidateWithRego(t *testing.T) {
 			processor := getProcessorForInput(inputFilePath)
 
 			// Call the function under test
-			_, _, _, err := ValidateWithRego(inputFilePath, regoPolicyPath, processor, false)
+			_, _, err := ValidateWithRego(inputFilePath, regoPolicyPath, processor, false)
 
 			if tc.expectedError {
 				assert.Error(t, err)

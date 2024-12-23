@@ -1,0 +1,9 @@
+{
+  "name": "CheckHealthCheck",
+  "policy_file": "check_healthcheck.rego",
+  "policy_name": "check_healthcheck",
+  "severity": "Low",
+  "Description": "Ensure that HEALTHCHECK is being used to indicate container health",
+  "Benchmark": "TBD",
+  "Category": "Infrastructure security"
+}

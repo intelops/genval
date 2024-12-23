@@ -89,7 +89,7 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if _, _, _, err := validate.ValidateWithOCIPolicies(inputJSON,
+		if _, _, err := validate.ValidateWithOCIPolicies(inputJSON,
 			policy,
 			cmd.Name(),
 			terraformArgs.ociCreds,
@@ -98,7 +98,7 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		_, _, _, err = validate.ValidateWithRego(inputJSON, policy, processor, terraformArgs.takeAction)
+		_, _, err = validate.ValidateWithRego(inputJSON, policy, processor, terraformArgs.takeAction)
 		if err != nil {
 			log.Errorf("Validation %v failed", err)
 		}
