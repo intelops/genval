@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/fatih/color"
@@ -85,15 +85,12 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 }
 
 func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
+	ctx := cmd.Context()
 	var resultSlice []byte
 	var failedCount int
 	input := dockerfilevalArgs.reqinput
 	policy := dockerfilevalArgs.policy
 	processor := validate.DockerfileProcessor{}
-	cfg, err := loadConfig()
-	if err != nil {
-		log.Errorf("Error loading config: %v", err)
-	}
 
 	dockerfilefileContent, err := utils.ReadFile(input)
 	if err != nil {
@@ -116,6 +113,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	}
+	// Fetch active models and assign the first one found
 
 	userPrompt, err := llm.CombineResourceAndResults(string(dockerfilefileContent), string(resultSlice))
 	if err != nil {
@@ -131,12 +129,25 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		dockerfilevalArgs.model = openai.GPT4
 	}
 	var resp string
+	client := openai.NewClient(os.Getenv("OPENAI_KEY"))
+	req := openai.ChatCompletionRequest{
+		Model:       dockerfilevalArgs.model,
+		Temperature: 0.3,
+		TopP:        0.3,
+		MaxTokens:   2048,
+	}
+
+	req.Messages = []openai.ChatCompletionMessage{
+		{Role: openai.ChatMessageRoleSystem, Content: takeActionPrompt},
+		{Role: openai.ChatMessageRoleUser, Content: userPrompt},
+	}
+
 	if dockerfilevalArgs.takeAction && failedCount > 0 {
-		resp, err = cfg.GenerateOpenAIResponse(context.Background(), dockerfilevalArgs.model, takeActionPrompt, userPrompt)
+		res, err := client.CreateChatCompletion(ctx, req)
 		if err != nil {
-			log.Errorf("Error generating response: %v", err)
-			return err
+			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
+		resp = res.Choices[0].Message.Content
 	}
 	remediatedDockerfile := color.GreenString("Final Dockerfile: %v\n", resp)
 	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
