@@ -1,0 +1,52 @@
+```Dockerfile
+# Stage 1: Build the application
+FROM cgr.dev/chainguard/alpine AS builder
+
+RUN  --no-cache apk update && apk add python-3.11 && \
+        apk add py3.11-pip --no-cache
+USER nonroot
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# Removed EXPOSE 22 as it's a security risk to expose SSH port
+# Instead, we expose the port that our application needs (8000 in this case)
+EXPOSE 8000
+
+WORKDIR /app
+
+COPY --chown=nonroot:nonroot requirements.txt /app/requirements.txt 
+
+RUN pip install -r /app/requirements.txt --user
+
+
+# Stage 2: Copy the venv and run the application
+FROM cgr.dev/chainguard/wolfi-base AS final 
+
+RUN --no-cache apk update && apk add python-3.11 && \
+    apk add py3.11-pip  
+    
+RUN pip install --upgrade pip setuptools
+
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+
+COPY --chown=nonroot:nonroot . .
+
+COPY --from=builder --chown=nonroot:nonroot /home/nonroot/.local /home/nonroot/.local
+
+# Removed EXPOSE 22 as it's a security risk to expose SSH port
+# Instead, we expose the port that our application needs (8000 in this case)
+EXPOSE 8000
+
+ENV PATH=/home/nonroot/.local/bin:$PATH
+
+# Added HEALTHCHECK instruction to indicate container health
+HEALTHCHECK CMD curl --fail http://localhost:8000/ || exit 1
+
+CMD ["uvicorn", "main:app","--host", "0.0.0.0","--port", "8000"]
+```
+- The `EXPOSE 22` instruction was removed from both stages because it's a security risk to expose the SSH port (22). Instead, the application's required port (8000) is exposed using the `EXPOSE 8000` instruction.
+- A `HEALTHCHECK` instruction was added to the final stage to indicate the health of the container. This instruction uses `curl` to send a request to the application's endpoint and exits with a non-zero status if the request fails. This helps in monitoring the health of the application and taking necessary actions if the application is not responding.

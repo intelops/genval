@@ -28,6 +28,8 @@ var dockerfilevalArgs dockerfilevalFlags
 
 func init() {
 	dockerfilevalCmd.Flags().BoolVarP(&dockerfilevalArgs.takeAction, "takeaction", "t", false, "remediate the failures")
+	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.output, "output", "o", "", "Path to write the final Dockefile")
+
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.reqinput, "reqinput", "r", "", "Input JSON for validating Terraform .dockerfileval files with rego")
 	if err := dockerfilevalCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
@@ -122,37 +124,50 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 	// fmt.Printf("UserPrompt: %v", userPrompt)
 	tool := cmd.Use
-	// fmt.Printf("Tool Used: %v\n", tool)
 	takeActionPrompt, err := llm.GetSystemPrompt(tool)
+
+	// fmt.Printf("SystemPrompt: %v\n", takeActionPrompt)
 
 	if dockerfilevalArgs.model == "" {
 		dockerfilevalArgs.model = openai.GPT4
 	}
 	var resp string
+	// TODO: Create a universal LLM client based on the defined model
 	client := openai.NewClient(os.Getenv("OPENAI_KEY"))
-	req := openai.ChatCompletionRequest{
-		Model:       dockerfilevalArgs.model,
-		Temperature: 0.3,
-		TopP:        0.3,
-		MaxTokens:   2048,
-	}
 
-	req.Messages = []openai.ChatCompletionMessage{
-		{Role: openai.ChatMessageRoleSystem, Content: takeActionPrompt},
-		{Role: openai.ChatMessageRoleUser, Content: userPrompt},
+	// NOTE: Use go-langchin API for interacting with different LLM models
+	req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, dockerfilevalArgs.model)
+	if err != nil {
+		return fmt.Errorf("failed to create OpenAI request: %w", err)
 	}
 
 	if dockerfilevalArgs.takeAction && failedCount > 0 {
+		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold-on for a moment...")
+		defer spin.Stop()
 		res, err := client.CreateChatCompletion(ctx, req)
 		if err != nil {
 			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
 		resp = res.Choices[0].Message.Content
+
+		spin.Stop()
+		resultSlice, failedCount, err = validate.ValidateWithRego(resp, policy, processor, dockerfilevalArgs.takeAction)
+		if err != nil {
+			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
+		}
 	}
-	remediatedDockerfile := color.GreenString("Final Dockerfile: %v\n", resp)
+
+	err = os.WriteFile(dockerfilevalArgs.output, []byte(resp), 0o644)
+	if err != nil {
+		log.Error("Error writing Dockerfile:", err)
+		return err
+	}
+
+	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", dockerfilevalArgs.output)
 	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
 
-	log.Info(remediatedDockerfile)
+	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
 }

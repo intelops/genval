@@ -1,9 +1,0 @@
-{
-  "name": "UseChainguradImage",
-  "policy_file": "trusted_base_image.rego",
-  "policy_name": "trusted_base_image",
-  "severity": "High",
-  "Description": "Use hardened and secure base image from Chainguard",
-  "Benchmark": "CIS-4.2",
-  "Category": "Infrastructure security"
-}

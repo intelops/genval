@@ -11,5 +11,5 @@ invalidate_cache contains msg if {
     contains(c, "add")
     contains(c, "update")
     not contains(c, "--no-cache")
-    msg:= "Ensure 'RUN' should not contain 'apk add' command without '--no-cache' switch"
+    msg:= "Ensure 'RUN' should not contain any install command without '--no-cache' flag"
 }

@@ -1,6 +1,10 @@
 package llm
 
-import "strings"
+import (
+	"strings"
+
+	openai "github.com/sashabaranov/go-openai"
+)
 
 func CombineResourceAndResults(res, results string) (string, error) {
 	var builder strings.Builder
@@ -9,4 +13,20 @@ func CombineResourceAndResults(res, results string) (string, error) {
 	builder.WriteString(results)
 
 	return builder.String(), nil
+}
+
+func CreateActionCompletion(userPrompt, takeActionPrompt, model string) (openai.ChatCompletionRequest, error) {
+	req := openai.ChatCompletionRequest{
+		Model:       model,
+		Temperature: 0.3,
+		TopP:        0.3,
+		MaxTokens:   2048,
+	}
+
+	req.Messages = []openai.ChatCompletionMessage{
+		{Role: openai.ChatMessageRoleSystem, Content: takeActionPrompt},
+		{Role: openai.ChatMessageRoleUser, Content: userPrompt},
+	}
+
+	return req, nil
 }

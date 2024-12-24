@@ -3,7 +3,7 @@
   "policy_file": "invalidate_cache.rego",
   "policy_name": "invalidate_cache",
   "severity": "High",
-  "Description": "Ensure 'RUN' should not contain 'apk add' command without '--no-cache' switch",
+  "Description": "Ensure 'RUN' should not contain any install commands without '--no-cache' or `--no-cache-dir` switch",
   "Benchmark": "CIS-4.7",
   "Category": "Infrastructure security"
 }
