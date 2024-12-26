@@ -16,6 +16,9 @@ func CombineResourceAndResults(res, results string) (string, error) {
 }
 
 func CreateActionCompletion(userPrompt, takeActionPrompt, model string) (openai.ChatCompletionRequest, error) {
+	if model == "openai.GPT4o" {
+		model = openai.GPT4o
+	}
 	req := openai.ChatCompletionRequest{
 		Model:       model,
 		Temperature: 0.3,

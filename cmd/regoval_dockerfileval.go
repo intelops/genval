@@ -9,6 +9,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/utils"
@@ -28,16 +29,18 @@ var dockerfilevalArgs dockerfilevalFlags
 
 func init() {
 	dockerfilevalCmd.Flags().BoolVarP(&dockerfilevalArgs.takeAction, "takeaction", "t", false, "remediate the failures")
+	dockerfilevalCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to YAML file to read configs from")
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.output, "output", "o", "", "Path to write the final Dockefile")
 
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.reqinput, "reqinput", "r", "", "Input JSON for validating Terraform .dockerfileval files with rego")
-	if err := dockerfilevalCmd.MarkFlagRequired("reqinput"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
+	// if err := dockerfilevalCmd.MarkFlagRequired("reqinput"); err != nil {
+	// 	log.Fatalf("Error marking flag as required: %v", err)
+	// }
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	dockerfilevalCmd.Flags().StringVarP(&dockerfileArgs.ociCreds, "credentials", "c", "", "credentials to interact with OCI registries")
+	dockerfilevalCmd.Flags().StringVarP(&dockerfileArgs.ociCreds, "credentials", "a", "", "credentials to interact with OCI registries")
 
+	viper.BindPFlags(dockerfilevalCmd.Flags())
 	regovalCmd.AddCommand(dockerfilevalCmd)
 }
 
@@ -87,11 +90,42 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 }
 
 func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
+	cfg, err := loadYAMLConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("error loading config: %v", err)
+	}
+
 	ctx := cmd.Context()
 	var resultSlice []byte
 	var failedCount int
-	input := dockerfilevalArgs.reqinput
-	policy := dockerfilevalArgs.policy
+
+	creds := cfg.Common.OCICredentials
+	if dockerfileArgs.ociCreds != "" {
+		creds = dockerfileArgs.ociCreds
+	}
+	output := cfg.Common.Output
+	if dockerfileArgs.output != "" {
+		output = dockerfileArgs.output
+	}
+	takeAction := cfg.Common.Takeaction
+	if dockerfilevalArgs.takeAction {
+		takeAction = dockerfilevalArgs.takeAction
+	}
+	input := cfg.Common.Reqinput
+	if dockerfilevalArgs.reqinput != "" {
+		input = dockerfilevalArgs.reqinput
+	}
+	policy := cfg.Common.Policy
+	if dockerfilevalArgs.policy != "" {
+		policy = dockerfilevalArgs.policy
+	}
+	model := cfg.LLMSpec.GetActiveModels()[0]["model"]
+	if dockerfilevalArgs.model != "" {
+		model = dockerfilevalArgs.model
+	}
+	if model == "" {
+		model = openai.GPT4
+	}
 	processor := validate.DockerfileProcessor{}
 
 	dockerfilefileContent, err := utils.ReadFile(input)
@@ -103,13 +137,13 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		if resultSlice, failedCount, err = validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
 			policy,
 			cmd.Name(),
-			dockerfilevalArgs.ociCreds,
+			creds,
 			processor,
-			dockerfilevalArgs.takeAction); err != nil {
+			takeAction); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		resultSlice, failedCount, err = validate.ValidateWithRego(string(dockerfilefileContent), policy, processor, dockerfilevalArgs.takeAction)
+		resultSlice, failedCount, err = validate.ValidateWithRego(string(dockerfilefileContent), policy, processor, takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
@@ -128,20 +162,17 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 
 	// fmt.Printf("SystemPrompt: %v\n", takeActionPrompt)
 
-	if dockerfilevalArgs.model == "" {
-		dockerfilevalArgs.model = openai.GPT4
-	}
 	var resp string
-	// TODO: Create a universal LLM client based on the defined model
 	client := openai.NewClient(os.Getenv("OPENAI_KEY"))
 
+	fmt.Printf("Dockerfile iteration: %v", userPrompt)
 	// NOTE: Use go-langchin API for interacting with different LLM models
-	req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, dockerfilevalArgs.model)
+	req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, model)
 	if err != nil {
 		return fmt.Errorf("failed to create OpenAI request: %w", err)
 	}
 
-	if dockerfilevalArgs.takeAction && failedCount > 0 {
+	for takeAction && failedCount > 0 {
 		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold-on for a moment...")
 		defer spin.Stop()
 		res, err := client.CreateChatCompletion(ctx, req)
@@ -151,23 +182,45 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		resp = res.Choices[0].Message.Content
 
 		spin.Stop()
-		resultSlice, failedCount, err = validate.ValidateWithRego(resp, policy, processor, dockerfilevalArgs.takeAction)
+		resultSlice, failedCount, err = validate.ValidateWithRego(resp, policy, processor, takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
 		}
+		fmt.Printf("LLM response: %v", resp)
 	}
 
-	err = os.WriteFile(dockerfilevalArgs.output, []byte(resp), 0o644)
-	if err != nil {
-		log.Error("Error writing Dockerfile:", err)
-		return err
+	if output != "" {
+		err = os.WriteFile(output, []byte(resp), 0o644)
+		if err != nil {
+			log.Error("Error writing Dockerfile:", err)
+			return err
+		}
 	}
 
-	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", dockerfilevalArgs.output)
+	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
 	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
 
 	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
+}
+
+func loadYAMLConfig(cfgFile string) (*llm.RequirementSpec, error) {
+	var spec llm.Config
+
+	if cfgFile != "" {
+		v := viper.New()
+		v.SetConfigFile(cfgFile)
+		err := v.ReadInConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load config from file: %w", err)
+		}
+		v.AutomaticEnv()
+		err = v.Unmarshal(&spec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load config from file: %w", err)
+		}
+	}
+	return &spec.RequirementSpec, nil
 }

@@ -49,6 +49,13 @@ metadata:
   name: test-config
 requirementSpec:
   common:
+    # Add new fields
+    reqinput:
+    policy:
+    takeaction:
+    output:
+    credentials:
+    ####
     userPrompt: ./templates/inputs/genai/prompt.txt
     userSystemPrompt:
   llmSpec:
