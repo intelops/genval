@@ -150,52 +150,76 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	var fr []byte
 	var resp string
 	dockerfileContent := string(dockerfilefileContent) // Use initial content for the first iteration
 	failures := failedResults
 
 	for takeAction && failedCount > 0 {
-		var fr []byte
-		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold-on for a moment...\n")
-		defer spin.Stop()
+		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold on for a moment...\n")
 
 		// Determine the content to use for the prompt
 		contentToCombine := dockerfileContent
 		if resp != "" {
 			contentToCombine = resp
 		}
+
+		// Update `resultsFailed` based on `fr`
 		resultsFailed := failures
 		if fr != nil {
 			resultsFailed = fr
 		}
 
+		// Log the failed results
+		if resultsFailed != nil {
+			fmt.Printf("Failed Results: %v\n", string(resultsFailed))
+		} else {
+			fmt.Println("No failed results to combine.")
+		}
+
+		// Create the user prompt
 		userPrompt, err := llm.CombineResourceAndResults(contentToCombine, string(resultsFailed))
 		if err != nil {
+			spin.Stop()
 			log.Errorf("error combining resource and results: %v", err)
 			return err
 		}
-		tool := cmd.Use
-		takeActionPrompt, err := llm.GetSystemPrompt(tool)
 
-		client := openai.NewClient(os.Getenv("OPENAI_KEY"))
+		// Generate the response from LLM
+		takeActionPrompt, err := llm.GetSystemPrompt(cmd.Use)
+		if err != nil {
+			spin.Stop()
+			log.Errorf("error getting system prompt: %v", err)
+			return err
+		}
 
-		fmt.Printf("Failed Results and Updated Dockerfile\n", userPrompt)
-
+		client := openai.NewClient(os.Getenv(cfg.LLMSpec.OpenAIConfig[0].APIKey))
 		req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, model)
 		if err != nil {
+			spin.Stop()
 			return fmt.Errorf("failed to create OpenAI request: %w", err)
 		}
+
 		res, err := client.CreateChatCompletion(ctx, req)
 		if err != nil {
+			spin.Stop()
 			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
+
 		resp = res.Choices[0].Message.Content
-		// updatedDockerfile = resp
 		spin.Stop()
+
+		// Validate the response with Rego
 		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor, takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
+		}
+
+		// If no further failures, exit the loop
+		if fr == nil {
+			fmt.Println("No Failed results were captured. Remediation is complete.")
+			break
 		}
 	}
 
@@ -207,6 +231,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	fmt.Println(validate.BorderedOutput(resp))
 	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
 	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
 

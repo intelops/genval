@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/charmbracelet/lipgloss"
 	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"github.com/open-policy-agent/opa/rego"
@@ -163,4 +164,22 @@ func extractFailedPolicies(policiesData []byte) ([]byte, error) {
 	}
 
 	return failedReslts, nil
+}
+
+// DrawBorderedOutputWithLipgloss draws a bordered box around the provided content.
+func BorderedOutput(content string) string {
+	// Define the style for the border.
+	borderStyle := lipgloss.NewStyle().
+		// Set normal border with all sides.
+		Border(lipgloss.NormalBorder(), true).
+		// Set the border color.
+		BorderForeground(lipgloss.Color("63")).
+		// Add padding inside the border.
+		Padding(1, 2).
+		// Set a fixed width.
+		// Width(150)
+		// Wraps whole screen width
+		Width(200)
+
+	return borderStyle.Render(content)
 }

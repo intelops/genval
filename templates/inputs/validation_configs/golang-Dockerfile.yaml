@@ -1,0 +1,19 @@
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: dockerfileval-config
+requirementSpec:
+  common:
+    reqinput: ../Dockerfiles/golang-Dockerfile
+    policy: ./templates/defaultpolicies/rego/dockerfile_policies
+    takeaction: true
+    output: ./Final-Dockerfile
+  llmSpec:
+    openAIConfig:
+      - model: openai.GPT4
+        assistant:
+        useTheModel: true
+        apiKey: OPENAI_KEY
+        temperature: 0.3
+        topP: 0.3
+        streaming: true
+        maxTokens: 2048
