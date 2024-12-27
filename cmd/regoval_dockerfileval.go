@@ -151,12 +151,25 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	var resp string
+	dockerfileContent := string(dockerfilefileContent) // Use initial content for the first iteration
+	failures := failedResults
+
 	for takeAction && failedCount > 0 {
+		var fr []byte
 		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold-on for a moment...\n")
 		defer spin.Stop()
 
-		updatedDockerfile := string(dockerfilefileContent)
-		userPrompt, err := llm.CombineResourceAndResults(updatedDockerfile, string(failedResults))
+		// Determine the content to use for the prompt
+		contentToCombine := dockerfileContent
+		if resp != "" {
+			contentToCombine = resp
+		}
+		resultsFailed := failures
+		if fr != nil {
+			resultsFailed = fr
+		}
+
+		userPrompt, err := llm.CombineResourceAndResults(contentToCombine, string(resultsFailed))
 		if err != nil {
 			log.Errorf("error combining resource and results: %v", err)
 			return err
@@ -166,9 +179,8 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 
 		client := openai.NewClient(os.Getenv("OPENAI_KEY"))
 
-		// fmt.Printf("Failed Results and Updated Dockerfile\n", userPrompt)
+		fmt.Printf("Failed Results and Updated Dockerfile\n", userPrompt)
 
-		// NOTE: Use go-langchin API for interacting with different LLM models
 		req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, model)
 		if err != nil {
 			return fmt.Errorf("failed to create OpenAI request: %w", err)
@@ -178,9 +190,9 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
 		resp = res.Choices[0].Message.Content
-		updatedDockerfile = resp
+		// updatedDockerfile = resp
 		spin.Stop()
-		failedResults, failedCount, err = validate.ValidateWithRego(resp, policy, processor, takeAction)
+		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor, takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err

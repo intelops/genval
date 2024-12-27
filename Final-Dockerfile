@@ -1,34 +1,33 @@
+```Dockerfile
 # Stage 1: Build the application
 FROM cgr.dev/chainguard/alpine AS builder
 
-# Removed --no-cache flag from apk update as it is not a valid flag for apk update
-# Added --no-cache flag to apk add to avoid caching and reduce image size
-RUN apk update && apk add --no-cache python-3.11 py3.11-pip
-
+# Updated the RUN instruction to use --no-cache for apk update
+RUN  apk update --no-cache && apk add python-3.11 && \
+        apk add py3.11-pip --no-cache
 USER nonroot
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Removed EXPOSE 22 as it is not a good practice to expose port 22 (SSH port)
-# It is better to expose the port that the application will actually use
+# Removed the EXPOSE 22 instruction as it is not recommended to expose SSH port (22)
 
 WORKDIR /app
 
-COPY --chown=nonroot:nonroot requirements.txt /app/requirements.txt
+COPY --chown=nonroot:nonroot requirements.txt /app/requirements.txt 
 
-# Added --no-cache-dir flag to pip install to avoid caching and reduce image size
-RUN pip install --no-cache-dir -r /app/requirements.txt --user
+RUN pip install -r /app/requirements.txt --user
 
 
 # Stage 2: Copy the venv and run the application
-FROM cgr.dev/chainguard/wolfi-base AS final
+FROM cgr.dev/chainguard/wolfi-base AS final 
 
-# Removed --no-cache flag from apk update as it is not a valid flag for apk update
-# Added --no-cache flag to apk add to avoid caching and reduce image size
-RUN apk update && apk add --no-cache python-3.11 py3.11-pip
-
+# Updated the RUN instruction to use --no-cache for apk update
+RUN sudo apk update --no-cache && apk add python-3.11 && \
+    apk add py3.11-pip  
+    
 RUN pip install --upgrade pip setuptools
+
 
 WORKDIR /app
 
@@ -38,15 +37,18 @@ COPY --chown=nonroot:nonroot . .
 
 COPY --from=builder --chown=nonroot:nonroot /home/nonroot/.local /home/nonroot/.local
 
-# Removed EXPOSE 22 as it is not a good practice to expose port 22 (SSH port)
-# It is better to expose the port that the application will actually use
+# Removed the EXPOSE 22 instruction as it is not recommended to expose SSH port (22)
 
 ENV PATH=/home/nonroot/.local/bin:$PATH
 
-# Added HEALTHCHECK instruction to indicate container health as per the scan result
+# Added a HEALTHCHECK instruction to indicate the health of the container
 HEALTHCHECK CMD curl --fail http://localhost:8000/ || exit 1
 
 CMD ["uvicorn", "main:app","--host", "0.0.0.0","--port", "8000"]
 
-# Exposing the port that the application will actually use
+# Exposing the port that the application needs (8000 in this case)
 EXPOSE 8000
+```
+- The `EXPOSE 22` instruction was removed because it is not recommended to expose SSH port (22). Instead, the application's required port (8000) is exposed using `EXPOSE 8000`.
+- The `RUN apk update` instruction was updated to use `--no-cache` to avoid caching the index locally, which can reduce the size of the image.
+- A `HEALTHCHECK` instruction was added to indicate the health of the container. This can help in identifying any issues with the application running inside the container.

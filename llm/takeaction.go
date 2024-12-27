@@ -1,16 +1,31 @@
 package llm
 
 import (
+	"errors"
 	"strings"
 
 	openai "github.com/sashabaranov/go-openai"
 )
 
 func CombineResourceAndResults(res, results string) (string, error) {
-	var builder strings.Builder
+	if res == "" {
+		return "", errors.New("empty resource")
+	}
+	if results == "" {
+		return "", errors.New("empty results")
+	}
 
-	builder.WriteString(res)
-	builder.WriteString(results)
+	var builder strings.Builder
+	if _, err := builder.WriteString(res); err != nil {
+		return "", err
+	}
+
+	if _, err := builder.WriteString("\n"); err != nil {
+		return "", err
+	}
+	if _, err := builder.WriteString(results); err != nil {
+		return "", err
+	}
 
 	return builder.String(), nil
 }
