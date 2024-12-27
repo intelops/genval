@@ -9,7 +9,7 @@ requirementSpec:
     output: ./Final-Dockerfile
   llmSpec:
     openAIConfig:
-      - model: openai.GPT4o
+      - model: openai.GPT4
         assistant:
         useTheModel: true
         apiKey: OPENAI_KEY

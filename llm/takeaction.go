@@ -16,8 +16,8 @@ func CombineResourceAndResults(res, results string) (string, error) {
 }
 
 func CreateActionCompletion(userPrompt, takeActionPrompt, model string) (openai.ChatCompletionRequest, error) {
-	if model == "openai.GPT4o" {
-		model = openai.GPT4o
+	if model == "openai.GPT4" {
+		model = openai.GPT4
 	}
 	req := openai.ChatCompletionRequest{
 		Model:       model,

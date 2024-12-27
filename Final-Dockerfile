@@ -1,26 +1,32 @@
-```dockerfile
 # Stage 1: Build the application
 FROM cgr.dev/chainguard/alpine AS builder
 
-RUN apk update --no-cache && apk add python-3.11 && \
-        apk add py3.11-pip --no-cache
+# Removed --no-cache flag from apk update as it is not a valid flag for apk update
+# Added --no-cache flag to apk add to avoid caching and reduce image size
+RUN apk update && apk add --no-cache python-3.11 py3.11-pip
+
 USER nonroot
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Removed EXPOSE 22 as it is not a good practice to expose port 22 (SSH port)
+# It is better to expose the port that the application will actually use
+
 WORKDIR /app
 
 COPY --chown=nonroot:nonroot requirements.txt /app/requirements.txt
 
-RUN pip install -r /app/requirements.txt --user
+# Added --no-cache-dir flag to pip install to avoid caching and reduce image size
+RUN pip install --no-cache-dir -r /app/requirements.txt --user
 
 
 # Stage 2: Copy the venv and run the application
 FROM cgr.dev/chainguard/wolfi-base AS final
 
-RUN apk update --no-cache && apk add python-3.11 && \
-    apk add py3.11-pip
+# Removed --no-cache flag from apk update as it is not a valid flag for apk update
+# Added --no-cache flag to apk add to avoid caching and reduce image size
+RUN apk update && apk add --no-cache python-3.11 py3.11-pip
 
 RUN pip install --upgrade pip setuptools
 
@@ -32,13 +38,15 @@ COPY --chown=nonroot:nonroot . .
 
 COPY --from=builder --chown=nonroot:nonroot /home/nonroot/.local /home/nonroot/.local
 
-# Removed EXPOSE 22 and replaced with the application-specific port
-EXPOSE 8000
+# Removed EXPOSE 22 as it is not a good practice to expose port 22 (SSH port)
+# It is better to expose the port that the application will actually use
 
 ENV PATH=/home/nonroot/.local/bin:$PATH
 
-# Added HEALTHCHECK instruction to monitor container health
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD curl --fail http://localhost:8000/health || exit 1
+# Added HEALTHCHECK instruction to indicate container health as per the scan result
+HEALTHCHECK CMD curl --fail http://localhost:8000/ || exit 1
 
 CMD ["uvicorn", "main:app","--host", "0.0.0.0","--port", "8000"]
-```
+
+# Exposing the port that the application will actually use
+EXPOSE 8000

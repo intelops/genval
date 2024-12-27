@@ -97,7 +97,9 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool)
 			return nil, failedCount, fmt.Errorf("error saving results: %v", err)
 		}
 	}
-	return resultSlice, failedCount, nil
+	failedResults, err := extractFailedPolicies(resultSlice)
+	// llm.ExtractFailedPolicies(resultSlice)
+	return failedResults, failedCount, nil
 }
 
 type Results struct {
@@ -135,4 +137,30 @@ func SaveResults(filename string, newResults []Results) ([]byte, error) {
 	}
 
 	return data, nil
+}
+
+// ExtractFailedPoliciesAsBytes filters policies with status "failed" and returns the result as []byte.
+func extractFailedPolicies(policiesData []byte) ([]byte, error) {
+	var policies []Results
+
+	// Unmarshal the input JSON into a slice of Policy structs.
+	if err := json.Unmarshal(policiesData, &policies); err != nil {
+		return nil, fmt.Errorf("failed to parse input JSON: %w", err)
+	}
+
+	// Filter policies with status "failed".
+	var failedPolicies []Results
+	for _, policy := range policies {
+		if policy.Status == "failed" {
+			failedPolicies = append(failedPolicies, policy)
+		}
+	}
+
+	// Marshal the result back to JSON.
+	failedReslts, err := json.Marshal(failedPolicies)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal result JSON: %w", err)
+	}
+
+	return failedReslts, nil
 }

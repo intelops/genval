@@ -96,7 +96,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	ctx := cmd.Context()
-	var resultSlice []byte
+	var failedResults []byte
 	var failedCount int
 
 	creds := cfg.Common.OCICredentials
@@ -134,7 +134,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if resultSlice, failedCount, err = validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
+		if failedResults, failedCount, err = validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
 			policy,
 			cmd.Name(),
 			creds,
@@ -143,51 +143,48 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		resultSlice, failedCount, err = validate.ValidateWithRego(string(dockerfilefileContent), policy, processor, takeAction)
+		failedResults, failedCount, err = validate.ValidateWithRego(string(dockerfilefileContent), policy, processor, takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
 		}
 	}
-	// Fetch active models and assign the first one found
-
-	userPrompt, err := llm.CombineResourceAndResults(string(dockerfilefileContent), string(resultSlice))
-	if err != nil {
-		log.Errorf("error combining resource and results: %v", err)
-		return err
-	}
-	// fmt.Printf("UserPrompt: %v", userPrompt)
-	tool := cmd.Use
-	takeActionPrompt, err := llm.GetSystemPrompt(tool)
-
-	// fmt.Printf("SystemPrompt: %v\n", takeActionPrompt)
 
 	var resp string
-	client := openai.NewClient(os.Getenv("OPENAI_KEY"))
-
-	fmt.Printf("Dockerfile iteration: %v", userPrompt)
-	// NOTE: Use go-langchin API for interacting with different LLM models
-	req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, model)
-	if err != nil {
-		return fmt.Errorf("failed to create OpenAI request: %w", err)
-	}
-
 	for takeAction && failedCount > 0 {
-		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold-on for a moment...")
+		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold-on for a moment...\n")
 		defer spin.Stop()
+
+		updatedDockerfile := string(dockerfilefileContent)
+		userPrompt, err := llm.CombineResourceAndResults(updatedDockerfile, string(failedResults))
+		if err != nil {
+			log.Errorf("error combining resource and results: %v", err)
+			return err
+		}
+		tool := cmd.Use
+		takeActionPrompt, err := llm.GetSystemPrompt(tool)
+
+		client := openai.NewClient(os.Getenv("OPENAI_KEY"))
+
+		// fmt.Printf("Failed Results and Updated Dockerfile\n", userPrompt)
+
+		// NOTE: Use go-langchin API for interacting with different LLM models
+		req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, model)
+		if err != nil {
+			return fmt.Errorf("failed to create OpenAI request: %w", err)
+		}
 		res, err := client.CreateChatCompletion(ctx, req)
 		if err != nil {
 			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
 		resp = res.Choices[0].Message.Content
-
+		updatedDockerfile = resp
 		spin.Stop()
-		resultSlice, failedCount, err = validate.ValidateWithRego(resp, policy, processor, takeAction)
+		failedResults, failedCount, err = validate.ValidateWithRego(resp, policy, processor, takeAction)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
 		}
-		fmt.Printf("LLM response: %v", resp)
 	}
 
 	if output != "" {
