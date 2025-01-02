@@ -9,6 +9,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/utils"
@@ -28,15 +29,15 @@ var infrafileArgs infrafileFlags
 
 func init() {
 	infrafileCmd.Flags().BoolVarP(&infrafileArgs.takeAction, "takeaction", "t", false, "Remediate the failures")
+	infrafileCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to YAML file to read configs from")
 	infrafileCmd.Flags().StringVarP(&infrafileArgs.reqinput, "reqinput", "r", "", "Input JSON/YAML for validating Kubernetes configurations with Rego ")
-	if err := infrafileCmd.MarkFlagRequired("reqinput"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
 	infrafileCmd.Flags().StringVarP(&infrafileArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
 	infrafileCmd.Flags().StringVarP(&infrafileArgs.output, "output", "o", "", "Path to write the final output")
 
 	infrafileCmd.Flags().StringVarP(&infrafileArgs.policy, "policy", "p", "", "Path for the CEL policy file, polciy can be passed from either Local or from remote URL")
-	infrafileCmd.Flags().StringVarP(&infrafileArgs.ociCreds, "credentials", "c", "", "credentials for interacting with OCI registrirs")
+	infrafileCmd.Flags().StringVarP(&infrafileArgs.ociCreds, "credentials", "a", "", "credentials for interacting with OCI registrirs")
+
+	viper.BindPFlags(infrafileCmd.Flags())
 	regovalCmd.AddCommand(infrafileCmd)
 }
 
@@ -94,10 +95,35 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 
 	ctx := cmd.Context()
 
+	input := cfg.Common.Reqinput
+	if infrafileArgs.reqinput != "" {
+		input = infrafileArgs.reqinput
+	}
+
+	takeaction := cfg.Common.Takeaction
+	if infrafileArgs.model != "" {
+		infrafileArgs.takeAction = takeaction
+	}
+	output := cfg.Common.Output
+	if infrafileArgs.output != "" {
+		output = infrafileArgs.output
+	}
+	policy := cfg.Common.Policy
+	if infrafileArgs.policy != "" {
+		policy = infrafileArgs.policy
+	}
+	var model string
+	models := cfg.LLMSpec.GetActiveModels()
+	if len(models) > 1 {
+		model = models[0]["model"]
+	}
+	// CHANGEME
+	if model == "" {
+		model = openai.GPT4
+	}
+
 	var failedResults []byte
 	var failedCount int
-	input := infrafileArgs.reqinput
-	policy := infrafileArgs.policy
 	processor := validate.GenericProcessor{}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
@@ -119,9 +145,9 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 	inputFile := input
 	failures := failedResults
 
-	for cfg.Common.Takeaction && failedCount > 0 {
+	for takeaction && failedCount > 0 {
 		var fr []byte
-		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold-on for a moment...\n")
+		spin := utils.StartSpinner("Taking action on remediating the errors in Infrafile, please hold-on for a moment...\n")
 		defer spin.Stop()
 
 		// Determine the content to use for the prompt
@@ -142,11 +168,11 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 		tool := cmd.Use
 		takeActionPrompt, err := llm.GetSystemPrompt(tool)
 
+		// User apiKEY as flag to read from ENVVAR
 		client := openai.NewClient(os.Getenv(cfg.LLMSpec.OpenAIConfig[0].APIKey))
 		// client := openai.NewClient(os.Getenv("OPENAI_KEY"))
 
-		fmt.Printf("Failed Results and Updated Dockerfile\n", userPrompt)
-		model := cfg.LLMSpec.GetActiveModels()[0]["model"]
+		fmt.Printf("Failed Results and Updated Infrafile\n", userPrompt)
 		req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, model)
 		if err != nil {
 			return fmt.Errorf("failed to create OpenAI request: %w", err)
@@ -156,26 +182,33 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 			return fmt.Errorf("failed to generate OpenAI response: %w", err)
 		}
 		resp = res.Choices[0].Message.Content
-		// updatedDockerfile = resp
 		spin.Stop()
+
 		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor, cfg.Common.Takeaction)
 		if err != nil {
-			log.Errorf("Dockerfile validation failed: %s\n", err)
+			log.Errorf("Infrafile validation failed: %s\n", err)
 			return err
+		}
+		// If no further failures, exit the loop
+		if fr == nil {
+			fmt.Println("No Failed results were captured. Remediation is complete.")
+			break
 		}
 	}
 
-	if cfg.Common.Output != "" {
-		err = os.WriteFile(cfg.Common.Output, []byte(resp), 0o644)
+	if output != "" {
+		err = os.WriteFile(output, []byte(resp), 0o644)
 		if err != nil {
-			log.Error("Error writing Dockerfile:", err)
+			log.Error("Error writing Infrafile:", err)
 			return err
 		}
 	}
 
 	fmt.Println(validate.BorderedOutput(resp))
 
+	writeMessage := color.GreenString("Final Infrafile written to: %v\n", output)
 	logMessage := color.GreenString("infrafile validation for: %v completed", inputFile)
+	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
 }

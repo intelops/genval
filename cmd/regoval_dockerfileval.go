@@ -119,9 +119,10 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	if dockerfilevalArgs.policy != "" {
 		policy = dockerfilevalArgs.policy
 	}
-	model := cfg.LLMSpec.GetActiveModels()[0]["model"]
-	if dockerfilevalArgs.model != "" {
-		model = dockerfilevalArgs.model
+	var model string
+	models := cfg.LLMSpec.GetActiveModels()
+	if len(models) > 0 {
+		model = models[0]["model"]
 	}
 	if model == "" {
 		model = openai.GPT4
@@ -170,7 +171,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			resultsFailed = fr
 		}
 
-		// Log the failed results
+		// Debug Log the failed results
 		if resultsFailed != nil {
 			fmt.Printf("Failed Results: %v\n", string(resultsFailed))
 		} else {
@@ -178,6 +179,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		}
 
 		// Create the user prompt
+		// TODO: Combine SystemPrompt and FailureResults and pass only resp as userPrompr
 		userPrompt, err := llm.CombineResourceAndResults(contentToCombine, string(resultsFailed))
 		if err != nil {
 			spin.Stop()
