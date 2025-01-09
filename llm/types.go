@@ -32,6 +32,8 @@ type CommonSpec struct {
 	Takeaction       bool   `yaml:"takeaction,omitempty"`
 	Reqinput         string `yaml:"reqinput,omitempty"`
 	Policy           string `yaml:"policy,omitempty"`
+	CELRules         string `yaml:"celRules,omitempty"`
+	RegexRules       string `yaml:"regexRules,omitempty"`
 }
 
 type LLMSpec struct {
