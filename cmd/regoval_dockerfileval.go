@@ -171,44 +171,19 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			resultsFailed = fr
 		}
 
-		// Debug Log the failed results
-		if resultsFailed != nil {
-			fmt.Printf("Failed Results: %v\n", string(resultsFailed))
-		} else {
-			fmt.Println("No failed results to combine.")
+		rParams := llm.RemediationParams{
+			InputContent:  contentToCombine,
+			PolicyContent: policy,
+			Failures:      resultsFailed,
+			Command:       cmd.Use,
+			Model:         model,
+			ApiKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
 
-		// Create the user prompt
-		// TODO: Combine SystemPrompt and FailureResults and pass only resp as userPrompr
-		userPrompt, err := llm.CombineResourceAndResults(contentToCombine, string(resultsFailed))
+		resp, err := llm.RemediateResource(ctx, rParams)
 		if err != nil {
-			spin.Stop()
-			log.Errorf("error combining resource and results: %v", err)
-			return err
+			return fmt.Errorf("error remediating resource: [%v] - %v", input, err)
 		}
-
-		// Generate the response from LLM
-		takeActionPrompt, err := llm.GetSystemPrompt(cmd.Use)
-		if err != nil {
-			spin.Stop()
-			log.Errorf("error getting system prompt: %v", err)
-			return err
-		}
-
-		client := openai.NewClient(os.Getenv(cfg.LLMSpec.OpenAIConfig[0].APIKey))
-		req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, model)
-		if err != nil {
-			spin.Stop()
-			return fmt.Errorf("failed to create OpenAI request: %w", err)
-		}
-
-		res, err := client.CreateChatCompletion(ctx, req)
-		if err != nil {
-			spin.Stop()
-			return fmt.Errorf("failed to generate OpenAI response: %w", err)
-		}
-
-		resp = res.Choices[0].Message.Content
 		spin.Stop()
 
 		// Validate the response with Rego
@@ -240,23 +215,4 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
-}
-
-func loadYAMLConfig(cfgFile string) (*llm.RequirementSpec, error) {
-	var spec llm.Config
-
-	if cfgFile != "" {
-		v := viper.New()
-		v.SetConfigFile(cfgFile)
-		err := v.ReadInConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to load config from file: %w", err)
-		}
-		v.AutomaticEnv()
-		err = v.Unmarshal(&spec)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load config from file: %w", err)
-		}
-	}
-	return &spec.RequirementSpec, nil
 }

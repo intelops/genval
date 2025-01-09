@@ -27,9 +27,12 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool)
 	var err error
 
 	for _, r := range result {
+		// fmt.Printf("All RESULTS: %v", result)
 		if len(r.Expressions) > 0 {
 			keys := r.Expressions[0].Value.(map[string]interface{})
+			// fmt.Printf("All Results: %v", keys)
 			for key, value := range keys {
+				// fmt.Printf("result key: %v\n Result Value: %v\n", key, value)
 				// Match policy metadata for each key
 				matchedKey, meta, err := MatchPolicyMetadata(metas, key)
 				if err != nil {
@@ -41,6 +44,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool)
 					var saveStatus string
 					if policies, ok := value.([]interface{}); ok {
 						// Check if the slice is empty
+						// fmt.Printf("Policies: %v", policies...)
 						if len(policies) > 0 {
 							passedCount++
 							saveStatus = "passed"

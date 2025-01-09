@@ -9,6 +9,7 @@ import (
 
 	"github.com/open-policy-agent/opa/ast"
 	"github.com/open-policy-agent/opa/rego"
+	"github.com/open-policy-agent/opa/topdown"
 	log "github.com/sirupsen/logrus"
 
 	"github.com/intelops/genval/pkg/oci"
@@ -91,19 +92,44 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 			log.Fatal(err)
 			return nil, 0, fmt.Errorf("failed to compile rego policy: %w", err)
 		}
+		var tracer *topdown.BufferTracer
+		tracer = topdown.NewBufferTracer()
 		// Create regoQuery for evaluation
 		regoQuery := rego.New(
 			rego.Query("data."+pkg),
 			rego.Compiler(compiler),
 			rego.Input(commands),
+			rego.Tracer(tracer),
 		)
 
 		// Evaluate the Rego query
-		rs, err := regoQuery.Eval(ctx)
+		r, err := regoQuery.PrepareForEval(ctx)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error evaluating query:%v", err)
 		}
+
+		rs, err := r.Eval(ctx, rego.EvalTracer(tracer))
+		if err != nil {
+			return nil, 0, fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
+		}
+		// Collect raw traces
+		rawTraces := *tracer
+
+		// (Optional) Print raw traces for debugging
+		fmt.Println("Captured Raw Traces:")
+		for _, event := range rawTraces {
+			fmt.Printf(" Locals: %v\n", event.Locals)
+		} // Collect raw traces
+
+		// (Optional) Print the traces for debugging
+
 		allResults = append(allResults, rs...)
+		// if tracer.Enabled() {
+		// 	topdown.PrettyTrace(os.Stdout, *tracer)
+		// } else {
+		// 	fmt.Println("Tracer Disabled")
+		// }
+
 	}
 	var failedCount int
 	if resultSlice, failedCount, err = PrintResults(allResults, metas, takeAction); err != nil {
@@ -157,4 +183,14 @@ func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor I
 		}
 	}
 	return resultSlice, failedCount, nil
+}
+
+// processTraces processes the trace buffer into a slice of strings
+func processTraces(tracer *topdown.BufferTracer) []string {
+	var traces []string
+	for _, event := range *tracer {
+		trace := fmt.Sprintf("Event: %s, Node: %v", event.Op, event.Node)
+		traces = append(traces, trace)
+	}
+	return traces
 }

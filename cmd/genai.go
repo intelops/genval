@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/utils"
@@ -247,4 +248,23 @@ func mergeFlagsWithConfig(spec *llm.RequirementSpec) {
 	if genaiArgs.prompt != "" {
 		spec.Common.UserPrompt = genaiArgs.prompt
 	}
+}
+
+func loadYAMLConfig(cfgFile string) (*llm.RequirementSpec, error) {
+	var spec llm.Config
+
+	if cfgFile != "" {
+		v := viper.New()
+		v.SetConfigFile(cfgFile)
+		err := v.ReadInConfig()
+		if err != nil {
+			return nil, fmt.Errorf("failed to load config from file: %w", err)
+		}
+		v.AutomaticEnv()
+		err = v.Unmarshal(&spec)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load config from file: %w", err)
+		}
+	}
+	return &spec.RequirementSpec, nil
 }

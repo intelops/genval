@@ -147,9 +147,6 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 
 	for takeaction && failedCount > 0 {
 		var fr []byte
-		spin := utils.StartSpinner("Taking action on remediating the errors in Infrafile, please hold-on for a moment...\n")
-		defer spin.Stop()
-
 		// Determine the content to use for the prompt
 		contentToCombine := inputFile
 		if resp != "" {
@@ -159,29 +156,22 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 		if fr != nil {
 			resultsFailed = fr
 		}
-
-		userPrompt, err := llm.CombineResourceAndResults(contentToCombine, string(resultsFailed))
-		if err != nil {
-			log.Errorf("error combining resource and results: %v", err)
-			return err
+		spin := utils.StartSpinner("Taking action on remediating the errors in Infrafile, please hold-on for a moment...\n")
+		defer spin.Stop()
+		rParams := llm.RemediationParams{
+			InputContent:  contentToCombine,
+			PolicyContent: policy,
+			Failures:      resultsFailed,
+			Command:       cmd.Use,
+			Model:         model,
+			ApiKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
-		tool := cmd.Use
-		takeActionPrompt, err := llm.GetSystemPrompt(tool)
 
-		// User apiKEY as flag to read from ENVVAR
-		client := openai.NewClient(os.Getenv(cfg.LLMSpec.OpenAIConfig[0].APIKey))
-		// client := openai.NewClient(os.Getenv("OPENAI_KEY"))
+		resp, err := llm.RemediateResource(ctx, rParams)
+		if err != nil {
+			return fmt.Errorf("Error remediating resource: [%v] - %v ", inputFile, err)
+		}
 
-		fmt.Printf("Failed Results and Updated Infrafile\n", userPrompt)
-		req, err := llm.CreateActionCompletion(userPrompt, takeActionPrompt, model)
-		if err != nil {
-			return fmt.Errorf("failed to create OpenAI request: %w", err)
-		}
-		res, err := client.CreateChatCompletion(ctx, req)
-		if err != nil {
-			return fmt.Errorf("failed to generate OpenAI response: %w", err)
-		}
-		resp = res.Choices[0].Message.Content
 		spin.Stop()
 
 		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor, cfg.Common.Takeaction)
