@@ -132,11 +132,11 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 			"inputPolicy",
 			dockerfileArgs.ociCreds,
 			dprocessor,
-			dockerfileArgs.takeAction); err != nil {
+		); err != nil {
 			return fmt.Errorf("error validating with policies stored in registriy: %v", err)
 		}
 	} else {
-		_, _, err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor, dockerfileArgs.takeAction)
+		_, _, err = validate.ValidateWithRego(string(inputContent), inputPolicyFile, gprocessor)
 		if err != nil {
 			log.Fatalf("Validation error: %v", err)
 			return err
@@ -159,11 +159,11 @@ func rundockerfileCmd(cmd *cobra.Command, args []string) error {
 			"dockerfileval",
 			dockerfileArgs.ociCreds,
 			dprocessor,
-			dockerfileArgs.takeAction); err != nil {
+		); err != nil {
 			return fmt.Errorf("error validating with policies stored in registry: %v", err)
 		}
 	} else {
-		_, _, err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor, dockerfileArgs.takeAction)
+		_, _, err = validate.ValidateWithRego(string(outputData), outputPolicyFile, dprocessor)
 		if err != nil {
 			log.Fatalf("Validation error: %v", err)
 			return err

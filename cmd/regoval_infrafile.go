@@ -132,11 +132,11 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 			cmd.Name(),
 			infrafileArgs.ociCreds,
 			processor,
-			infrafileArgs.takeAction); err != nil {
+		); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		failedResults, failedCount, err = validate.ValidateWithRego(input, policy, processor, infrafileArgs.takeAction)
+		failedResults, failedCount, err = validate.ValidateWithRego(input, policy, processor)
 		if err != nil {
 			return fmt.Errorf("validating %v failed: %v", input, err)
 		}
@@ -174,7 +174,7 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 
 		spin.Stop()
 
-		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor, cfg.Common.Takeaction)
+		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor)
 		if err != nil {
 			log.Errorf("Infrafile validation failed: %s\n", err)
 			return err

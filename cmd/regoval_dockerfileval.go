@@ -140,11 +140,11 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			cmd.Name(),
 			creds,
 			processor,
-			takeAction); err != nil {
+		); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		failedResults, failedCount, err = validate.ValidateWithRego(string(dockerfilefileContent), policy, processor, takeAction)
+		failedResults, failedCount, err = validate.ValidateWithRego(string(dockerfilefileContent), policy, processor)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
@@ -187,7 +187,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		spin.Stop()
 
 		// Validate the response with Rego
-		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor, takeAction)
+		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err

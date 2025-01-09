@@ -2,13 +2,18 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
+	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/parser"
+	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 )
 
@@ -17,18 +22,25 @@ type terraformFlags struct {
 	reqinput   string
 	policy     string
 	ociCreds   string
+	model      string
+	output     string
 }
 
 var terraformArgs terraformFlags
 
 func init() {
 	terraformCmd.Flags().BoolVarP(&terraformArgs.takeAction, "take-action", "t", false, "remediate the failures")
+	terraformCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to YAML file to read configs from")
+	terraformCmd.Flags().StringVarP(&terraformArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
+	terraformCmd.Flags().BoolVarP(&terraformArgs.takeAction, "takeaction", "t", false, "Remediate the failures")
 	terraformCmd.Flags().StringVarP(&terraformArgs.reqinput, "reqinput", "r", "", "Input JSON for validating Terraform .tf files with rego")
-	if err := terraformCmd.MarkFlagRequired("reqinput"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
+	// if err := terraformCmd.MarkFlagRequired("reqinput"); err != nil {
+	// 	log.Fatalf("Error marking flag as required: %v", err)
+	// }
 	terraformCmd.Flags().StringVarP(&terraformArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
 	terraformCmd.Flags().StringVarP(&terraformArgs.ociCreds, "credentials", "c", "", "credentials for interacting with OCI registries")
+
+	viper.BindPFlags(terraformCmd.Flags())
 	regovalCmd.AddCommand(terraformCmd)
 }
 
@@ -79,8 +91,43 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 }
 
 func runTerraformCmd(cmd *cobra.Command, args []string) error {
-	inputFile := terraformArgs.reqinput
-	policy := terraformArgs.policy
+	cfg, err := loadYAMLConfig(configFile)
+	if err != nil {
+		fmt.Errorf("error reading config: %v", err)
+	}
+
+	ctx := cmd.Context()
+	var failedResults []byte
+	var failedCount int
+
+	creds := cfg.Common.OCICredentials
+	if terraformArgs.ociCreds != "" {
+		creds = terraformArgs.ociCreds
+	}
+	output := cfg.Common.Output
+	if terraformArgs.output != "" {
+		output = terraformArgs.output
+	}
+	takeAction := cfg.Common.Takeaction
+	if terraformArgs.takeAction {
+		takeAction = terraformArgs.takeAction
+	}
+	inputFile := cfg.Common.Reqinput
+	if terraformArgs.reqinput != "" {
+		inputFile = terraformArgs.reqinput
+	}
+	policy := cfg.Common.Policy
+	if terraformArgs.policy != "" {
+		policy = terraformArgs.policy
+	}
+	var model string
+	models := cfg.LLMSpec.GetActiveModels()
+	if len(models) > 0 {
+		model = models[0]["model"]
+	}
+	if model == "" {
+		model = openai.GPT4
+	}
 	var processor validate.GenericProcessor
 
 	inputJSON, err := parser.ConvertTFtoJSON(inputFile)
@@ -89,21 +136,71 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if _, _, err := validate.ValidateWithOCIPolicies(inputJSON,
+		if failedResults, failedCount, err = validate.ValidateWithOCIPolicies(inputJSON,
 			policy,
 			cmd.Name(),
-			terraformArgs.ociCreds,
+			creds,
 			processor,
-			terraformArgs.takeAction); err != nil {
+		); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		_, _, err = validate.ValidateWithRego(inputJSON, policy, processor, terraformArgs.takeAction)
+		failedResults, failedCount, err = validate.ValidateWithRego(inputJSON, policy, processor)
 		if err != nil {
 			log.Errorf("Validation %v failed", err)
 		}
 	}
+
+	var fr []byte
+	var resp string
+	failures := failedResults
+
+	for takeAction && failedCount > 0 {
+		spin := utils.StartSpinner("Taking action on remediating the errors in Terraform file, please hond on for a moment...\n")
+		contentToCombine := inputJSON
+		if resp != "" {
+			contentToCombine = resp
+		}
+		resultsFailed := failures
+		if fr != nil {
+			resultsFailed = fr
+		}
+
+		rParams := llm.RemediationParams{
+			InputContent:  contentToCombine,
+			PolicyContent: policy,
+			Failures:      resultsFailed,
+			Command:       cmd.Name(),
+			Model:         model,
+			ApiKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
+		}
+
+		resp, err := llm.RemediateResource(ctx, rParams)
+		if err != nil {
+			fmt.Errorf("error remediating resource: [%v] - %v", inputFile, err)
+		}
+		spin.Stop()
+		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor)
+		if err != nil {
+			fmt.Errorf("Terraform file validation failed: %v\n", err)
+		}
+		// If no further failures, exit the loop
+		if fr == nil {
+			fmt.Println("No Failed results were captured. Remediation is complete.")
+			break
+		}
+	}
+	if output != "" {
+		err := os.WriteFile(output, []byte(resp), 0o644)
+		if err != nil {
+			fmt.Errorf("error writing output: %v", err)
+		}
+	}
+	fmt.Println(validate.BorderedOutput(resp))
+	writeMessage := color.GreenString("Final Terraform file weitten to: %v\n", output)
 	logMessage := color.GreenString("Terraform resource validation for: %v completed", inputFile)
+
+	log.Infof(writeMessage)
 	log.Info(logMessage)
 	return nil
 }

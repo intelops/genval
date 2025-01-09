@@ -46,7 +46,7 @@ func (g GenericProcessor) ProcessInput(content string) ([]byte, error) {
 	return jsonData, nil
 }
 
-func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProcessor, takeAction bool) ([]byte, int, error) {
+func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProcessor) ([]byte, int, error) {
 	metaFiles, regoPolicy, err := FetchRegoMetadata(regoPolicyPath, metaExt, policyExt)
 	if err != nil {
 		return nil, 0, err
@@ -132,7 +132,7 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 
 	}
 	var failedCount int
-	if resultSlice, failedCount, err = PrintResults(allResults, metas, takeAction); err != nil {
+	if resultSlice, failedCount, err = PrintResults(allResults, metas); err != nil {
 		return nil, 0, fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 	}
 	return resultSlice, failedCount, nil
@@ -146,7 +146,7 @@ func ApplyPolicyiesFromOCI(ociURL, creds, path string) (string, error) {
 	return path, nil
 }
 
-func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor InputProcessor, takeAction bool) ([]byte, int, error) {
+func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor InputProcessor) ([]byte, int, error) {
 	var resultSlice []byte
 	var failedCount int
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
@@ -176,7 +176,7 @@ func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor I
 				return nil, 0, fmt.Errorf("error applying default policies: %v", err)
 			}
 		}
-		resultSlice, failedCount, err = ValidateWithRego(resource, defaultRegoPolicies, processor, takeAction)
+		resultSlice, failedCount, err = ValidateWithRego(resource, defaultRegoPolicies, processor)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return nil, 0, err

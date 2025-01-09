@@ -13,7 +13,7 @@ import (
 )
 
 // PrintResults prints the evaluation results along with the metadata
-func PrintResults(result rego.ResultSet, metas []*regoMetadata, takeAction bool) ([]byte, int, error) {
+func PrintResults(result rego.ResultSet, metas []*regoMetadata) ([]byte, int, error) {
 	// Create the table
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
