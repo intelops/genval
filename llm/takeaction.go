@@ -8,9 +8,12 @@ import (
 	"strings"
 
 	openai "github.com/sashabaranov/go-openai"
+
+	"github.com/intelops/genval/pkg/validate"
 )
 
 type RemediationParams struct {
+	CelPolicies   []validate.CELPolicy
 	InputContent  string
 	PolicyContent string
 	Failures      []byte

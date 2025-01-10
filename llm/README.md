@@ -51,8 +51,6 @@ requirementSpec:
   common:
     reqinput: ./templates/inputs/Dockerfile # The source file to be validated
     policy: ./templates/defaultpolicies/rego/dockerfile_policies # The policy file for validating the source file.
-    # regexRules: # Optiona to pass Regex rules
-    # celRules: # Optional to pass CEL rules
     takeaction: true
     output: # output path where the resulting output to be written to
   llmSpec:
