@@ -16,9 +16,9 @@ var regexSearchArgs regexSearchFlags
 
 func init() {
 	regexSearchCmd.Flags().StringVarP(&regexSearchArgs.reqinput, "reqinput", "r", "", "Input file for validating against regex pattern")
-	if err := regexSearchCmd.MarkFlagRequired("reqinput"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
+	// if err := regexSearchCmd.MarkFlagRequired("reqinput"); err != nil {
+	// 	log.Fatalf("Error marking flag as required: %v", err)
+	// }
 	regexSearchCmd.Flags().StringVarP(&regexSearchArgs.policy, "policy", "p", "", "Path for the RegeX policy file, polciy can be passed from either Local or from remote URL")
 	rootCmd.AddCommand(regexSearchCmd)
 }

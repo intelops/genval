@@ -13,10 +13,11 @@ import (
 
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/load"
-	"github.com/intelops/genval/pkg/utils"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/html"
 	"gopkg.in/yaml.v3"
+
+	"github.com/intelops/genval/pkg/utils"
 )
 
 func BuildInstance(ctx *cue.Context, policies []string, conf *load.Config) ([]cue.Value, error) {

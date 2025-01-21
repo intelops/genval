@@ -1,0 +1,19 @@
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: k8s-config
+requirementSpec:
+  common:
+    reqinput: ./templates/inputs/terraform/sec_group.tf
+    policy: ./templates/defaultpolicies/rego/terraform
+    takeaction: true
+    output: ./final.tf
+  llmSpec:
+    openAIConfig:
+      - model: openai.GPT4
+        assistant:
+        useTheModel: true
+        apiKey: OPENAI_KEY
+        temperature: 0.3
+        topP: 0.3
+        streaming: true
+        maxTokens: 2048

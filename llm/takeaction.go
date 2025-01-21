@@ -22,19 +22,20 @@ type RemediationParams struct {
 	ApiKey        string
 }
 
-func RemediateResource(ctx context.Context, r RemediationParams) (string, error) {
+func RemediateResource(ctx context.Context, subDir string, r RemediationParams) (string, error) {
 	// Create the user prompt
 	source, err := CombineResourceAndResults(r.InputContent, string(r.Failures))
 	if err != nil {
 		return "", fmt.Errorf("error combining resource and results: %v", err)
 	}
-	// Generate the response from LLM
-	takeActionPrompt, err := GetSystemPrompt(r.Command)
+	takeActionPrompt, err := GetSystemPrompt(r.Command, subDir)
 	if err != nil {
 		return "", fmt.Errorf("error getting system prompt: %v", err)
 	}
+	// fmt.Printf("TakeAction Promt: %v", takeActionPrompt)
 	// Create LLM client
 	client := openai.NewClient(os.Getenv(r.ApiKey))
+	fmt.Printf("TakeAction Prompt: %v\n", takeActionPrompt)
 	// Create the request
 	req, err := CreateChatRequest(source, takeActionPrompt, r.Model)
 	if err != nil {

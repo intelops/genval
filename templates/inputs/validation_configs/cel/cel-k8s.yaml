@@ -1,0 +1,19 @@
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: cel-config
+requirementSpec:
+  common:
+    reqinput: ./templates/inputs/k8s/deployment.json
+    policy: ./templates/defaultpolicies/cel/k8s.yaml
+    takeaction: true
+    output: ./finalDeployment.json
+  llmSpec:
+    openAIConfig:
+      - model: openai.GPT4
+        assistant:
+        useTheModel: true
+        apiKey: OPENAI_KEY
+        temperature: 0.3
+        topP: 0.3
+        streaming: true
+        maxTokens: 2048

@@ -10,7 +10,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/utils"
@@ -109,7 +108,8 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	} else {
 		var err error
 		// Step 3: Retrieve system prompt based on the assistant
-		systemPrompt, err = llm.GetSystemPrompt(supportedTool)
+		// Handel Parent Command here as its nil currently
+		systemPrompt, err = llm.GetSystemPrompt(supportedTool, cmd.Name())
 		if err != nil {
 			return err
 		}
@@ -248,23 +248,4 @@ func mergeFlagsWithConfig(spec *llm.RequirementSpec) {
 	if genaiArgs.prompt != "" {
 		spec.Common.UserPrompt = genaiArgs.prompt
 	}
-}
-
-func loadYAMLConfig(cfgFile string) (*llm.RequirementSpec, error) {
-	var spec llm.Config
-
-	if cfgFile != "" {
-		v := viper.New()
-		v.SetConfigFile(cfgFile)
-		err := v.ReadInConfig()
-		if err != nil {
-			return nil, fmt.Errorf("failed to load config from file: %w", err)
-		}
-		v.AutomaticEnv()
-		err = v.Unmarshal(&spec)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load config from file: %w", err)
-		}
-	}
-	return &spec.RequirementSpec, nil
 }

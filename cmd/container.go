@@ -39,7 +39,7 @@ func init() {
 	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.inputPolicy, "inputpolicy", "i", "", "Path for the Input policyin Rego, input-policy can be passed from either Local or from remote URL")
 
 	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.outputPolicy, "outputpolicy", "o", "", "Path for Out policy in Rego, Output-policy can be passed from either Local or from remote URL")
-	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.ociCreds, "credentials", "c", "", "Credentaals for interacting with OCI registries")
+	dockerfileCmd.Flags().StringVarP(&dockerfileArgs.ociCreds, "credentials", "c", "", "Credentals for interacting with OCI registries")
 
 	rootCmd.AddCommand(dockerfileCmd)
 }

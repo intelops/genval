@@ -9,7 +9,6 @@ import (
 	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/utils"
@@ -38,9 +37,8 @@ func init() {
 	// }
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	dockerfilevalCmd.Flags().StringVarP(&dockerfileArgs.ociCreds, "credentials", "a", "", "credentials to interact with OCI registries")
+	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.ociCreds, "credentials", "a", "", "credentials to interact with OCI registries")
 
-	viper.BindPFlags(dockerfilevalCmd.Flags())
 	regovalCmd.AddCommand(dockerfilevalCmd)
 }
 
@@ -59,17 +57,6 @@ such as those hosted on GitHub (e.g., https://github.com)
 ./genval regoval dockerfileval --reqinput=Dockerfile \
 --policy=<'path/to/policy.rego file>
 
-# Provide the required files from remote URL's
-
-./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
-
-# We need to authenticate with GitHub if we intend to pass the required file stired in the GitHub repo
-export GITHUB_TOKEN=<your GitHub PAT>
-
-./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
-
 # Validating of Dockerfile using policies stored in OCI compliant registries
 
 To facilitate authentication with OCI compliant container registries, Users can provide credentials through --credentials flag. The creds can
@@ -85,6 +72,14 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 
 ./genval regoval dockerfileval --reqinput <Path to Dockerfile>
 // No credntials provided, will default to $HOME/.docker/config.json for credentials
+
+# Remediation of failed results highlighted by regoval
+Genval can remediate the failed results by using the --takeaction flag and using an AI model of their choice. Users can also, supply the required configs via a YAML file by passing the '--config' flag.
+
+genval regoval infrafile -c ./templates/inputs/validation_configs/dockderfile.yaml
+
+An example YAML file can be found in ./templates/inputs/validation_configs/rego/golang-Dockerfile.yaml
+
 `,
 	RunE: runDockerfilevalCmd,
 }
@@ -99,26 +94,12 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	var failedResults []byte
 	var failedCount int
 
-	creds := cfg.Common.OCICredentials
-	if dockerfileArgs.ociCreds != "" {
-		creds = dockerfileArgs.ociCreds
-	}
-	output := cfg.Common.Output
-	if dockerfileArgs.output != "" {
-		output = dockerfileArgs.output
-	}
-	takeAction := cfg.Common.Takeaction
-	if dockerfilevalArgs.takeAction {
-		takeAction = dockerfilevalArgs.takeAction
-	}
-	input := cfg.Common.Reqinput
-	if dockerfilevalArgs.reqinput != "" {
-		input = dockerfilevalArgs.reqinput
-	}
-	policy := cfg.Common.Policy
-	if dockerfilevalArgs.policy != "" {
-		policy = dockerfilevalArgs.policy
-	}
+	creds := parseStringFlag(dockerfileArgs.ociCreds, cfg.Common.OCICredentials)
+	output := parseStringFlag(dockerfileArgs.output, cfg.Common.Output)
+	takeAction := parseBoolBoolFlag(dockerfilevalArgs.takeAction, cfg.Common.Takeaction)
+	input := parseStringFlag(dockerfileArgs.reqinput, cfg.Common.Reqinput)
+	policy := parseStringFlag(dockerfilevalArgs.policy, cfg.Common.Policy)
+
 	var model string
 	models := cfg.LLMSpec.GetActiveModels()
 	if len(models) > 0 {
@@ -180,7 +161,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			ApiKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
 
-		resp, err := llm.RemediateResource(ctx, rParams)
+		resp, err := llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
 		if err != nil {
 			return fmt.Errorf("error remediating resource: [%v] - %v", input, err)
 		}

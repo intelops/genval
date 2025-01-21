@@ -113,13 +113,13 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 			return nil, 0, fmt.Errorf("error evaluating rego results for %s: %v", regoPolicyPath, err)
 		}
 		// Collect raw traces
-		rawTraces := *tracer
+		// rawTraces := *tracer
 
 		// (Optional) Print raw traces for debugging
-		fmt.Println("Captured Raw Traces:")
-		for _, event := range rawTraces {
-			fmt.Printf(" Locals: %v\n", event.Locals)
-		} // Collect raw traces
+		// fmt.Println("Captured Raw Traces:")
+		// for _, event := range rawTraces {
+		// fmt.Printf(" Locals: %v\n", event.Locals)
+		// } // Collect raw traces
 
 		// (Optional) Print the traces for debugging
 

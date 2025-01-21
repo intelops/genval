@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -22,26 +21,18 @@ type celDockerfileValFlags struct {
 	output     string
 	takeAction bool
 	model      string
-	apiKey     string
 }
 
 var celDockerfileValArgs celDockerfileValFlags
 
 func init() {
 	celDockerfileValCmd.Flags().StringVarP(&celDockerfileValArgs.reqinput, "reqinput", "r", "", "Input JSON for validating Terraform .dockerfileval files with rego")
-	if err := celDockerfileValCmd.MarkFlagRequired("reqinput"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
 	celDockerfileValCmd.Flags().StringVarP(&celDockerfileValArgs.output, "output", "o", "", "Path to write the Generated Dockefile")
 	celDockerfileValCmd.Flags().BoolVarP(&celDockerfileValArgs.takeAction, "takeaction", "t", false, "Remediate the failures")
 	celDockerfileValCmd.Flags().StringVarP(&celDockerfileValArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
-	celDockerfileValCmd.Flags().StringVarP(&celDockerfileValArgs.apiKey, "apikey", "a", "", "API key for the AI model. Required if --takeaction is set to true")
 	celDockerfileValCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to YAML file to read configs from")
 
 	celDockerfileValCmd.Flags().StringVarP(&celDockerfileValArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	if err := celDockerfileValCmd.MarkFlagRequired("policy"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
 
 	celvalCmd.AddCommand(celDockerfileValCmd)
 }
@@ -59,7 +50,7 @@ such as those hosted on GitHub (e.g., https://github.com)
 # Validate Dockerfile with CEL policies by providing the required args from local file system
 
 ./genval celval dockerfileval --reqinput=input.json \
---policy=<'path/to/CEL policy file>
+--policy=<'path/to/directory containing CEL policies>
 
 # Provide the required files from remote URL's
 
@@ -84,26 +75,11 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error reading config file: %v", err)
 	}
-	input := cfg.Common.Reqinput
-	if celDockerfileValArgs.reqinput != "" {
-		input = celDockerfileValArgs.reqinput
-	}
-	policy := cfg.Common.Policy
-	if celDockerfileValArgs.policy != "" {
-		policy = celDockerfileValArgs.policy
-	}
-	takeAction := cfg.Common.Takeaction
-	if celDockerfileValArgs.takeAction {
-		takeAction = celDockerfileValArgs.takeAction
-	}
-	var model string
-	models := cfg.LLMSpec.GetActiveModels()
-	if len(models) > 1 {
-		model = models[0]["model"]
-	}
-	if model == "" {
-		model = openai.GPT4
-	}
+	input := parseStringFlag(celDockerfileValArgs.reqinput, cfg.Common.Reqinput)
+	policy := parseStringFlag(celDockerfileValArgs.policy, cfg.Common.Policy)
+	output := parseStringFlag(celDockerfileValArgs.output, cfg.Common.Output)
+	takeAction := parseBoolBoolFlag(celDockerfileValArgs.takeAction, cfg.Common.Takeaction)
+	model := parseModel(cfg)
 
 	dockerfileContent, err := utils.ReadFile(input)
 	if err != nil {
@@ -130,6 +106,7 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 		log.Fatalf("Error evaluating policies: %v", err)
 	}
 
+	t.Render()
 	failures := failedResults
 
 	var fr []byte
@@ -146,7 +123,6 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 		if fr != nil {
 			resultsFailed = fr
 		}
-		spin.Stop()
 		rParams := llm.RemediationParams{
 			InputContent: contentToCombine,
 			CelPolicies:  policies,
@@ -155,13 +131,35 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 			Model:        model,
 			ApiKey:       cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
-		resp, err := llm.RemediateResource(ctx, rParams)
+
+		resp, err = llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
 		if err != nil {
 			return fmt.Errorf("error remediating resource [%v]: %v", input, err)
 		}
-		fr, failedCount, err = validate.EvaluateCELPolicies(policies, resp, t)
+
+		spin.Stop()
+		t.ResetRows()
+		fr, failedCount, err = validate.EvaluateCELPolicies(rParams.CelPolicies, resp, t)
+		if err != nil {
+			log.Fatalf("Error evaluating policies: %v", err)
+		}
+
+		t.Render()
+
+		// If no further failures, exit the loop
+		if fr == nil {
+			fmt.Println("No Failed results were captured. Remediation is complete.")
+			break
+		}
 	}
 
-	t.Render()
+	if output != "" {
+		err = os.WriteFile(output, []byte(resp), 0o644)
+		if err != nil {
+			log.Error("Error writing Dockerfile:", err)
+			return err
+		}
+	}
+
 	return nil
 }

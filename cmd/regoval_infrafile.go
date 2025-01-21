@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -16,7 +15,7 @@ import (
 	"github.com/intelops/genval/pkg/validate"
 )
 
-type infrafileFlags struct {
+type regoInfrafileFlags struct {
 	takeAction bool
 	reqinput   string
 	policy     string
@@ -25,23 +24,23 @@ type infrafileFlags struct {
 	output     string
 }
 
-var infrafileArgs infrafileFlags
+var regoInfrafileArgs regoInfrafileFlags
 
 func init() {
-	infrafileCmd.Flags().BoolVarP(&infrafileArgs.takeAction, "takeaction", "t", false, "Remediate the failures")
-	infrafileCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to YAML file to read configs from")
-	infrafileCmd.Flags().StringVarP(&infrafileArgs.reqinput, "reqinput", "r", "", "Input JSON/YAML for validating Kubernetes configurations with Rego ")
-	infrafileCmd.Flags().StringVarP(&infrafileArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
-	infrafileCmd.Flags().StringVarP(&infrafileArgs.output, "output", "o", "", "Path to write the final output")
+	regoInfrafileCmd.Flags().BoolVarP(&regoInfrafileArgs.takeAction, "takeaction", "t", false, "Remediate the failures")
+	regoInfrafileCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to YAML file to read configs from")
+	regoInfrafileCmd.Flags().StringVarP(&regoInfrafileArgs.reqinput, "reqinput", "r", "", "Input JSON/YAML for validating Kubernetes configurations with Rego ")
+	regoInfrafileCmd.Flags().StringVarP(&regoInfrafileArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
+	regoInfrafileCmd.Flags().StringVarP(&regoInfrafileArgs.output, "output", "o", "", "Path to write the final output")
 
-	infrafileCmd.Flags().StringVarP(&infrafileArgs.policy, "policy", "p", "", "Path for the CEL policy file, polciy can be passed from either Local or from remote URL")
-	infrafileCmd.Flags().StringVarP(&infrafileArgs.ociCreds, "credentials", "a", "", "credentials for interacting with OCI registrirs")
+	regoInfrafileCmd.Flags().StringVarP(&regoInfrafileArgs.policy, "policy", "p", "", "Path for the CEL policy file, polciy can be passed from either Local or from remote URL")
+	regoInfrafileCmd.Flags().StringVarP(&regoInfrafileArgs.ociCreds, "credentials", "a", "", "credentials for interacting with OCI registrirs")
 
-	viper.BindPFlags(infrafileCmd.Flags())
-	regovalCmd.AddCommand(infrafileCmd)
+	viper.BindPFlags(regoInfrafileCmd.Flags())
+	regovalCmd.AddCommand(regoInfrafileCmd)
 }
 
-var infrafileCmd = &cobra.Command{
+var regoInfrafileCmd = &cobra.Command{
 	Use:   "infrafile",
 	Short: "Validate Kubernetes and related manidests using Rego policies",
 	Long: `A user needs to pass the Kubernetes manifest in YAML/JSON format as reqinput and a set of Rego policies
@@ -57,16 +56,7 @@ remote URL like https://github.com
 ./genval regoval infrafile --reqinput ./templates/inputs/k8s/deployment.json \
 --policy ./templates/defaultpolicies/rego/k8s.rego
 
-# Validating Kubernetes manifest from files stored in remote URL's
-
-./genval regoval infrafile --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/input-templates/k8s/deployment.json  \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/k8s.rego
-
-# For authenticating with GitHub for providing files stored in github, we need to authenticate to GitHub by setting up a Env VAriable
-export GITHUB_TOKEN=<Your GitHub PAT>
-
 ./genval regoval infrafile --reqinput https://github.com/intelops/genval-security-policies/blob/patch-1/input-templates/k8s/deployment.json \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/k8s.rego
 
 # Validating of ubernetes manifests using policies stored in OCI compliant registries
 
@@ -78,16 +68,23 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 --policy oci://ghcr.io/intelops/policyhub/genval/infrafile_policies:v0.0.1
 --credentials <GITHUB_PAT> or <USER:PAT>
 
-
 # Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
 
 ./genval --regoval infrafile --reqinput <Path to Infrafile like k8s>
 // No credntials provided, will default to $HOME/.docker/config.json for credentials
+
+
+# Remediation of failed results highlighted by regoval
+Genval can remediate the failed results by using the --takeaction flag and using an AI model of their choice. Users can also, supply the required configs via a YAML file by passing the '--config' flag.
+
+genval regoval infrafile -c ./templates/inputs/validation_configs/rego/rego-k8s.yaml
+
+An example YAML file can be found in ./templates/inputs/validation_configs/rego/rego-k8s.yaml.
 `,
-	RunE: runinfrafileCmd,
+	RunE: runregoInfrafileCmd,
 }
 
-func runinfrafileCmd(cmd *cobra.Command, args []string) error {
+func runregoInfrafileCmd(cmd *cobra.Command, args []string) error {
 	cfg, err := loadYAMLConfig(configFile)
 	if err != nil {
 		return fmt.Errorf("error loading config: %v", err)
@@ -95,58 +92,46 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 
 	ctx := cmd.Context()
 
-	input := cfg.Common.Reqinput
-	if infrafileArgs.reqinput != "" {
-		input = infrafileArgs.reqinput
-	}
-
-	takeaction := cfg.Common.Takeaction
-	if infrafileArgs.model != "" {
-		infrafileArgs.takeAction = takeaction
-	}
-	output := cfg.Common.Output
-	if infrafileArgs.output != "" {
-		output = infrafileArgs.output
-	}
-	policy := cfg.Common.Policy
-	if infrafileArgs.policy != "" {
-		policy = infrafileArgs.policy
-	}
-	var model string
-	models := cfg.LLMSpec.GetActiveModels()
-	if len(models) > 1 {
-		model = models[0]["model"]
-	}
-	// CHANGEME
-	if model == "" {
-		model = openai.GPT4
-	}
+	input := parseStringFlag(regoInfrafileArgs.reqinput, cfg.Common.Reqinput)
+	takeaction := parseBoolBoolFlag(regoInfrafileArgs.takeAction, cfg.Common.Takeaction)
+	output := parseStringFlag(regoInfrafileArgs.output, cfg.Common.Output)
+	policy := parseStringFlag(regoInfrafileArgs.policy, cfg.Common.Policy)
+	creds := parseStringFlag(regoInfrafileArgs.ociCreds, cfg.Common.OCICredentials)
+	model := parseModel(cfg)
 
 	var failedResults []byte
 	var failedCount int
 	processor := validate.GenericProcessor{}
 
+	inputContent, err := utils.ReadFile(input)
+	if err != nil {
+		return fmt.Errorf("error reading the input file: %v", err)
+	}
+
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if failedResults, failedCount, err = validate.ValidateWithOCIPolicies(input,
+		if failedResults, failedCount, err = validate.ValidateWithOCIPolicies(string(inputContent),
 			policy,
 			cmd.Name(),
-			infrafileArgs.ociCreds,
+			creds,
 			processor,
 		); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		failedResults, failedCount, err = validate.ValidateWithRego(input, policy, processor)
+		failedResults, failedCount, err = validate.ValidateWithRego(string(inputContent), policy, processor)
 		if err != nil {
 			return fmt.Errorf("validating %v failed: %v", input, err)
 		}
+		fmt.Printf("Failed Counts: %v\n", failedCount)
 	}
+
 	var resp string
-	inputFile := input
+	inputFile := string(inputContent)
 	failures := failedResults
+	var fr []byte
 
 	for takeaction && failedCount > 0 {
-		var fr []byte
+		spin := utils.StartSpinner("Taking action on remediating the errors in Infrafile, please hold-on for a moment...\n")
 		// Determine the content to use for the prompt
 		contentToCombine := inputFile
 		if resp != "" {
@@ -156,20 +141,19 @@ func runinfrafileCmd(cmd *cobra.Command, args []string) error {
 		if fr != nil {
 			resultsFailed = fr
 		}
-		spin := utils.StartSpinner("Taking action on remediating the errors in Infrafile, please hold-on for a moment...\n")
-		defer spin.Stop()
+
 		rParams := llm.RemediationParams{
 			InputContent:  contentToCombine,
 			PolicyContent: policy,
 			Failures:      resultsFailed,
-			Command:       cmd.Use,
+			Command:       cmd.Name(),
 			Model:         model,
 			ApiKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
 
-		resp, err := llm.RemediateResource(ctx, rParams)
+		resp, err := llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
 		if err != nil {
-			return fmt.Errorf("Error remediating resource: [%v] - %v ", inputFile, err)
+			return fmt.Errorf("error remediating resource: [%v] - %v ", inputFile, err)
 		}
 
 		spin.Stop()

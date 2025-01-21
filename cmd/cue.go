@@ -6,16 +6,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
+	"cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/load"
 	"github.com/fatih/color"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"github.com/intelops/genval/pkg/cuecore"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
-	"github.com/spf13/cobra"
 )
 
 var cueCmd = &cobra.Command{
@@ -57,6 +58,8 @@ type cueFlags struct {
 	source   string
 	resource string
 	policy   string
+	output   string
+	verbose  bool
 }
 
 var cueArgs cueFlags
@@ -65,6 +68,8 @@ func init() {
 	cueCmd.Flags().StringVarP(&cueArgs.source, "reqinput", "i", "", "Input file in JSON/YAML format for generating/validating manifests")
 	cueCmd.Flags().StringVarP(&cueArgs.resource, "resource", "r", "", "A top-level label used to define the Cue Definition")
 	cueCmd.Flags().StringVarP(&cueArgs.policy, "policy", "p", "", "a directory containing cue.mod and cue definitions")
+	cueCmd.Flags().StringVarP(&cueArgs.output, "output", "o", "", "Directory path to write the final output")
+	cueCmd.Flags().BoolVarP(&cueArgs.verbose, "verbose", "v", false, "Enable verbose logging of succussful validations")
 
 	rootCmd.AddCommand(cueCmd)
 }
@@ -122,7 +127,7 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Name of the output directory
-	outputDir := "output"
+	outputDir := cueArgs.output
 
 	// Check if the output directory exists, if not create it
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
@@ -143,8 +148,12 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 
 			unifiedValue, err := cuecore.UnifyAndValidate(def, data)
 			if err != nil {
-				log.Errorf("Validation failed: %v", err)
-				return err
+				errs := errors.Errors(err)
+				cuecore.PrintErrorsInTable(cmd.Name(), dataPath, schemaFile, errs)
+			}
+			if err == nil && cueArgs.verbose {
+				fmt.Println("Validation successful!")
+				cuecore.PrintValidationSuccess(cmd.Name(), dataPath, schemaFile, unifiedValue)
 			}
 
 			yamlData, err := parser.CueToYAML(unifiedValue)
@@ -157,12 +166,14 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 			outputFileName := strings.TrimSuffix(baseName, filepath.Ext(baseName)) + ".yaml"
 			fullOutputPath := filepath.Join(outputDir, outputFileName)
 
-			err = os.WriteFile(fullOutputPath, yamlData, 0o644)
-			if err != nil {
-				log.Errorf("Writing YAML: %v", err)
-				return err
+			if cueArgs.output != "" {
+				err = os.WriteFile(fullOutputPath, yamlData, 0o644)
+				if err != nil {
+					log.Errorf("Writing YAML: %v", err)
+					return err
+				}
+				outputFiles = append(outputFiles, fullOutputPath)
 			}
-			outputFiles = append(outputFiles, fullOutputPath)
 
 		}
 	}
