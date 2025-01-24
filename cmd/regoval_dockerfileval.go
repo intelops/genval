@@ -2,31 +2,42 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
+	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/utils"
 	"github.com/intelops/genval/pkg/validate"
 )
 
 type dockerfilevalFlags struct {
-	reqinput string
-	policy   string
-	ociCreds string
+	takeAction bool
+	reqinput   string
+	policy     string
+	ociCreds   string
+	model      string
+	output     string // Optional path to write the results or remediated Dockerfile after remediation by setting --takeaction = true
 }
 
 var dockerfilevalArgs dockerfilevalFlags
 
 func init() {
+	dockerfilevalCmd.Flags().BoolVarP(&dockerfilevalArgs.takeAction, "takeaction", "t", false, "remediate the failures")
+	dockerfilevalCmd.Flags().StringVarP(&configFile, "config", "c", "", "Path to YAML file to read configs from")
+	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.output, "output", "o", "", "Path to write the final Dockefile")
+
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.reqinput, "reqinput", "r", "", "Input JSON for validating Terraform .dockerfileval files with rego")
-	if err := dockerfilevalCmd.MarkFlagRequired("reqinput"); err != nil {
-		log.Fatalf("Error marking flag as required: %v", err)
-	}
+	// if err := dockerfilevalCmd.MarkFlagRequired("reqinput"); err != nil {
+	// 	log.Fatalf("Error marking flag as required: %v", err)
+	// }
+	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.model, "model", "m", "", "AI model to be used for remediation. Required if --takeaction is set to true")
 	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.policy, "policy", "p", "", "Path for the Rego policy file, polciy can be passed from either Local or from remote URL")
-	dockerfilevalCmd.Flags().StringVarP(&dockerfileArgs.ociCreds, "credentials", "c", "", "credentials to interact with OCI registries")
+	dockerfilevalCmd.Flags().StringVarP(&dockerfilevalArgs.ociCreds, "credentials", "a", "", "credentials to interact with OCI registries")
 
 	regovalCmd.AddCommand(dockerfilevalCmd)
 }
@@ -46,17 +57,6 @@ such as those hosted on GitHub (e.g., https://github.com)
 ./genval regoval dockerfileval --reqinput=Dockerfile \
 --policy=<'path/to/policy.rego file>
 
-# Provide the required files from remote URL's
-
-./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
-
-# We need to authenticate with GitHub if we intend to pass the required file stired in the GitHub repo
-export GITHUB_TOKEN=<your GitHub PAT>
-
-./genval regoval dockerfileval --reqinput https://raw.githubusercontent.com/intelops/genval-security-policies/patch-1/Dockerfile-sample \
---policy https://github.com/intelops/genval-security-policies/blob/patch-1/default-policies/rego/dockerfile_policies.rego
-
 # Validating of Dockerfile using policies stored in OCI compliant registries
 
 To facilitate authentication with OCI compliant container registries, Users can provide credentials through --credentials flag. The creds can
@@ -72,13 +72,42 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 
 ./genval regoval dockerfileval --reqinput <Path to Dockerfile>
 // No credntials provided, will default to $HOME/.docker/config.json for credentials
+
+# Remediation of failed results highlighted by regoval
+Genval can remediate the failed results by using the --takeaction flag and using an AI model of their choice. Users can also, supply the required configs via a YAML file by passing the '--config' flag.
+
+genval regoval infrafile -c ./templates/inputs/validation_configs/dockderfile.yaml
+
+An example YAML file can be found in ./templates/inputs/validation_configs/rego/golang-Dockerfile.yaml
+
 `,
 	RunE: runDockerfilevalCmd,
 }
 
 func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
-	input := dockerfilevalArgs.reqinput
-	policy := dockerfilevalArgs.policy
+	cfg, err := loadYAMLConfig(configFile)
+	if err != nil {
+		return fmt.Errorf("error loading config: %v", err)
+	}
+
+	ctx := cmd.Context()
+	var failedResults []byte
+	var failedCount int
+
+	creds := parseStringFlag(dockerfileArgs.ociCreds, cfg.Common.OCICredentials)
+	output := parseStringFlag(dockerfileArgs.output, cfg.Common.Output)
+	takeAction := parseBoolBoolFlag(dockerfilevalArgs.takeAction, cfg.Common.Takeaction)
+	input := parseStringFlag(dockerfileArgs.reqinput, cfg.Common.Reqinput)
+	policy := parseStringFlag(dockerfilevalArgs.policy, cfg.Common.Policy)
+
+	var model string
+	models := cfg.LLMSpec.GetActiveModels()
+	if len(models) > 0 {
+		model = models[0]["model"]
+	}
+	if model == "" {
+		model = openai.GPT4
+	}
 	processor := validate.DockerfileProcessor{}
 
 	dockerfilefileContent, err := utils.ReadFile(input)
@@ -87,23 +116,84 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	if policy == "" || strings.HasPrefix(policy, "oci://") {
-		if err := validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
+		if failedResults, failedCount, err = validate.ValidateWithOCIPolicies(string(dockerfilefileContent),
 			policy,
 			cmd.Name(),
-			dockerfilevalArgs.ociCreds,
-			processor); err != nil {
+			creds,
+			processor,
+		); err != nil {
 			return fmt.Errorf("error validating with policies stored in registries: %v", err)
 		}
 	} else {
-		err := validate.ValidateWithRego(string(dockerfilefileContent), policy, processor)
+		failedResults, failedCount, err = validate.ValidateWithRego(string(dockerfilefileContent), policy, processor)
 		if err != nil {
 			log.Errorf("Dockerfile validation failed: %s\n", err)
 			return err
 		}
 	}
 
+	var fr []byte
+	var resp string
+	dockerfileContent := string(dockerfilefileContent) // Use initial content for the first iteration
+	failures := failedResults
+
+	for takeAction && failedCount > 0 {
+		spin := utils.StartSpinner("Taking action on remediating the errors in Dockerfile, please hold on for a moment...\n")
+
+		// Determine the content to use for the prompt
+		contentToCombine := dockerfileContent
+		if resp != "" {
+			contentToCombine = resp
+		}
+
+		// Update `resultsFailed` based on `fr`
+		resultsFailed := failures
+		if fr != nil {
+			resultsFailed = fr
+		}
+
+		rParams := llm.RemediationParams{
+			InputContent:  contentToCombine,
+			PolicyContent: policy,
+			Failures:      resultsFailed,
+			Command:       cmd.Use,
+			Model:         model,
+			APIKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
+		}
+
+		resp, err := llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
+		if err != nil {
+			return fmt.Errorf("error remediating resource: [%v] - %v", input, err)
+		}
+		spin.Stop()
+
+		// Validate the response with Rego
+		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor)
+		if err != nil {
+			log.Errorf("Dockerfile validation failed: %s\n", err)
+			return err
+		}
+
+		// If no further failures, exit the loop
+		if fr == nil {
+			fmt.Println("No Failed results were captured. Remediation is complete.")
+			break
+		}
+	}
+
+	if output != "" {
+		err = os.WriteFile(output, []byte(resp), 0o644)
+		if err != nil {
+			log.Error("Error writing Dockerfile:", err)
+			return err
+		}
+	}
+
+	fmt.Println(validate.BorderedOutput(resp))
+	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
 	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
 
+	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
 }

@@ -44,21 +44,25 @@ Defines the core settings to configure behavior and parameters of the language m
 ## Example YAML Configuration
 
 ```yaml
-apiVersion: genval/genai/v1beta1
+apiVersion: genval/genai/v1alpha1
 metadata:
-  name: test-config
+  name: dockerfileval-config
 requirementSpec:
   common:
-    userPrompt: ./templates/inputs/genai/prompt.txt
-    userSystemPrompt:
+    reqinput: ./templates/inputs/Dockerfile # The source file to be validated
+    policy: ./templates/defaultpolicies/rego/dockerfile_policies # The policy file for validating the source file.
+    takeaction: true
+    output: # output path where the resulting output to be written to
   llmSpec:
     openAIConfig:
-      - model: GPT4
+      - model: GPT4o  # LLM model to be used
         assistant:
         useTheModel: true
         apiKey: OPENAI_KEY
-        temperature: 0.7
+        temperature: 0.3
         topP: 0.3
         streaming: true
         maxTokens: 2048
+``openai.GPT4`
+
 ```

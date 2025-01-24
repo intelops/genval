@@ -6,16 +6,17 @@ import (
 	"path/filepath"
 	"strings"
 
-	log "github.com/sirupsen/logrus"
-
 	"cuelang.org/go/cue"
 	"cuelang.org/go/cue/cuecontext"
+	"cuelang.org/go/cue/errors"
 	"cuelang.org/go/cue/load"
 	"github.com/fatih/color"
+	log "github.com/sirupsen/logrus"
+	"github.com/spf13/cobra"
+
 	"github.com/intelops/genval/pkg/cuecore"
 	"github.com/intelops/genval/pkg/parser"
 	"github.com/intelops/genval/pkg/utils"
-	"github.com/spf13/cobra"
 )
 
 var cueCmd = &cobra.Command{
@@ -40,15 +41,24 @@ The Security/DevOps team would prepare a policy written in Cuelang with all the 
 and the mandatory defaults for the Deployment and a Service. Genval will validate the input provided by the developer against
 the policy/policies and generate the complete set of manifests in the ./output directory.
 
-# Demo files are stored in https://github.com/santoshkal/cuemod-demo
+For validating and generating manifests for kubernetes, you migh need to pull in the required dependencies for use by the cue backend. These files will be pulled and placed inside a 'cue.mod' directory.
 
-./genval cue --source ./k8s \
---resource Application
---policy ./policy
+Create a workspace using 'cuemod' command for working with cue:
 
-./genval cue --source https://github.com/santoshkal/cuemod-demo/tree/main/k8s \
---resource Application \
---policy ./policy
+- create a 'cue.mod' and necessary structure for working with 'cue' command
+
+$ genval cuemod init --tool=k8s:latest  # pulls latest Kubernetes APIs
+
+Now place all the '.cue' policies files under './K8S_1.29/extracted_content/policy' directory and provide the path to '--policy' flag while using 'cue' command as following:
+
+$ ./genval cue --source ./k8s \
+  --resource Application
+  --policy ./policy
+
+// If your input resources are stored on GitHub
+$ ./genval cue --source https://github.com/santoshkal/cuemod-demo/tree/main/k8s \
+   --resource Application \
+  --policy ./policy
 `,
 	RunE: runCueCmd,
 }
@@ -57,6 +67,8 @@ type cueFlags struct {
 	source   string
 	resource string
 	policy   string
+	output   string
+	verbose  bool
 }
 
 var cueArgs cueFlags
@@ -65,6 +77,8 @@ func init() {
 	cueCmd.Flags().StringVarP(&cueArgs.source, "reqinput", "i", "", "Input file in JSON/YAML format for generating/validating manifests")
 	cueCmd.Flags().StringVarP(&cueArgs.resource, "resource", "r", "", "A top-level label used to define the Cue Definition")
 	cueCmd.Flags().StringVarP(&cueArgs.policy, "policy", "p", "", "a directory containing cue.mod and cue definitions")
+	cueCmd.Flags().StringVarP(&cueArgs.output, "output", "o", "", "Directory path to write the final output")
+	cueCmd.Flags().BoolVarP(&cueArgs.verbose, "verbose", "v", false, "Enable verbose logging of succussful validations")
 
 	rootCmd.AddCommand(cueCmd)
 }
@@ -122,7 +136,7 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	// Name of the output directory
-	outputDir := "output"
+	outputDir := cueArgs.output
 
 	// Check if the output directory exists, if not create it
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
@@ -143,8 +157,12 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 
 			unifiedValue, err := cuecore.UnifyAndValidate(def, data)
 			if err != nil {
-				log.Errorf("Validation failed: %v", err)
-				return err
+				errs := errors.Errors(err)
+				cuecore.PrintErrorsInTable(cmd.Name(), dataPath, schemaFile, errs)
+			}
+			if err == nil && cueArgs.verbose {
+				fmt.Println("Validation successful!")
+				cuecore.PrintValidationSuccess(cmd.Name(), dataPath, schemaFile, unifiedValue)
 			}
 
 			yamlData, err := parser.CueToYAML(unifiedValue)
@@ -157,12 +175,14 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 			outputFileName := strings.TrimSuffix(baseName, filepath.Ext(baseName)) + ".yaml"
 			fullOutputPath := filepath.Join(outputDir, outputFileName)
 
-			err = os.WriteFile(fullOutputPath, yamlData, 0o644)
-			if err != nil {
-				log.Errorf("Writing YAML: %v", err)
-				return err
+			if cueArgs.output != "" {
+				err = os.WriteFile(fullOutputPath, yamlData, 0o644)
+				if err != nil {
+					log.Errorf("Writing YAML: %v", err)
+					return err
+				}
+				outputFiles = append(outputFiles, fullOutputPath)
 			}
-			outputFiles = append(outputFiles, fullOutputPath)
 
 		}
 	}

@@ -108,7 +108,8 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	} else {
 		var err error
 		// Step 3: Retrieve system prompt based on the assistant
-		systemPrompt, err = llm.GetSystemPrompt(supportedTool)
+		// Handel Parent Command here as its nil currently
+		systemPrompt, err = llm.GetSystemPrompt(supportedTool, cmd.Name())
 		if err != nil {
 			return err
 		}
@@ -153,7 +154,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	var response string
 	switch appliedModel {
 	case "GPT4":
-		appliedModel = openai.GPT4
+		appliedModel = openai.GPT4o
 		response, err = cfg.GenerateOpenAIResponse(ctx, appliedModel, systemPrompt, userPromptContent)
 	case "ollama":
 		response, err = cfg.GenerateOllamaResponse(ctx, systemPrompt, userPromptContent)
@@ -219,6 +220,10 @@ func loadConfig() (*llm.RequirementSpec, error) {
 
 	return spec, nil
 }
+
+// TODO: replace the above loadConfig() withthis one, thus removing merging of flags which can be achieved with
+// viper.BindFlags(cmdArgs)
+// New loadYAMLConfig() to read the YAML config using Viper
 
 // loadConfigFromFlags loads configuration directly from Cobra flags.
 func loadConfigFromFlags() *llm.RequirementSpec {

@@ -1,0 +1,19 @@
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: k8s-config
+requirementSpec:
+  common:
+    reqinput: ./templates/inputs/k8s/deployment.json
+    policy: ./templates/defaultpolicies/rego/k8s
+    takeaction: true
+    output: ./finalInfrafile.yaml
+  llmSpec:
+    openAIConfig:
+      - model: openai.GPT4
+        assistant:
+        useTheModel: true
+        apiKey: OPENAI_KEY
+        temperature: 0.3
+        topP: 0.3
+        streaming: true
+        maxTokens: 2048

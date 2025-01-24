@@ -28,6 +28,10 @@ type CommonSpec struct {
 	Assistant        string `yaml:"assistant"`
 	UserSystemPrompt string `yaml:"userSystemPrompt,omitempty"`
 	Output           string `yaml:"output,omitempty"`
+	OCICredentials   string `yaml:"ociCredentials,omitempty"`
+	Takeaction       bool   `yaml:"takeaction,omitempty"`
+	Reqinput         string `yaml:"reqinput,omitempty"`
+	Policy           string `yaml:"policy,omitempty"`
 }
 
 type LLMSpec struct {

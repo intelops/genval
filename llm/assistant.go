@@ -19,21 +19,23 @@ func (sp *SystemPrompt) Format() string {
 }
 
 // Load the content from a markdown/text file
-func loadPromptFromFile(promptType string) (*SystemPrompt, error) {
-	filePath := filepath.Join(os.Getenv("HOME"), SystemPromptsDir+"/"+promptType+"Prompt"+".md")
+func loadPromptFromFile(file, subDir string) (*SystemPrompt, error) {
+	// NOTE: Update prompt path
+	filePath := filepath.Join(os.Getenv("HOME"), SystemPromptsDir, subDir, file+".md")
+	// filePath := filepath.Join(os.Getenv("HOME"), SystemPromptsDir+"/"+subDir+"/"+file+".md")
 	content, err := utils.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load prompt file: %w", err)
 	}
-
+	fmt.Printf("SystemPrompt Filepath: %v\n", filePath)
 	return &SystemPrompt{
-		Type:    promptType,
+		Type:    fmt.Sprintf("%s/%s", subDir, file),
 		Content: string(content),
 	}, nil
 }
 
 // GetSystemPrompt takes in the tool and returns the systemPrompt for the specific tool
-func GetSystemPrompt(tool string) (string, error) {
+func GetSystemPrompt(tool, parent string) (string, error) {
 	supportedTools, err := ExtractSupportedTools()
 	if err != nil {
 		return "", fmt.Errorf("error fetching list of supported tools: %v", err)
@@ -44,10 +46,9 @@ func GetSystemPrompt(tool string) (string, error) {
 	if !isSupportedTool(lowerCaseTool, supportedTools) {
 		return "", fmt.Errorf("unsupported system prompt; options are: %v", supportedTools)
 	}
-
-	prompt, err := loadPromptFromFile(lowerCaseTool)
+	prompt, err := loadPromptFromFile(lowerCaseTool, parent)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error fetching matcing systemPrompt file: %v", err)
 	}
 	return prompt.Format(), nil
 }

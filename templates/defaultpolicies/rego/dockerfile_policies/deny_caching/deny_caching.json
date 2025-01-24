@@ -3,7 +3,7 @@
   "policy_file": "deny_caching.rego",
   "policy_name": "deny_caching",
   "severity": "High",
-  "Description": "Ensure cache is invalidated in update instructions",
+  "Description": "Ensure cache is invalidated during package updates in RUN instructions",
   "Benchmark": "CIS-4.7",
   "Category": "Infrastructure security"
 }

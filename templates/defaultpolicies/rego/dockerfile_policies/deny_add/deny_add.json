@@ -3,7 +3,7 @@
   "policy_file": "deny_add.rego",
   "policy_name": "deny_add",
   "severity": "High",
-  "Description": "Ensure that COPY is used instead of ADD in Dockerfiles",
+  "Description": "Ensure COPY instruction is used instead of ADD in Dockerfiles",
   "Benchmark": "CIS-4.9",
   "Category": "Infrastructure security"
 }

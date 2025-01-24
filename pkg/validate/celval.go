@@ -50,10 +50,12 @@ func evaluateCEL(input string, celPolicy string) (string, error) {
 	return "Failed", nil
 }
 
-func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer) error {
+func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer) ([]byte, int, error) {
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()
 
+	var failedResults []byte
+	var failedCount int
 	var allResults []Results
 	var idCounter int
 
@@ -67,6 +69,7 @@ func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer)
 			resultColorized = green(result)
 		} else {
 			resultColorized = red(result)
+			failedCount++
 		}
 		t.AppendRow(table.Row{
 			policy.Metadata.Name,
@@ -85,14 +88,14 @@ func EvaluateCELPolicies(policies []CELPolicy, inputFile string, t table.Writer)
 			Benchmark:   policy.Metadata.Benchmark,
 		})
 	}
-
+	var err error
 	if len(allResults) > 0 {
-		if err := SaveResults("results.json", allResults); err != nil {
-			return fmt.Errorf("error saving results: %v", err)
+		if failedResults, err = SaveResults("results.json", allResults); err != nil {
+			return nil, failedCount, fmt.Errorf("error saving results: %v", err)
 		}
 	}
 
-	return nil
+	return failedResults, failedCount, nil
 }
 
 type PolicyFile struct {
