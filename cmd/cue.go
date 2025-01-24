@@ -41,15 +41,24 @@ The Security/DevOps team would prepare a policy written in Cuelang with all the 
 and the mandatory defaults for the Deployment and a Service. Genval will validate the input provided by the developer against
 the policy/policies and generate the complete set of manifests in the ./output directory.
 
-# Demo files are stored in https://github.com/santoshkal/cuemod-demo
+For validating and generating manifests for kubernetes, you migh need to pull in the required dependencies for use by the cue backend. These files will be pulled and placed inside a 'cue.mod' directory.
 
-./genval cue --source ./k8s \
---resource Application
---policy ./policy
+Create a workspace using 'cuemod' command for working with cue:
 
-./genval cue --source https://github.com/santoshkal/cuemod-demo/tree/main/k8s \
---resource Application \
---policy ./policy
+- create a 'cue.mod' and necessary structure for working with 'cue' command
+
+$ genval cuemod init --tool=k8s:latest  # pulls latest Kubernetes APIs
+
+Now place all the '.cue' policies files under './K8S_1.29/extracted_content/policy' directory and provide the path to '--policy' flag while using 'cue' command as following:
+
+$ ./genval cue --source ./k8s \
+  --resource Application
+  --policy ./policy
+
+// If your input resources are stored on GitHub
+$ ./genval cue --source https://github.com/santoshkal/cuemod-demo/tree/main/k8s \
+   --resource Application \
+  --policy ./policy
 `,
 	RunE: runCueCmd,
 }
