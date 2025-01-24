@@ -221,7 +221,7 @@ func loadConfig() (*llm.RequirementSpec, error) {
 	return spec, nil
 }
 
-// TODO: replace the above loadConfig() withthis one, thus removing merging of flags which can be acheived with
+// TODO: replace the above loadConfig() withthis one, thus removing merging of flags which can be achieved with
 // viper.BindFlags(cmdArgs)
 // New loadYAMLConfig() to read the YAML config using Viper
 

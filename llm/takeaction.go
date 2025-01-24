@@ -19,7 +19,7 @@ type RemediationParams struct {
 	Failures      []byte
 	Command       string
 	Model         string
-	ApiKey        string
+	APIKey        string
 }
 
 func RemediateResource(ctx context.Context, subDir string, r RemediationParams) (string, error) {
@@ -34,7 +34,7 @@ func RemediateResource(ctx context.Context, subDir string, r RemediationParams) 
 	}
 	// fmt.Printf("TakeAction Promt: %v", takeActionPrompt)
 	// Create LLM client
-	client := openai.NewClient(os.Getenv(r.ApiKey))
+	client := openai.NewClient(os.Getenv(r.APIKey))
 	fmt.Printf("TakeAction Prompt: %v\n", takeActionPrompt)
 	// Create the request
 	req, err := CreateChatRequest(source, takeActionPrompt, r.Model)
@@ -50,21 +50,21 @@ func RemediateResource(ctx context.Context, subDir string, r RemediationParams) 
 	return resp, nil
 }
 
-// chooseContentToCombine determines the content for the next remediation iteration
-func chooseContentToCombine(original, response string) string {
-	if response != "" {
-		return response
-	}
-	return original
-}
+// // chooseContentToCombine determines the content for the next remediation iteration
+// func chooseContentToCombine(original, response string) string {
+// 	if response != "" {
+// 		return response
+// 	}
+// 	return original
+// }
 
 // chooseFailedResults selects the appropriate failed results
-func chooseFailedResults(failedResults []byte, fr []byte) []byte {
-	if fr != nil {
-		return fr
-	}
-	return failedResults
-}
+// func chooseFailedResults(failedResults []byte, fr []byte) []byte {
+// 	if fr != nil {
+// 		return fr
+// 	}
+// 	return failedResults
+// }
 
 func CombineResourceAndResults(res, results string) (string, error) {
 	if res == "" {

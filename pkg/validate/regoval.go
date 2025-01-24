@@ -92,8 +92,8 @@ func ValidateWithRego(inputContent, regoPolicyPath string, processor InputProces
 			log.Fatal(err)
 			return nil, 0, fmt.Errorf("failed to compile rego policy: %w", err)
 		}
-		var tracer *topdown.BufferTracer
-		tracer = topdown.NewBufferTracer()
+		// var tracer *topdown.BufferTracer
+		tracer := topdown.NewBufferTracer()
 		// Create regoQuery for evaluation
 		regoQuery := rego.New(
 			rego.Query("data."+pkg),
@@ -185,12 +185,12 @@ func ValidateWithOCIPolicies(resource, policy, ociURL, creds string, processor I
 	return resultSlice, failedCount, nil
 }
 
-// processTraces processes the trace buffer into a slice of strings
-func processTraces(tracer *topdown.BufferTracer) []string {
-	var traces []string
-	for _, event := range *tracer {
-		trace := fmt.Sprintf("Event: %s, Node: %v", event.Op, event.Node)
-		traces = append(traces, trace)
-	}
-	return traces
-}
+// // processTraces processes the trace buffer into a slice of strings
+// func processTraces(tracer *topdown.BufferTracer) []string {
+// 	var traces []string
+// 	for _, event := range *tracer {
+// 		trace := fmt.Sprintf("Event: %s, Node: %v", event.Op, event.Node)
+// 		traces = append(traces, trace)
+// 	}
+// 	return traces
+// }

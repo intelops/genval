@@ -135,7 +135,7 @@ func runCelInfrafileCmd(cmd *cobra.Command, args []string) error {
 			Failures:     resultsFailed,
 			Command:      cmd.Name(),
 			Model:        model,
-			ApiKey:       cfg.LLMSpec.OpenAIConfig[0].APIKey,
+			APIKey:       cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
 		resp, err = llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
 		if err != nil {

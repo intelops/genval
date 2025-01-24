@@ -36,7 +36,6 @@ func init() {
 	regoInfrafileCmd.Flags().StringVarP(&regoInfrafileArgs.policy, "policy", "p", "", "Path for the CEL policy file, polciy can be passed from either Local or from remote URL")
 	regoInfrafileCmd.Flags().StringVarP(&regoInfrafileArgs.ociCreds, "credentials", "a", "", "credentials for interacting with OCI registrirs")
 
-	viper.BindPFlags(regoInfrafileCmd.Flags())
 	regovalCmd.AddCommand(regoInfrafileCmd)
 }
 
@@ -148,7 +147,7 @@ func runregoInfrafileCmd(cmd *cobra.Command, args []string) error {
 			Failures:      resultsFailed,
 			Command:       cmd.Name(),
 			Model:         model,
-			ApiKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
+			APIKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
 
 		resp, err := llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)

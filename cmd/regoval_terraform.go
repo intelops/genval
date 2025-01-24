@@ -140,7 +140,7 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 			Failures:      resultsFailed,
 			Command:       cmd.Name(),
 			Model:         model,
-			ApiKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
+			APIKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
 
 		resp, err := llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
@@ -168,7 +168,7 @@ func runTerraformCmd(cmd *cobra.Command, args []string) error {
 	writeMessage := color.GreenString("Final Terraform file written to: %v\n", output)
 	logMessage := color.GreenString("Terraform resource validation for: %v completed", inputFile)
 
-	log.Infof(writeMessage)
+	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
 }
