@@ -8,7 +8,6 @@ import (
 	"github.com/fatih/color"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	"github.com/intelops/genval/llm"
 	"github.com/intelops/genval/pkg/utils"

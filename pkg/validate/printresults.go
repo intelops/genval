@@ -104,7 +104,7 @@ func PrintResults(result rego.ResultSet, metas []*regoMetadata) ([]byte, int, er
 	}
 	failedResults, err := extractFailedPolicies(resultSlice)
 	if err != nil {
-		return fmt.Errorf("error fetching failed policies: %v", err)
+		return nil, failedCount, err
 	}
 	// llm.ExtractFailedPolicies(resultSlice)
 	return failedResults, failedCount, nil
