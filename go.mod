@@ -5,7 +5,7 @@ go 1.23
 toolchain go1.23.2
 
 require (
-	cuelang.org/go v0.11.1
+	cuelang.org/go v0.11.2
 	github.com/briandowns/spinner v1.23.1
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/fatih/color v1.18.0
