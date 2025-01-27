@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -106,7 +105,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 		model = models[0]["model"]
 	}
 	if model == "" {
-		model = openai.GPT4
+		model = "gpt-4o"
 	}
 	processor := validate.DockerfileProcessor{}
 

@@ -43,8 +43,8 @@ type OpenAIModel struct {
 	Model       string  `yaml:"model"`
 	Assistant   string  `yaml:"assistant"`
 	APIKey      string  `yaml:"apiKey"`
-	Temperature float32 `yaml:"temperature"`
-	TopP        float32 `yaml:"topP"`
+	Temperature float64 `yaml:"temperature"`
+	TopP        float64 `yaml:"topP"`
 	Streaming   bool    `yaml:"streaming"`
 	UseTheModel bool    `yaml:"useTheModel"`
 	MaxTokens   int     `yaml:"maxTokens"`
