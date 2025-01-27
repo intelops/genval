@@ -10,7 +10,7 @@ require (
 	github.com/charmbracelet/lipgloss v1.0.0
 	github.com/fatih/color v1.18.0
 	github.com/go-git/go-git/v5 v5.12.0
-	github.com/google/cel-go v0.21.0
+	github.com/google/cel-go v0.23.0
 	github.com/google/go-containerregistry v0.20.2
 	github.com/google/go-github/v55 v55.0.0
 	github.com/google/go-github/v57 v57.0.0
@@ -40,6 +40,7 @@ require (
 )
 
 require (
+	cel.dev/expr v0.19.1 // indirect
 	cloud.google.com/go/auth v0.9.3 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
