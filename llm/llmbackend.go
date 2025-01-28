@@ -119,7 +119,8 @@ func (r *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemProm
 	var ollamaConfig *OllamaModel
 	for _, config := range r.LLMSpec.OllamaSpec {
 		if config.UseTheModel {
-			ollamaConfig = &config
+			cfg := config // Fix: Create a copy of the loop variable.
+			ollamaConfig = &cfg
 			break
 		}
 	}
@@ -131,7 +132,7 @@ func (r *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemProm
 	e := DefaultOllamaEndpoint()
 	u, err := url.Parse(ollamaConfig.Endpoint)
 	if err != nil {
-		return "", fmt.Errorf("error parsing endpoint: %v", err)
+		return "", fmt.Errorf("error parsing endpoint: %w", err)
 	}
 	if u.Scheme == "" {
 		ollamaConfig.Endpoint = net.JoinHostPort(e.Host, e.Port)
@@ -162,8 +163,9 @@ func (r *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemProm
 	}
 
 	if err := client.Generate(ctx, req, respFunc); err != nil {
-		return "", fmt.Errorf("error generating response from Ollama: %v", err)
+		return "", fmt.Errorf("error generating response from Ollama: %w", err)
 	}
+
 	return reply, nil
 }
 
