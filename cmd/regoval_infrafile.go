@@ -158,7 +158,6 @@ func runregoInfrafileCmd(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("error marshaling manifest data to JSON: %v", err)
 		}
-		fmt.Printf("LLM JSON Response: %v\n", string(rb))
 		resp = string(rb)
 
 		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor)

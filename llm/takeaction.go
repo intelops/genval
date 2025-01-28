@@ -34,7 +34,7 @@ func RemediateResource(ctx context.Context, subDir string, r RemediationParams) 
 	}
 
 	// Create LLM client
-	client, err := NewOpenAIClient(&r.Requirements)
+	client, err := r.Requirements.NewOpenAIClient()
 	if err != nil {
 		return "", fmt.Errorf("error creating OpenAI client :%v", err)
 	}

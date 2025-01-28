@@ -31,8 +31,8 @@ func generateOpenAIOptions(r *RequirementSpec) ([]openai.Option, error) {
 	return opts, nil
 }
 
-// createOpenAIClient creates an openAI client
-func NewOpenAIClient(r *RequirementSpec) (*openai.LLM, error) {
+// NewOpenAIClient creates an OpenAI client.
+func (r *RequirementSpec) NewOpenAIClient() (*openai.LLM, error) {
 	options, err := generateOpenAIOptions(r)
 	if err != nil {
 		return nil, err
@@ -44,16 +44,13 @@ func NewOpenAIClient(r *RequirementSpec) (*openai.LLM, error) {
 	return client, nil
 }
 
-// CreateCallOptions creates CallOptions with LLM parameters.
+// createCallOptions creates CallOptions with LLM parameters.
 func createCallOptions(c *OpenAIModel) (llms.CallOption, error) {
-	// Create a slice of CallOption functions
 	options := []llms.CallOption{
 		llms.WithMaxTokens(c.MaxTokens),
 		llms.WithTemperature(c.Temperature),
 		llms.WithModel(c.Model),
 	}
-
-	// Combine options into a single CallOption
 	return combineCallOptions(options), nil
 }
 
@@ -79,14 +76,15 @@ func (r *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, sys
 		return "", errors.New("no OpenAI model configured for use")
 	}
 
-	client, err := NewOpenAIClient(r)
+	client, err := r.NewOpenAIClient()
 	if err != nil {
-		return "", fmt.Errorf("error creating new openAI client: %v", err)
+		return "", fmt.Errorf("error creating new OpenAI client: %v", err)
 	}
 	messages := []llms.MessageContent{
 		llms.TextParts(llms.ChatMessageTypeSystem, systemPrompt),
 		llms.TextParts(llms.ChatMessageTypeHuman, userPrompt),
 	}
+
 	var copts llms.CallOption
 	for _, openAIModel := range r.LLMSpec.OpenAIConfig {
 		copts, err = createCallOptions(&openAIModel)
@@ -99,7 +97,7 @@ func (r *RequirementSpec) GenerateOpenAIResponse(ctx context.Context, model, sys
 		return "", fmt.Errorf("error generating response from OpenAI: %v", err)
 	}
 
-	return validate.BorderedOutput(resp.Choices[0].Content), err
+	return validate.BorderedOutput(resp.Choices[0].Content), nil
 }
 
 // NewOllamaEndpoint creates a new OllamaEndpoint with the provided scheme, host, and port.
@@ -172,7 +170,6 @@ func (r *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemProm
 func (r *LLMSpec) GetActiveModels() []map[string]string {
 	var activeModels []map[string]string
 
-	// Iterate over OpenAIConfig and add models where useTheModel is true
 	for _, model := range r.OpenAIConfig {
 		if model.Model != "" && model.UseTheModel {
 			activeModels = append(activeModels, map[string]string{
@@ -182,7 +179,6 @@ func (r *LLMSpec) GetActiveModels() []map[string]string {
 		}
 	}
 
-	// Iterate over OllamaSpec and add models where useTheModel is true
 	for _, model := range r.OllamaSpec {
 		if model.Model != "" && model.UseTheModel {
 			activeModels = append(activeModels, map[string]string{

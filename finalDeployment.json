@@ -1,38 +1,24 @@
-{
-  "apiVersion": "apps/v1",
-  "kind": "Deployment",
-  "metadata": {
-    "creationTimestamp": null,
-    "labels": {
-      "app": "test"
-    },
-    "name": "test"
-  },
-  "spec": {
-    "replicas": 3,
-    "selector": {
-      "matchLabels": {
-        "app": "test"
-      }
-    },
-    "strategy": {},
-    "template": {
-      "metadata": {
-        "creationTimestamp": null,
-        "labels": {
-          "app": "test"
-        }
-      },
-      "spec": {
-        "containers": [
-          {
-            "image": "nginx:1.21.6",
-            "name": "nginx",
-            "resources": {}
-          }
-        ]
-      }
-    }
-  },
-  "status": {}
-}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: test
+  name: test
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: test
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: test
+    spec:
+      containers:
+      - image: nginx:1.21.6
+        name: nginx
+        resources: {}
+status: {}
