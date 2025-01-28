@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -95,7 +96,6 @@ func runCelInfrafileCmd(cmd *cobra.Command, args []string) error {
 	if err := parser.ParseDockerfileInput(string(inputFile), &data); err != nil {
 		log.Fatalf("Unable to process input: %v", err)
 	}
-	data = parser.ConvertToJSON(data)
 	jsonManifest, err := json.Marshal(data)
 	if err != nil {
 		log.Fatalf("Error marshaling manifest data to JSON: %v", err)
@@ -161,6 +161,7 @@ func runCelInfrafileCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	fmt.Println(validate.BorderedOutput(string(resp)))
 	if output != "" {
 		err = os.WriteFile(output, []byte(resp), 0o644)
 		if err != nil {
@@ -169,5 +170,9 @@ func runCelInfrafileCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	writeMessage := color.GreenString("Final Infrafile written to: %v\n", output)
+	logMessage := color.GreenString("Validation for: [%v] completed", inputFile)
+	log.Info(writeMessage)
+	log.Info(logMessage)
 	return nil
 }

@@ -6,7 +6,7 @@ requirementSpec:
     reqinput: ./templates/inputs/k8s/deployment.json
     policy: ./templates/defaultpolicies/rego/k8s
     takeaction: true
-    output: ./finalDeployment.json
+    output: ./finalDeployment.yaml
   llmSpec:
     openAIConfig:
       - model: gpt-4o

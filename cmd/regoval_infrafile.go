@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/ghodss/yaml"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -120,7 +121,6 @@ func runregoInfrafileCmd(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("validating %v failed: %v", input, err)
 		}
-		fmt.Printf("Failed Counts: %v\n", failedCount)
 	}
 
 	var resp string
@@ -149,12 +149,17 @@ func runregoInfrafileCmd(cmd *cobra.Command, args []string) error {
 			APIKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
 
-		resp, err := llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
+		resp, err = llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
 		if err != nil {
 			return fmt.Errorf("error remediating resource: [%v] - %v ", inputFile, err)
 		}
 
-		spin.Stop()
+		rb, err := yaml.YAMLToJSON([]byte(resp))
+		if err != nil {
+			return fmt.Errorf("error marshaling manifest data to JSON: %v", err)
+		}
+		fmt.Printf("LLM JSON Response: %v\n", string(rb))
+		resp = string(rb)
 
 		fr, failedCount, err = validate.ValidateWithRego(resp, policy, processor)
 		if err != nil {
@@ -166,20 +171,27 @@ func runregoInfrafileCmd(cmd *cobra.Command, args []string) error {
 			fmt.Println("No Failed results were captured. Remediation is complete.")
 			break
 		}
+		spin.Stop()
+	}
+
+	yresp, err := yaml.JSONToYAML([]byte(resp))
+	if err != nil {
+		log.Errorf("Error marshaling manifest data to JSON: %v", err)
+		return err
 	}
 
 	if output != "" {
-		err = os.WriteFile(output, []byte(resp), 0o644)
+		err = os.WriteFile(output, []byte(yresp), 0o644)
 		if err != nil {
 			log.Error("Error writing Infrafile:", err)
 			return err
 		}
 	}
 
-	fmt.Println(validate.BorderedOutput(resp))
+	fmt.Println(validate.BorderedOutput(string(yresp)))
 
 	writeMessage := color.GreenString("Final Infrafile written to: %v\n", output)
-	logMessage := color.GreenString("infrafile validation for: %v completed", inputFile)
+	logMessage := color.GreenString("Validation for: [%v] completed", input)
 	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
