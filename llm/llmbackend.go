@@ -117,9 +117,9 @@ func DefaultOllamaEndpoint() OllamaEndpoint {
 }
 
 // GenerateOllamaResponse generates a response using Ollama.
-func (c *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
+func (r *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	var ollamaConfig *OllamaModel
-	for _, config := range c.LLMSpec.OllamaSpec {
+	for _, config := range r.LLMSpec.OllamaSpec {
 		if config.UseTheModel {
 			ollamaConfig = &config
 			break
