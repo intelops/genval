@@ -169,11 +169,11 @@ func (r *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemProm
 	return reply, nil
 }
 
-func (c *LLMSpec) GetActiveModels() []map[string]string {
+func (r *LLMSpec) GetActiveModels() []map[string]string {
 	var activeModels []map[string]string
 
 	// Iterate over OpenAIConfig and add models where useTheModel is true
-	for _, model := range c.OpenAIConfig {
+	for _, model := range r.OpenAIConfig {
 		if model.Model != "" && model.UseTheModel {
 			activeModels = append(activeModels, map[string]string{
 				"type":  "OpenAI",
@@ -183,7 +183,7 @@ func (c *LLMSpec) GetActiveModels() []map[string]string {
 	}
 
 	// Iterate over OllamaSpec and add models where useTheModel is true
-	for _, model := range c.OllamaSpec {
+	for _, model := range r.OllamaSpec {
 		if model.Model != "" && model.UseTheModel {
 			activeModels = append(activeModels, map[string]string{
 				"type":  "Ollama",
