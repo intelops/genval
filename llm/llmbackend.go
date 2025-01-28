@@ -15,7 +15,7 @@ import (
 	"github.com/intelops/genval/pkg/validate"
 )
 
-func generateOpenAIOptions(r *RequirementSpec) ([]openai.Option, error) {
+func (r *RequirementSpec) generateOpenAIOptions() ([]openai.Option, error) {
 	var opts []openai.Option
 
 	for _, openAIConfig := range r.LLMSpec.OpenAIConfig {
@@ -33,7 +33,7 @@ func generateOpenAIOptions(r *RequirementSpec) ([]openai.Option, error) {
 
 // NewOpenAIClient creates an OpenAI client.
 func (r *RequirementSpec) NewOpenAIClient() (*openai.LLM, error) {
-	options, err := generateOpenAIOptions(r)
+	options, err := r.generateOpenAIOptions()
 	if err != nil {
 		return nil, err
 	}
@@ -45,11 +45,11 @@ func (r *RequirementSpec) NewOpenAIClient() (*openai.LLM, error) {
 }
 
 // createCallOptions creates CallOptions with LLM parameters.
-func createCallOptions(c *OpenAIModel) (llms.CallOption, error) {
+func createCallOptions(r *OpenAIModel) (llms.CallOption, error) {
 	options := []llms.CallOption{
-		llms.WithMaxTokens(c.MaxTokens),
-		llms.WithTemperature(c.Temperature),
-		llms.WithModel(c.Model),
+		llms.WithMaxTokens(r.MaxTokens),
+		llms.WithTemperature(r.Temperature),
+		llms.WithModel(r.Model),
 	}
 	return combineCallOptions(options), nil
 }
@@ -115,6 +115,7 @@ func DefaultOllamaEndpoint() OllamaEndpoint {
 }
 
 // GenerateOllamaResponse generates a response using Ollama.
+// nolint:stylecheck // Disabling ST1016 for receiver name consistency
 func (r *RequirementSpec) GenerateOllamaResponse(ctx context.Context, systemPrompt, userPrompt string) (string, error) {
 	var ollamaConfig *OllamaModel
 	for _, config := range r.LLMSpec.OllamaSpec {
