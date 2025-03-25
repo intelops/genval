@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -130,7 +131,7 @@ func runCelTerraformvalCmd(cmd *cobra.Command, args []string) error {
 			Model:        model,
 			APIKey:       cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
-		resp, err := llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
+		resp, err = llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
 		if err != nil {
 			return fmt.Errorf("error remediating Terraform file [%v]: %v", inputFile, err)
 		}
@@ -150,5 +151,11 @@ func runCelTerraformvalCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	fmt.Println(validate.BorderedOutput(string(resp)))
+
+	writeMessage := color.GreenString("Final Terraform fle written to: %v\n", output)
+	logMessage := color.GreenString("Validation for: [%v] completed", inputFile)
+	log.Info(writeMessage)
+	log.Info(logMessage)
 	return nil
 }

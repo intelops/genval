@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/sashabaranov/go-openai"
 	"github.com/spf13/viper"
 
 	"github.com/intelops/genval/llm"
@@ -30,7 +29,7 @@ func parseModel(cfg *llm.RequirementSpec) string {
 	if len(models) > 1 {
 		return models[0]["model"]
 	}
-	return openai.GPT4
+	return "gpt-4o"
 }
 
 func loadYAMLConfig(cfgFile string) (*llm.RequirementSpec, error) {

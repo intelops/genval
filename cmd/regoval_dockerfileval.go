@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
-	"github.com/sashabaranov/go-openai"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
@@ -99,15 +98,8 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	takeAction := parseBoolBoolFlag(dockerfilevalArgs.takeAction, cfg.Common.Takeaction)
 	input := parseStringFlag(dockerfileArgs.reqinput, cfg.Common.Reqinput)
 	policy := parseStringFlag(dockerfilevalArgs.policy, cfg.Common.Policy)
+	model := parseModel(cfg)
 
-	var model string
-	models := cfg.LLMSpec.GetActiveModels()
-	if len(models) > 0 {
-		model = models[0]["model"]
-	}
-	if model == "" {
-		model = openai.GPT4
-	}
 	processor := validate.DockerfileProcessor{}
 
 	dockerfilefileContent, err := utils.ReadFile(input)
@@ -161,7 +153,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			APIKey:        cfg.LLMSpec.OpenAIConfig[0].APIKey,
 		}
 
-		resp, err := llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
+		resp, err = llm.RemediateResource(ctx, cmd.Parent().Name(), rParams)
 		if err != nil {
 			return fmt.Errorf("error remediating resource: [%v] - %v", input, err)
 		}
@@ -191,7 +183,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 
 	fmt.Println(validate.BorderedOutput(resp))
 	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
-	logMessage := color.GreenString("Dockerfile: %v validation completed!\n", input)
+	logMessage := color.GreenString("Validation for [%v] completed\n", input)
 
 	log.Info(writeMessage)
 	log.Info(logMessage)

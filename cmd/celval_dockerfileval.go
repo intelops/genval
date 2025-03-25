@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -153,6 +154,8 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	fmt.Println(validate.BorderedOutput(string(resp)))
+
 	if output != "" {
 		err = os.WriteFile(output, []byte(resp), 0o644)
 		if err != nil {
@@ -161,5 +164,9 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
+	logMessage := color.GreenString("Validation for: [%v] completed", input)
+	log.Info(writeMessage)
+	log.Info(logMessage)
 	return nil
 }

@@ -4,16 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 
-	openai "github.com/sashabaranov/go-openai"
+	"github.com/tmc/langchaingo/llms"
 
 	"github.com/intelops/genval/pkg/validate"
 )
 
 type RemediationParams struct {
 	CelPolicies   []validate.CELPolicy
+	Requirements  RequirementSpec
 	InputContent  string
 	PolicyContent string
 	Failures      []byte
@@ -32,21 +32,28 @@ func RemediateResource(ctx context.Context, subDir string, r RemediationParams) 
 	if err != nil {
 		return "", fmt.Errorf("error getting system prompt: %v", err)
 	}
-	// fmt.Printf("TakeAction Promt: %v", takeActionPrompt)
+
 	// Create LLM client
-	client := openai.NewClient(os.Getenv(r.APIKey))
-	fmt.Printf("TakeAction Prompt: %v\n", takeActionPrompt)
-	// Create the request
-	req, err := CreateChatRequest(source, takeActionPrompt, r.Model)
+	client, err := r.Requirements.NewOpenAIClient()
 	if err != nil {
-		return "", fmt.Errorf("failed to create OpenAI request: %w", err)
+		return "", fmt.Errorf("error creating OpenAI client :%v", err)
+	}
+	msgs := []llms.MessageContent{
+		llms.TextParts(llms.ChatMessageTypeSystem, takeActionPrompt),
+		llms.TextParts(llms.ChatMessageTypeHuman, source),
+	}
+
+	copts := []llms.CallOption{
+		llms.WithMaxTokens(4096),
+		llms.WithTemperature(0.3),
+		llms.WithModel(r.Model),
 	}
 	// Generate the chat response
-	res, err := client.CreateChatCompletion(ctx, req)
+	res, err := client.GenerateContent(ctx, msgs, copts...)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate OpenAI response: %w", err)
 	}
-	resp := res.Choices[0].Message.Content
+	resp := res.Choices[0].Content
 	return resp, nil
 }
 
@@ -89,21 +96,21 @@ func CombineResourceAndResults(res, results string) (string, error) {
 	return builder.String(), nil
 }
 
-func CreateChatRequest(userPrompt, takeActionPrompt, model string) (openai.ChatCompletionRequest, error) {
-	if model == "openai.GPT4" {
-		model = openai.GPT4
-	}
-	req := openai.ChatCompletionRequest{
-		Model:       model,
-		Temperature: 0.3,
-		TopP:        0.3,
-		MaxTokens:   2048,
-	}
-
-	req.Messages = []openai.ChatCompletionMessage{
-		{Role: openai.ChatMessageRoleSystem, Content: takeActionPrompt},
-		{Role: openai.ChatMessageRoleUser, Content: userPrompt},
-	}
-
-	return req, nil
-}
+// func CreateChatRequest(userPrompt, takeActionPrompt, model string) (openai.ChatCompletionRequest, error) {
+// 	if model == "openai.GPT4" {
+// 		model = openai.GPT4
+// 	}
+// 	req := openai.ChatCompletionRequest{
+// 		Model:       model,
+// 		Temperature: 0.3,
+// 		TopP:        0.3,
+// 		MaxTokens:   2048,
+// 	}
+//
+// 	req.Messages = []openai.ChatCompletionMessage{
+// 		{Role: openai.ChatMessageRoleSystem, Content: takeActionPrompt},
+// 		{Role: openai.ChatMessageRoleUser, Content: userPrompt},
+// 	}
+//
+// 	return req, nil
+// }

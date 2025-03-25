@@ -27,7 +27,6 @@ func loadPromptFromFile(file, subDir string) (*SystemPrompt, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to load prompt file: %w", err)
 	}
-	fmt.Printf("SystemPrompt Filepath: %v\n", filePath)
 	return &SystemPrompt{
 		Type:    fmt.Sprintf("%s/%s", subDir, file),
 		Content: string(content),

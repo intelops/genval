@@ -1,4 +1,3 @@
-
 apiVersion: genval/genai/v1beta1
 metadata:
   name: k8s-config
@@ -7,10 +6,10 @@ requirementSpec:
     reqinput: ./templates/inputs/k8s/deployment.json
     policy: ./templates/defaultpolicies/rego/k8s
     takeaction: true
-    output: ./finalDeployment.json
+    output: ./finalDeployment.yaml
   llmSpec:
     openAIConfig:
-      - model: openai.GPT4
+      - model: gpt-4o
         assistant:
         useTheModel: true
         apiKey: OPENAI_KEY

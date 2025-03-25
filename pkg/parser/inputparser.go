@@ -6,10 +6,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	gyaml "github.com/ghodss/yaml"
 	log "github.com/sirupsen/logrus"
+	"gopkg.in/yaml.v3"
 
 	"github.com/intelops/genval/pkg/utils"
-	"gopkg.in/yaml.v3"
 )
 
 type InputInstruction map[string][]string
@@ -57,35 +58,35 @@ func ParseDockerfileInput(filename string, data interface{}) error {
 }
 
 // isJSON checks if the input string is JSON.
-func isJSON(str string) bool {
+func IsJSON(str string) bool {
 	var js json.RawMessage
 	return json.Unmarshal([]byte(str), &js) == nil
 }
 
-// convertYAMLToJSON converts YAML data to JSON.
-func convertYAMLToJSON(data []byte) ([]byte, error) {
-	var obj interface{}
-	err := yaml.Unmarshal(data, &obj)
-	if err != nil {
-		return nil, err
-	}
-	return json.Marshal(obj)
-}
+// // convertYAMLToJSON converts YAML data to JSON.
+// func convertYAMLToJSON(data []byte) ([]byte, error) {
+// 	var obj map[string]interface{}
+// 	err := yaml.Unmarshal(data, &obj)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return json.Marshal(obj)
+// }
 
 // processData processes the input and returns JSON data.
 func ProcessInput(input string) ([]byte, error) {
 	var data []byte
 	var err error
 
-	if isJSON(input) {
+	if IsJSON(input) {
 		data = []byte(input)
 	} else {
 		data, err = utils.ReadFile(input)
 		if err != nil {
 			return nil, err
 		}
-		if !isJSON(string(data)) {
-			data, err = convertYAMLToJSON(data)
+		if !IsJSON(string(data)) {
+			data, err = gyaml.YAMLToJSON(data)
 			if err != nil {
 				return nil, err
 			}
@@ -93,20 +94,4 @@ func ProcessInput(input string) ([]byte, error) {
 	}
 
 	return data, nil
-}
-
-func ConvertToJSON(i interface{}) interface{} {
-	switch x := i.(type) {
-	case map[interface{}]interface{}:
-		m2 := map[string]interface{}{}
-		for k, v := range x {
-			m2[k.(string)] = ConvertToJSON(v)
-		}
-		return m2
-	case []interface{}:
-		for i, v := range x {
-			x[i] = ConvertToJSON(v)
-		}
-	}
-	return i
 }
