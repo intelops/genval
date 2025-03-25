@@ -1,0 +1,15 @@
+apiVersion: genval/genai/v1beta1
+metadata:
+  name: k8s-config
+requirementSpec:
+  common:
+    reqinput: ./templates/inputs/k8s/deployment.json
+    policy: ./templates/defaultpolicies/rego/k8s
+    takeaction: true
+    output: ./finalDeployment.yaml
+    model: deepseek-r1:1.5b
+  llmSpec:
+    ollamaSpec:
+      - model: deepseek-r1:1.5b
+        endpoint: localhost:11434
+        useTheModel: true
