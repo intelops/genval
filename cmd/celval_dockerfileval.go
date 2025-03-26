@@ -162,11 +162,11 @@ func runCelDockerfileValCmd(cmd *cobra.Command, args []string) error {
 			log.Error("Error writing Dockerfile:", err)
 			return err
 		}
+		writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
+		log.Info(writeMessage)
 	}
 
-	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
 	logMessage := color.GreenString("Validation for: [%v] completed", input)
-	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
 }
