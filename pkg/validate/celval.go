@@ -10,7 +10,7 @@ import (
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/checker/decls"
 	"github.com/jedib0t/go-pretty/v6/table"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 )
 
 func evaluateCEL(input string, celPolicy string) (string, error) {
