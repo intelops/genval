@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v57/github"
 )
 
 // DownloadLLMResources downloads files from multiple directories in a GitHub repository

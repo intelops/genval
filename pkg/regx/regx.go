@@ -7,7 +7,7 @@ import (
 	"regexp"
 
 	"github.com/jedib0t/go-pretty/v6/table"
-	"gopkg.in/yaml.v2"
+	"gopkg.in/yaml.v3"
 
 	"github.com/intelops/genval/pkg/utils"
 )

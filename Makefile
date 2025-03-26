@@ -2,8 +2,8 @@
 GOTEST=go test
 PKGS=./...
 TESTFLAGS=-v
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
+OS := $(shell go env GOOS)
+ARCH := $(shell go env GOARCH)
 
 GIT_TAG ?= dirty-tag
 GIT_VERSION ?= $(shell git describe --tags --always --dirty)
