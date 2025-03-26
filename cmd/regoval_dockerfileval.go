@@ -52,9 +52,10 @@ such as those hosted on GitHub (e.g., https://github.com)
 `,
 	Example: `
 # Validate Dockerfil with Rego policies by providing the required args from local file system
+	Each Rego policy is stored within a sub-directory with accompanying JSON metadata file.
 
 ./genval regoval dockerfileval --reqinput=Dockerfile \
---policy=<'path/to/policy.rego file>
+--policy=<'path/to/policy directory>
 
 # Validating of Dockerfile using policies stored in OCI compliant registries
 
@@ -65,12 +66,6 @@ file in the user's $HOME directory. If this file is found, Genval utilizes it fo
 ./genval regoval dockerfileval --reqinput=Dockerfile \
 --policy oci://ghcr.io/intelops/policyhub/genval/dockerfile_policies:v0.0.1
 --credentials <GITHUB_PAT> or <USER:PAT>
-
-
-# Users can you use default policies maintained by the community stored in the https://github.com/intelops/policyhub repo
-
-./genval regoval dockerfileval --reqinput <Path to Dockerfile>
-// No credntials provided, will default to $HOME/.docker/config.json for credentials
 
 # Remediation of failed results highlighted by regoval
 Genval can remediate the failed results by using the --takeaction flag and using an AI model of their choice. Users can also, supply the required configs via a YAML file by passing the '--config' flag.
@@ -96,7 +91,7 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 	creds := parseStringFlag(dockerfileArgs.ociCreds, cfg.Common.OCICredentials)
 	output := parseStringFlag(dockerfileArgs.output, cfg.Common.Output)
 	takeAction := parseBoolBoolFlag(dockerfilevalArgs.takeAction, cfg.Common.Takeaction)
-	input := parseStringFlag(dockerfileArgs.reqinput, cfg.Common.Reqinput)
+	input := parseStringFlag(dockerfilevalArgs.reqinput, cfg.Common.Reqinput)
 	policy := parseStringFlag(dockerfilevalArgs.policy, cfg.Common.Policy)
 	model := parseModel(cfg)
 
@@ -172,20 +167,20 @@ func runDockerfilevalCmd(cmd *cobra.Command, args []string) error {
 			break
 		}
 	}
-
 	if output != "" {
 		err = os.WriteFile(output, []byte(resp), 0o644)
 		if err != nil {
 			log.Error("Error writing Dockerfile:", err)
 			return err
 		}
+		fmt.Println(validate.BorderedOutput(resp))
+		writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
+		log.Info(writeMessage)
+
 	}
 
-	fmt.Println(validate.BorderedOutput(resp))
-	writeMessage := color.GreenString("Final Dockerfile written to: %v\n", output)
 	logMessage := color.GreenString("Validation for [%v] completed\n", input)
 
-	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
 }
