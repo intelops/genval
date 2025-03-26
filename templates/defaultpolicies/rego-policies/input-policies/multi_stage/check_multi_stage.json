@@ -1,0 +1,9 @@
+{
+  "name": "CheckMultiStage",
+  "policy_file": "check_multi_stage.rego",
+  "policy_name": "check_multi_stage",
+  "severity": "Low",
+  "Description": "Ensure the Dockerfile is suthored for multistage builds",
+  "Benchmark": "Custom",
+  "Category": "Infrastructure security"
+}

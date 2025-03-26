@@ -81,33 +81,26 @@ To use Genval:
 ## Verifying Binary Signatures
 
 
-
-Genval's release process signs binaries using Cosign's keyless signing mode. To verify a specific binary, retrieve the release artifact, signature, and public certificate for your desired os/arch. Detailed instructions are available in the [Sigstore blog](https://blog.sigstore.dev/cosign-2-0-released/).
+Genval's release process signs binaries using Cosign's keyless signing mode. To verify a specific binary, retrieve the release artifact, signature, and public certificate for your desired os/arch from the official [releases page](https://github.com/intelops/genval/releases). Detailed instructions are available in the [Sigstore blog](https://blog.sigstore.dev/cosign-2-0-released/).
 
 **Example to verify a binary for linux_amd64**
 
 ```shell
 
-
-COMMIT=$(git rev-list --tags --max-count=1)
-version=$(git describe --tags ${COMMIT})
-version="${version#v}"
-
 # get the artifact
-$ wget  https://github.com/intelops/genval/releases/download/v${version}/genval_$version}_linux_amd64.tar.gz
+$ wget  https://github.com/intelops/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz
 # get the signature
-$ wget  https://github.com/intelops/genval/releases/download/v${version}/genval_${version}_linux_amd64.tar.gz.sig
+$ wget  https://github.com/intelops/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz.sig
 # Get the certificate
-$ wget  https://github.com/intelops/genval/releases/download/v${version}/genval_${version}_linux_amd64.tar.gz.crt
-
+$ wget https://github.com/intelops/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz.crt
 
 
 cosign  verify-blob  \
 --certificate-identity  "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/${version}"  \
 --certificate-oidc-issuer  "https://token.actions.githubusercontent.com"  \
---cert  ./genval_${version}_linux_amd64.tar.gz.crt  \
---signature  genval_${version}_linux_amd64.tar.gz.sig \
-./genval_${version}_linux_amd64.tar.gz
+--cert  ./genval_0.1.6_linux_amd64.tar.gz.crt  \
+--signature  genval_0.1.6_linux_amd64.tar.gz.sig \
+./genval_0.1.6_linux_amd64.tar.gz
 ```
 If verification is successful, you'll see "**Verified OK.**"
 
@@ -115,22 +108,23 @@ If verification is successful, you'll see "**Verified OK.**"
 
 
 ## Installation
+There are different ways to get the Genval installed on your system:
 
+- Easiest way to get the Genval executable on Linux and Mac OS is by running the installer script with following command :
 
+```sh
+curl -sL https://raw.githubusercontent.com/intelops/genval/refs/heads/pre-main/hack/install.sh | sudo bash -
+```
+This script will detect the underlying OS/Arch and install the executable for the same.
+
+OR
 
 - Download the genval binary from the official [release page](https://github.com/intelops/genval/releases)
-
-- Move the executable to `/usr/local/bin` for convenience.
-
+Move the executable to `/usr/local/bin` for convenience.
 
 
-## Quick Start
 
-
-For a quick start, pre-built templates for Dockerfile generation for popular languages can be found in the `./templates/inputs/dockerfile_input` folder. We also maintain all the default policies and input templates in a dedicated [repository](https://github.com/intelops/policyhub).
-
-
-## Building from Source
+### Building from Source
 
 The easieast way to build the `genval` executable is using the `build` Makefile target.
 `make build`.
@@ -150,6 +144,12 @@ To build genval from source:
 
 The generated binary, genval, will be available in the current working directory. You can move it to your PATH or use it from the current directory.
 
+## Quick Start
+
+
+For a quick start, pre-built templates for Dockerfile generation for popular languages can be found in the `./templates/inputs/dockerfile_input` folder. We also maintain all the default policies and input templates in a dedicated [repository](https://github.com/intelops/policyhub).
+
+
 # Welcome to Genval
 
 Genval provides a range of powerful modes for generating and validating configuration files across various technologies. Each mode serves specific purposes and can be accessed through Genval's main commands:
@@ -162,7 +162,7 @@ Genval provides a range of powerful modes for generating and validating configur
 -  `cuemod` Create a workspace for generating and validating Kubernetes and related config files.
 - `artifact` Manage pushing and pulling built artifacts from OCI compliant container registries.
 
-AAdditionally, a helpful command called `showjson` allows users to view the JSON representation of input files passed to Genval. By using this command, users can specify an input file, such as a **Dockerfile**, **Terraform file** and obtain its corresponding JSON representation. Since many policies are written based on JSON structured input, this feature facilitates users in developing custom policies in **Rego** and **CEL**.
+Additionally, a helpful command called `showjson` allows users to view the JSON representation of input files passed to Genval. By using this command, users can specify an input file, such as a **Dockerfile**, **Terraform file** and obtain its corresponding JSON representation. Since many policies are written based on JSON structured input, this feature facilitates users in developing custom policies in **Rego** and **CEL**.
 
 > All commands accept inputs from both local files and remote URLs, such as those from a Git repository in raw format. If you wish to query files from https://github.com, authentication to GitHub via a Personal Access Token (PAT) is required. To set this up, create an environment variable named GITHUB_TOKEN and assign it your PAT. Here's how to do it: export GITHUB_TOKEN=<Your...PAT>.
 
@@ -170,13 +170,14 @@ AAdditionally, a helpful command called `showjson` allows users to view the JSON
 ### Dockerfile Validation and Generation:
 To validate and generate Dockerfiles using Genval, use the `dockerfile` command. Provide the path to your input JSON or YAML file using the `--reqinput` flag. Specify the desired output path for the generated Dockerfile along with the `--inputpolicy` and `--outputpolicy` Rego policy files for validating the input JSON and the generated Dockerfile respectively. Genval will handle the validation process seamlessly.
 
+
 Example:
 
 ```
 $ genval dockerfile --reqinput=./templates/inputs/dockerfile_input/golang_input.json \
 --output Dockerfile \
---inputpolicy ./templates/defaultpolicies/rego/input_policies \
---outputpolicy ./templates/defaultpolicies/rego/dockerfile_policies
+--inputpolicy ./templates/defaultpolicies/rego-policies/input-policies \
+--outputpolicy ./templates/defaultpolicies/rego-policies/dockerfile-policies/
  ```
 
 > Customize the values provided in the flags according to your specific input file and Rego policies.
@@ -186,15 +187,15 @@ $ genval dockerfile --reqinput=./templates/inputs/dockerfile_input/golang_input.
 > For authenticating with GitHub.com, set the env variable GITHUB_TOKEN:
 `export GITHUB_TOKEN=<Your GitHub PAT>`
 
-All the rego policies are housed in a hirearchy containing a `rego` policy and a `JSON` file containing all the metadata related to policy. A user needs to pass the directory containing boththe `.rego` and `.json` files. Genval also accpets a top leval directory containing multiple sub-directories containing multiple rego and accompanied JSON files for validating with more than one policy.
+Note: All the rego policies are housed in a hirearchy containing a `rego` policy and a `JSON` file containing all the metadata related to policy. A user needs to pass the directory containing boththe `.rego` and `.json` files. Genval also accpets a top leval directory containing multiple sub-directories containing multiple rego and accompanied JSON files for validating with more than one policy.
 
 Users can use policies to validate input JSON as well as generated Dockerfile with policies stored in their OCI registries
 or with Genval's default Rego policies. Behind the scenes, this action iteracts with OCI registries for pulling the policies.
 
 To facilitate authentication with OCI compliant container registries,
 Users can provide credentials through --credentials flag. The creds can be provided via <$USER:$PAT> or <REGISTRY_PAT> format.
-If no credentials are provided, Genval searches for the "./docker/config.json" file in the user's $HOME directory.
-If this file is found, Genval utilizes it for authentication.
+If no credentials are provided, Genval searches for the `./docker/config.json` file in the user's `$HOME` directory.
+If this file is found, Genval uses it for authentication.
 
 **Validating with Default policies**
 
@@ -239,14 +240,14 @@ Users can you use default policies maintained by the community stored in the htt
 
 ```shell
 genval regoval dockerfileval --reqinput ./templates/inputs/Dockerfile \
---policy ./templates/defaultpolicies/dockerfile_policies
+--policy ./templates/defaultpolicies/rego-policies/dockerfile-policies/
 ```
 
 #### Validation of Kubernetes manifests using Rego policies
 
 ```shell
 genval regoval infrafile --reqinput ./templates/inputs/k8s/deployment.json \
---policy ./templates/defaultpolicies/k8s.rego
+--policy ./templates/defaultpolicies/rego-policies/k8s/
 ```
 
 #### Validation of Terraform files using Rego policies
@@ -254,7 +255,7 @@ genval regoval infrafile --reqinput ./templates/inputs/k8s/deployment.json \
 > Users can directly provide the `.tf` file to genval along with a policy written in Rego for validatin the Terraform file
 ```shell
 genval regoval terraform --reqinput ./templates/inputs/terraform/sec_group.tf \
---policy ./templates/defaultpolicies/terraform.rego
+--policy ./templates/defaultpolicies/rego-policies/terraform/
 ```
 
 
@@ -293,7 +294,7 @@ genval celval dockerfileval --reqinput=input.json \
 ```
 
 
-#### Validation of Terraform files using Rego policies
+#### Validation of Terraform files using CEL policies
 
 ```shell
 ./genval celval terraform --reqinput ./templates/inputs/terraform/sec_group.tf \

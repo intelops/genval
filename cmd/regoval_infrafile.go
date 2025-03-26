@@ -185,13 +185,12 @@ func runregoInfrafileCmd(cmd *cobra.Command, args []string) error {
 			log.Error("Error writing Infrafile:", err)
 			return err
 		}
+		writeMessage := color.GreenString("Final Infrafile written to: %v\n", output)
+		log.Info(writeMessage)
+		fmt.Println(validate.BorderedOutput(string(yresp)))
 	}
 
-	fmt.Println(validate.BorderedOutput(string(yresp)))
-
-	writeMessage := color.GreenString("Final Infrafile written to: %v\n", output)
 	logMessage := color.GreenString("Validation for: [%v] completed", input)
-	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
 }

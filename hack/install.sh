@@ -53,19 +53,21 @@ setup_tmp() {
     trap "rm -rf ${TMP_DIR}" EXIT
 }
 
-# Get the latest release version from GitHub
+# Get the latest release version from GitHub and strip the leading 'v'
 get_latest_release() {
     info "Fetching latest release version from GitHub..."
     LATEST_RELEASE=$(curl -s "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     if [ -z "$LATEST_RELEASE" ]; then
         fatal "Unable to fetch latest release version"
     fi
-    info "Latest release version: $LATEST_RELEASE"
+    # Strip the leading 'v' if present
+    RELEASE_NUMBER=${LATEST_RELEASE#v}
+    info "Latest release version: $LATEST_RELEASE (stripped: $RELEASE_NUMBER)"
 }
 
 # Download the binary tarball for the detected OS and architecture
 download_binary() {
-    DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_RELEASE}/genval_${LATEST_RELEASE}_${OS}_${ARCH}.tar.gz"
+    DOWNLOAD_URL="https://github.com/${GITHUB_REPO}/releases/download/${LATEST_RELEASE}/genval_${RELEASE_NUMBER}_${OS}_${ARCH}.tar.gz"
     info "Downloading binary from ${DOWNLOAD_URL}"
     curl -L -o "${TMP_DIR}/genval.tar.gz" "${DOWNLOAD_URL}" || fatal "Download failed"
 }

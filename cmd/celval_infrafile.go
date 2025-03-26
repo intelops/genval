@@ -179,13 +179,12 @@ func runCelInfrafileCmd(cmd *cobra.Command, args []string) error {
 			log.Error("Error writing final result:", err)
 			return err
 		}
+		fmt.Println(validate.BorderedOutput(string(yresp)))
+		writeMessage := color.GreenString("Final Infrafile written to: %v\n", output)
+		log.Info(writeMessage)
 	}
 
-	fmt.Println(validate.BorderedOutput(string(yresp)))
-
-	writeMessage := color.GreenString("Final Infrafile written to: %v\n", output)
 	logMessage := color.GreenString("Validation for: [%v] completed", inputFile)
-	log.Info(writeMessage)
 	log.Info(logMessage)
 	return nil
 }
