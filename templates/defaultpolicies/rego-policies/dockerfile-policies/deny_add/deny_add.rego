@@ -7,8 +7,8 @@ import rego.v1
 deny_add contains msg1 if {
     input[i].cmd != "add"
     msg:= ("Dockerfile does not use ADD instruction")
-msg1:= ("DOCKERFILE does not use ADD instruction")  
-} 
+msg1:= ("DOCKERFILE does not use ADD instruction")
+}
 
 
 
