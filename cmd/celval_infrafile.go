@@ -71,9 +71,9 @@ export GITHUB_TOKEN=<your GitHub PAT>
 # Remediation of failed results highlighted by regoval
 Genval can remediate the failed results by using the --takeaction flag and using an AI model of their choice. Users can also, supply the required configs via a YAML file by passing the '--config' flag.
 
-genval regoval infrafile -c ./templates/inputs/validation_configs/cel/k8s_cel.yaml
+genval regoval infrafile -c ./templates/inputs/validation_configs/cel/k8s.yaml
 
-An example YAML file can be found in ./templates/inputs/validation_configs/cel/k8s_cel.yaml
+An example YAML file can be found in ./templates/inputs/validation_configs/cel/k8s.yaml
 
 `,
 

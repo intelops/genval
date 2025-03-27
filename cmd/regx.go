@@ -19,17 +19,19 @@ func init() {
 	if err := terraformCmd.MarkFlagRequired("reqinput"); err != nil {
 		log.Fatalf("Error marking flag as required: %v", err)
 	}
-	regxSearchCmd.Flags().StringVarP(&regxSearchArgs.policy, "policy", "p", "", "Path for the RegeX policy file, polciy can be passed from either Local or from remote URL")
+	regxSearchCmd.Flags().StringVarP(&regxSearchArgs.policy, "policy", "p", "", "Path for the RegeX policy YAML file, polciy can be passed from either Local or from remote URL")
 	rootCmd.AddCommand(regxSearchCmd)
 }
 
 var regxSearchCmd = &cobra.Command{
 	Use:   "regx",
 	Short: "Validate resource files with Regex policy match",
-	Long:  ``,
+	Long:  `Validates any type of file and scans for any sensitive keywords defined in the policy YAML file`,
 	Example: `
 # Validate resource files with Regex policies
 
+	$ genval regx --reqinput ./templates/input/k8s/deployment.json \
+  --policy ./templates/defaultpolicies/regex/policy.yaml
 	`,
 	RunE: runRegxSearchCmd,
 }

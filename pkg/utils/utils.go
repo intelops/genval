@@ -403,7 +403,7 @@ func CheckPathExists(path string) error {
 // StartSpinner starts a spinner with the given message.
 func StartSpinner(msg string) *spinner.Spinner {
 	s := spinner.New(spinner.CharSets[11], 100*time.Millisecond, spinner.WithWriter(os.Stderr))
-	s.Suffix = " " + msg
+	s.Suffix = " " + msg + "\n"
 	s.Start()
 	return s
 }

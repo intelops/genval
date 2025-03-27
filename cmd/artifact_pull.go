@@ -34,14 +34,14 @@ If this file is found, Genval utilizes it for authentication.
   and unpack the archive in desired path
 # https://github.com/sigstore/cosign/blob/main/KEYLESS.md.
 
-./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
+./genval artifact pull --dest oci//ghcr.io/santoshkal/artifacts/genval:test \
 --path ./output \
 --verify true
 
 # User can also pull the artifact by providing the Cosign generated public-key
   and unpack the archive in desired path
 
-./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:no-sign \
+	./genval artifact pull --dest oci://ghcr.io/santoshkal/artifacts/genval:no-sign \
 --path ./output \
 --verify true \
 --pub-key ./cosign/cosign.pub
@@ -50,7 +50,7 @@ If this file is found, Genval utilizes it for authentication.
 # Uses can also pull the artifact with verifying the signatures of the artifact
   in the container registry and unpack the archive in desired path
 
-./genval artifact pull --dest ghcr.io/santoshkal/artifacts/genval:test \
+	./genval artifact pull --dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --path ./output
 // No credentials provided, will default to $HOME/.docker/config.json for credentials
 `,

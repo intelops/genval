@@ -6,6 +6,7 @@ import (
 	"os"
 	"regexp"
 
+	"github.com/fatih/color"
 	"github.com/jedib0t/go-pretty/v6/table"
 	"gopkg.in/yaml.v3"
 
@@ -67,16 +68,23 @@ func ScanResourceFile(resourcePath string, patterns []string) bool {
 
 // PrintResultTable prints the metadata and result in a formatted table
 func PrintResultTable(metadata Metadata, result string) {
+	green := color.New(color.FgGreen).SprintFunc()
+	red := color.New(color.FgRed).SprintFunc()
 	t := table.NewWriter()
 	t.SetOutputMirror(os.Stdout)
-
+	var colorizedResult string
+	if result == "Pass" {
+		colorizedResult = green(result)
+	} else {
+		colorizedResult = red(result)
+	}
 	t.AppendHeader(table.Row{"Name", "Description", "Severity", "Benchmark", "Result"})
 	t.AppendRow([]interface{}{
 		metadata.Name,
 		metadata.Description,
 		metadata.Severity,
 		metadata.Benchmark,
-		result,
+		colorizedResult,
 	})
 
 	t.Render()

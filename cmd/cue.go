@@ -142,7 +142,8 @@ func runCueCmd(cmd *cobra.Command, args []string) error {
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
 		err := os.Mkdir(outputDir, 0o755)
 		if err != nil {
-			log.Fatalf("Error creating output directory: %v", err)
+			log.Info("provide an output directory path for saving generated manifests using --output flag ")
+			log.Fatalf("No --output provided, Error creating output directory: %v", err)
 		}
 	}
 	var outputFiles []string
