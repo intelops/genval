@@ -64,7 +64,7 @@ func runBuildCmd(cmd *cobra.Command, args []string) error {
 
 	outputDir := filepath.Dir(outputPath)
 	if err := utils.CheckPathExists(outputDir); err != nil {
-		log.Errorf("Error reading %s: %s\n", outputPath, err)
+		log.Errorf("Error writing to '%s': %s\n", outputPath, err)
 		os.Exit(1)
 	}
 

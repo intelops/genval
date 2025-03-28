@@ -20,7 +20,7 @@
       "metadata": {
         "creationTimestamp": null,
         "labels": {
-          "app": "test"
+          "app": "password123"
         }
       },
       "spec": {

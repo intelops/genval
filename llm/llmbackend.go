@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 
 	ollama "github.com/ollama/ollama/api"
 	"github.com/tmc/langchaingo/llms"
@@ -19,9 +20,10 @@ func (r *RequirementSpec) generateOpenAIOptions() ([]openai.Option, error) {
 	var opts []openai.Option
 
 	for _, openAIConfig := range r.LLMSpec.OpenAIConfig {
+		apiKey := os.Getenv(openAIConfig.APIKey)
 		if openAIConfig.UseTheModel && openAIConfig.APIKey != "" {
 			opts = append(opts,
-				openai.WithToken(openAIConfig.APIKey),
+				openai.WithToken(apiKey),
 				openai.WithModel(openAIConfig.Model),
 			)
 		} else {

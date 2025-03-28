@@ -67,7 +67,6 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 	}
 
 	assistant, err := cfg.SelectActiveAssistant(appliedModel)
-	fmt.Printf("Applied Assistant: %v\b", assistant)
 	if err != nil {
 		return fmt.Errorf("error selecting assistant: %v", err)
 	}
@@ -120,7 +119,7 @@ func runGenaiCmd(cmd *cobra.Command, args []string) error {
 
 		if err := llm.ValidateSystemPrompt(localFilePath, remoteFilePath); err != nil {
 			orange := color.New(color.FgHiWhite).Add(color.BgHiBlack).Add(color.Attribute(38), color.Attribute(5), 208)
-			orange.Printf("[WARN}: Provided system prompt do not match with original content: %v", err)
+			orange.Printf("[WARN}: Provided system prompt do not match with original content: %v\n", err)
 		}
 	}
 
