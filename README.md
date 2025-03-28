@@ -134,39 +134,25 @@ There are different ways to install Genval on your system:
 
 - **Manual Download:**
 
-  Download the `genval` binary from the official [release page](https://github.com/intelops/genval/releases) and move the executable to `/usr/local/bin` for convenience.
+Genvals release process produces [artifacts](https://github.com/intelops/genval/releases) for the executable for multiple OS/Architecture as a `tar.gz` bundle and signs it with Cosign keyless mode. Users can download the artifact camplatible for their OS/Arch, untar it and place it in the executable `PATH`, for example, Linux/MacOS you would move it to `/usr/local/bin` for convenience.
+
+```sh
+curl -Lo https://github.com/intelops/genval/releases/download/v0.1.6/genval_0.1.6_linux_amd64.tar.gz ganval.tar.gz
+tar -xzf ./genval.tar.gz
+sudo mv genval /usr/local/bin
+```
 
 ### Building from Source
 
-The easiest way to build the `genval` executable is by using the `build` Makefile target:
+For development enviornments users can build the `genval` executable is bycloning the Genval project, navidate to the `./genval` directiry and using the `build` Makefile target:
 
 ```sh
-make build
+$ git clone https://github.com/intelops/genval.git
+$ cd genval
+$ make build
 ```
 
-This command builds the binary from source and places it in the `./bin` folder, which can then be copied to `/usr/local/bin`.
-
-To build Genval from source:
-
-- Clone the Genval repository:
-
-  ```sh
-  git clone https://github.com/intelops/genval.git
-  ```
-
-- Navigate to the project directory:
-
-  ```sh
-  cd genval
-  ```
-
-- Build Genval:
-
-  ```sh
-  CGO_ENABLED=0 go build -o ./genval .
-  ```
-
-The generated binary, `genval`, will be available in the current working directory. You can move it to your PATH or use it from there.
+This command builds the binary from source and places it in the `./bin` folder, and you can test your local updates using the executable in `./bin/genval`.
 
 ---
 
@@ -332,7 +318,7 @@ $ genval cuemod init --tool=k8s:latest
 ```
 
 > **Note:** If a workspace for a tool is not available in the supported list, Genval also supports pulling a custom workspace built and stored by users in OCI registries. The only requirement is that the directory structure must be exactly as follows:
-> 
+>
 > ```plaintext
 > .
 > ├── cue.mod
@@ -501,7 +487,7 @@ requirementSpec:
 
 Examples for the configuration files for all the genai commands are located in `./templates/defaultpolicies/genai` directory, and all the prompts that are referenced inside the YAML configurations are loacated in `./templates/inputs/genai/user-prompts/` directory.
 
-However, users are encouraged to bring in their own configurations and user prompts and play with genai for generating secure configuration files for cloud native technologies. 
+However, users are encouraged to bring in their own configurations and user prompts and play with genai for generating secure configuration files for cloud native technologies.
 
 ```sh
 ./bin/genval genai -c ./templates/defaultpolicies/genai/dockerfile-config.yaml
