@@ -1,17 +1,16 @@
 apiVersion: genval/genai/v1alpha1
 metadata:
-  name: dockerfile-config
+  name: rego-config
 requirementSpec:
   common:
-    userPrompt: ./templates/inputs/genai/user-prompts/dockerfile-prompt.md
-    assistant: dockerfile
+    userPrompt: ./templates/inputs/genai/user-prompts/rego-prompt.md
+    # assistant: rego
   llmSpec:
     openAIConfig:
-      - model: gpt-4o
-        # assistant defined in this block takes precedence
+      - model: GPT4
         assistant: dockerfile
         useTheModel: true
-        apiKey: MY_OPENAI_KEY
+        apiKey: OPENAI_KEY
         temperature: 0.7
         topP: 0.3
         streaming: true
