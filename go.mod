@@ -2,7 +2,7 @@ module github.com/intelops/genval
 
 go 1.23.0
 
-toolchain go1.23.7
+toolchain go1.24.1
 
 require (
 	cuelang.org/go v0.11.2
@@ -25,7 +25,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.10.0
-	github.com/tmc/langchaingo v0.1.12
+	github.com/tmc/langchaingo v0.1.13
 	github.com/zclconf/go-cty v1.16.2
 	golang.org/x/net v0.37.0
 	golang.org/x/oauth2 v0.28.0
