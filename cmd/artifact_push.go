@@ -43,14 +43,14 @@ If this file is found, Genval utilizes it for authentication.
 # To sign the artifact set the --sign flag to true (false by default)
 # Through this workflow, user needs to open th redirectoin link and authorize with OIDC token
 
-./genval artifact push --reqinput ./templates/defaultpolicies/rego \
+./genval artifact push --reqinput ./templates/defaultpolicies/rego-policies \
 	--dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 // No credentials provided, will default to $HOME/.docker/config.json for credentials
 
 # Alternatively, users may provide the Cosign generated private key for signing the artifact
 
-./genval artifact push --reqinput ./templates/defaultpolicies/rego \
+./genval artifact push --reqinput ./templates/defaultpolicies/rego-policies \
 	--dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --sign true
 --cosign-key <Path to Cosign private Key>
@@ -58,7 +58,7 @@ If this file is found, Genval utilizes it for authentication.
 
 # User can pass additional annotations in <key=value> pair while pushing the artifact
 
-./genval artifact push --reqinput ./templates/defaultpolicies/rego \
+./genval artifact push --reqinput ./templates/defaultpolicies/rego-policies \
 	--dest oci://ghcr.io/santoshkal/artifacts/genval:test \
 --annotations  foo=bar
 

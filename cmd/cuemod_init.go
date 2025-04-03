@@ -7,9 +7,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/intelops/genval/pkg/oci"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+
+	"github.com/intelops/genval/pkg/oci"
 )
 
 var initCmd = &cobra.Command{
@@ -87,7 +88,7 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 	if err != nil {
 		return fmt.Errorf("error fetching module for '%v': %v", initArgs.tool, err)
 	}
-	verified, err := oci.VerifyArifact(context.Background(), ociURL, initArgs.key)
+	verified, err := oci.VerifyArtifact(context.Background(), ociURL, initArgs.key)
 	if err != nil {
 		return fmt.Errorf("error varifying artifact: %v", err)
 	}
