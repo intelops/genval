@@ -9,7 +9,6 @@ import (
 	"os/exec"
 
 	"github.com/fatih/color"
-	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/fulcio"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/options"
 	"github.com/sigstore/cosign/v2/cmd/cosign/cli/rekor"
@@ -74,8 +73,8 @@ func processCosignIO(cosignCmd *exec.Cmd) error {
 	return nil
 }
 
-func VerifyArifact(ctx context.Context, url, key string) (verified bool, err error) {
-	ref, err := name.ParseReference(url)
+func VerifyArtifact(ctx context.Context, url, key string) (verified bool, err error) {
+	ref, err := ParseOCIReference(url)
 	if err != nil {
 		return false, fmt.Errorf("error parsing url: %w", err)
 	}
@@ -123,10 +122,10 @@ func VerifyArifact(ctx context.Context, url, key string) (verified bool, err err
 	if err != nil {
 		return false, fmt.Errorf("unable to get CTLog public keys: %s", err)
 	}
-	sigs, bundleVerified, _ := cosign.VerifyImageSignatures(context.Background(), ref, chopts)
-	// if err != nil {
-	// 	return false, fmt.Errorf("error verifying artifact signatures: %s", err)
-	// }
+	sigs, bundleVerified, err := cosign.VerifyImageSignatures(context.Background(), ref, chopts)
+	if err != nil {
+		return false, fmt.Errorf("error verifying artifact signatures: %s", err)
+	}
 
 	if bundleVerified {
 		verify.PrintVerificationHeader(ctx, ref.String(), chopts, bundleVerified, fulcioVerified)
@@ -138,37 +137,44 @@ func VerifyArifact(ctx context.Context, url, key string) (verified bool, err err
 					sub = sans[0]
 				}
 				color.Green("Certificate subject: %s", sub)
-				if issuerURL := ce.GetIssuer(); issuerURL != "" {
+
+				issuerURL := ce.GetIssuer()
+				if issuerURL != "" {
 					color.Green("Certificate issuer URL: %s", issuerURL)
 				}
 
-				if githubWorkflowTrigger := ce.GetCertExtensionGithubWorkflowTrigger(); githubWorkflowTrigger != "" {
+				githubWorkflowTrigger := ce.GetCertExtensionGithubWorkflowTrigger()
+				if githubWorkflowTrigger != "" {
 					color.Green("GitHub Workflow Trigger: %s", githubWorkflowTrigger)
 				}
 
-				if githubWorkflowSha := ce.GetExtensionGithubWorkflowSha(); githubWorkflowSha != "" {
+				githubWorkflowSha := ce.GetExtensionGithubWorkflowSha()
+				if githubWorkflowSha != "" {
 					color.Green("GitHub Workflow SHA: %s", githubWorkflowSha)
 				}
-				if githubWorkflowName := ce.GetCertExtensionGithubWorkflowName(); githubWorkflowName != "" {
+				githubWorkflowName := ce.GetCertExtensionGithubWorkflowName()
+				if githubWorkflowName != "" {
 					color.Green("GitHub Workflow Name: %s", githubWorkflowName)
 				}
 
-				if githubWorkflowRepository := ce.GetCertExtensionGithubWorkflowRepository(); githubWorkflowRepository != "" {
+				githubWorkflowRepository := ce.GetCertExtensionGithubWorkflowRepository()
+				if githubWorkflowRepository != "" {
 					color.Green("GitHub Workflow Repository: %s", githubWorkflowRepository)
 				}
 
-				if githubWorkflowRef := ce.GetCertExtensionGithubWorkflowRef(); githubWorkflowRef != "" {
+				githubWorkflowRef := ce.GetCertExtensionGithubWorkflowRef()
+				if githubWorkflowRef != "" {
 					color.Green("GitHub Workflow Ref: %s", githubWorkflowRef)
 				}
 			}
 
-			// p, err := sig.Payload()
-			// if err != nil {
-			// 	fmt.Fprintf(os.Stderr, "Error fetching payload: %v", err)
-			// 	return false, err
-			// }
-			// fmt.Println(string(p))
+			p, err := sig.Payload()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error fetching payload: %v", err)
+				return false, err
+			}
+			fmt.Println(string(p))
 		}
 	}
-	return true, nil
+	return bundleVerified, nil
 }

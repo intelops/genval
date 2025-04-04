@@ -88,7 +88,7 @@ func runPullArtifactCmd(cmd *cobra.Command, args []string) error {
 		spin := utils.StartSpinner("Verifying artifact")
 		defer spin.Stop()
 
-		verified, err := oci.VerifyArifact(context.Background(), pullArgs.dest, pullArgs.cosignKey)
+		verified, err := oci.VerifyArtifact(context.Background(), pullArgs.dest, pullArgs.cosignKey)
 		if err != nil {
 			color.Red("Artifact verification failed: %s", err)
 			os.Exit(1)
