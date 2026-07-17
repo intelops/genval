@@ -27,7 +27,7 @@ jobs:
           go mod tidy
           go test ./... -coverprofile=coverage.out -coverpkg=./... -covermode=atomic
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@0a35821d5c230e903fcfe077583637dea1b27b47 # v9
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9
         with:
           version: v2.12
           args: -v --config=.golangci.yml
