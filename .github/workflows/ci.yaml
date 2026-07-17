@@ -29,7 +29,7 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@0a35821d5c230e903fcfe077583637dea1b27b47 # v9
         with:
-          version: v1.60
+          version: v2.12
           args: -v --config=.ci.yml
           skip-pkg-cache: true
           skip-build-cache: true
