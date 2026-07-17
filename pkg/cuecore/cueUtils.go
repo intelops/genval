@@ -13,7 +13,7 @@ import (
 // the tool, the associated OCI URL and any error encountered
 func ParseTools(reqTools string) (string, string, error) {
 	if isToolSupported(reqTools) {
-		mod := strings.Replace(reqTools, ":", "_", -1)
+		mod := strings.ReplaceAll(reqTools, ":", "_")
 		umod := strings.ToUpper(mod)
 
 		em, err := godotenv.Read("tools.env")

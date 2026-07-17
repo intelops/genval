@@ -103,17 +103,17 @@ func runInitCmd(cmd *cobra.Command, args []string) error {
 		}
 
 		input = trimNewline(input)
-		if input == "y" {
+		switch input {
+		case "y":
 			fmt.Println("Proceeding...")
 
 			if err := oci.CreateWorkspace(initArgs.tool, ociURL, initArgs.creds); err != nil {
 				log.Errorf("Error creating workspace: %v", err)
 			}
 			log.Infof("Workspace verified and created")
-		} else if input == "n" {
+		case "n":
 			fmt.Println("Operation cancelled.")
-			// Place your code here for what should happen if the user chooses not to proceed
-		} else {
+		default:
 			fmt.Println("Invalid input. Please enter 'y' or 'n'.")
 		}
 	} else if err := oci.CreateWorkspace(initArgs.tool, ociURL, initArgs.creds); err != nil {
