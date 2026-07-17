@@ -14,9 +14,15 @@ COMMIT=$(git rev-list --tags --max-count=1)
 version=$(git describe --tags ${COMMIT})
 version="${version#v}"
 
+REMOTE_URL=$(git config --get remote.origin.url)
+
+# Extracts the organization name using string manipulation
+ORG_NAME=$(echo "$REMOTE_URL" | sed -E 's/.*[:\/]([^\/]+)\/[^\/]+\.git$/\1/')
+echo "Organization: $ORG_NAME"
+
 for arch in "${archs[@]}"; do
     # Define the base URL for the release files
-    base_url="https://github.com/intelops/genval/releases/download/v${version}/genval_${version}_${arch}.tar.gz"
+    base_url="https://github.com/${ORG_NAME}/genval/releases/download/v${version}/genval_${version}_${arch}.tar.gz"
 
     # Download the main release file
     curl -L -O "${base_url}" >/dev/null 2>&1
@@ -32,7 +38,7 @@ for arch in "${archs[@]}"; do
         --signature "genval_${version}_${arch}.tar.gz.sig" \
         --certificate "genval_${version}_${arch}.tar.gz.crt" \
         --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
-        --certificate-identity "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/v${version}" \
+        --certificate-identity "https://github.com/${ORG_NAME}/genval/.github/workflows/release.yaml@refs/tags/v${version}" \
         "genval_${version}_${arch}.tar.gz" >/dev/null 2>&1
 
     # Check if verification was successful
