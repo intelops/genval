@@ -30,7 +30,7 @@ jobs:
         uses: golangci/golangci-lint-action@0a35821d5c230e903fcfe077583637dea1b27b47 # v9
         with:
           version: v2.12
-          args: -v --config=.ci.yml
+          args: -v --config=.golangci.yml
           skip-cache: true
           skip-save-cache: true
       - name: Static check
