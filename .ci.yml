@@ -4,8 +4,8 @@ run:
 
 concurrency: 4
 
-linters:
-  disable-all: true
+formatters:
+  default: none
   enable:
     - errcheck
     - gosimple
@@ -16,11 +16,12 @@ linters:
     - dupl
     - stylecheck
 
-linters-settings:
-  gofmt:
-    simplify: true
-  dupl:
-    threshold: 400
+linters:
+  settings:
+    gofmt:
+      simplify: true
+    dupl:
+      threshold: 400
 
 issues:
   # Maximum issues count per one linter. Set to 0 to disable. Default is 50.

@@ -29,7 +29,7 @@ func GenerateDockerfileContent(data *DockerfileContent) string {
 		}
 
 		if stageNumber := stageData.Stage; stageNumber >= 0 {
-			dockerfileContent.WriteString(fmt.Sprintf("# STAGE %d\n", stageNumber))
+			fmt.Fprintf(&dockerfileContent, "# STAGE %d\n", stageNumber)
 		}
 
 		lastInstruction := ""
@@ -53,7 +53,7 @@ func GenerateDockerfileContent(data *DockerfileContent) string {
 					}
 
 					for _, line := range instructionLines {
-						dockerfileContent.WriteString(fmt.Sprintf("  %s\n", line))
+						fmt.Fprintf(&dockerfileContent, "  %s\n", line)
 					}
 				}
 			}
