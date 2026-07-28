@@ -1,6 +1,6 @@
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/7843/badge)](https://www.bestpractices.dev/projects/7843)
-[![Go Report Card](https://goreportcard.com/badge/github.com/intelops/genval)](https://goreportcard.com/report/github.com/intelops/genval)
-[![Build Status](https://github.com/intelops/genval/actions/workflows/ci.yaml/badge.svg)](https://github.com/intelops/genval/actions?query=workflow%3Abuild)
+[![Go Report Card](https://goreportcard.com/badge/github.com/genvaldev/genval)](https://goreportcard.com/report/github.com/genvaldev/genval)
+[![Build Status](https://github.com/genvaldev/genval/actions/workflows/ci.yaml/badge.svg)](https://github.com/genvaldev/genval/actions?query=workflow%3Abuild)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Genval: Simplifying Configuration Management
@@ -85,27 +85,27 @@ Genval provides capabilities to validate configurations for different resources 
 
 To use Genval:
 
-- Download the `genval` binary for your platform from the official [release page](https://github.com/intelops/genval/releases).
+- Download the `genval` binary for your platform from the official [release page](https://github.com/genvaldev/genval/releases).
 
 ---
 
 ## Verifying Binary Signatures
 
-Genval's release process signs binaries using Cosign's keyless signing mode. To verify a specific binary, retrieve the release artifact, signature, and public certificate for your desired OS/architecture from the official [releases page](https://github.com/intelops/genval/releases). Detailed instructions are available in the [Sigstore blog](https://blog.sigstore.dev/cosign-2-0-released/).
+Genval's release process signs binaries using Cosign's keyless signing mode. To verify a specific binary, retrieve the release artifact, signature, and public certificate for your desired OS/architecture from the official [releases page](https://github.com/genvaldev/genval/releases). Detailed instructions are available in the [Sigstore blog](https://blog.sigstore.dev/cosign-2-0-released/).
 
 **Example to verify a binary for linux_amd64**
 
 ```shell
 # get the artifact
-$ wget  https://github.com/intelops/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz
+$ wget  https://github.com/genvaldev/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz
 # get the signature
-$ wget  https://github.com/intelops/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz.sig
+$ wget  https://github.com/genvaldev/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz.sig
 # Get the certificate
-$ wget https://github.com/intelops/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz.crt
+$ wget https://github.com/genvaldev/genval/releases/download/untagged-46f163601b07b52b11d0/genval_0.1.6_linux_amd64.tar.gz.crt
 
 
 cosign  verify-blob  \
---certificate-identity  "https://github.com/intelops/genval/.github/workflows/release.yaml@refs/tags/${version}"  \
+--certificate-identity  "https://github.com/genvaldev/genval/.github/workflows/release.yaml@refs/tags/${version}"  \
 --certificate-oidc-issuer  "https://token.actions.githubusercontent.com"  \
 --cert  ./genval_0.1.6_linux_amd64.tar.gz.crt  \
 --signature  genval_0.1.6_linux_amd64.tar.gz.sig \
@@ -127,17 +127,17 @@ There are different ways to install Genval on your system:
   Run the installer script with the following command:
 
   ```sh
-  curl -sL https://raw.githubusercontent.com/intelops/genval/refs/heads/pre-main/hack/install.sh | sudo bash -
+  curl -sL https://raw.githubusercontent.com/genvaldev/genval/refs/heads/pre-main/hack/install.sh | sudo bash -
   ```
 
   This script detects your OS/architecture and installs the appropriate executable.
 
 - **Manual Download:**
 
-Genvals release process produces [artifacts](https://github.com/intelops/genval/releases) for the executable for multiple OS/Architecture as a `tar.gz` bundle and signs it with Cosign keyless mode. Users can download the artifact camplatible for their OS/Arch, untar it and place it in the executable `PATH`, for example, Linux/MacOS you would move it to `/usr/local/bin` for convenience.
+Genvals release process produces [artifacts](https://github.com/genvaldev/genval/releases) for the executable for multiple OS/Architecture as a `tar.gz` bundle and signs it with Cosign keyless mode. Users can download the artifact camplatible for their OS/Arch, untar it and place it in the executable `PATH`, for example, Linux/MacOS you would move it to `/usr/local/bin` for convenience.
 
 ```sh
-curl -Lo https://github.com/intelops/genval/releases/download/v0.1.6/genval_0.1.6_linux_amd64.tar.gz ganval.tar.gz
+curl -Lo https://github.com/genvaldev/genval/releases/download/v0.1.6/genval_0.1.6_linux_amd64.tar.gz ganval.tar.gz
 tar -xzf ./genval.tar.gz
 sudo mv genval /usr/local/bin
 ```
@@ -147,7 +147,7 @@ sudo mv genval /usr/local/bin
 For development enviornments users can build the `genval` executable is bycloning the Genval project, navidate to the `./genval` directiry and using the `build` Makefile target:
 
 ```sh
-$ git clone https://github.com/intelops/genval.git
+$ git clone https://github.com/genvaldev/genval.git
 $ cd genval
 $ make build
 ```
@@ -158,7 +158,7 @@ This command builds the binary from source and places it in the `./bin` folder, 
 
 ## Quick Start
 
-For a quick start, pre-built templates for Dockerfile generation for popular languages can be found in the `./templates/inputs/dockerfile_input` folder. Default policies and input templates are maintained in a dedicated [repository](https://github.com/intelops/policyhub).
+For a quick start, pre-built templates for Dockerfile generation for popular languages can be found in the `./templates/inputs/dockerfile_input` folder. Default policies and input templates are maintained in a dedicated [repository](https://github.com/genvaldev/policyhub).
 
 ---
 
@@ -227,11 +227,11 @@ Users can validate Dockerfiles, Kubernetes manifests, and Terraform files using 
 
 ```sh
 $ genval regoval dockerfileval --reqinput=Dockerfile \
---policy oci://ghcr.io/intelops/policyhub/genval/dockerfile_policies:v0.0.1 \
+--policy oci://ghcr.io/genvaldev/policyhub/genval/dockerfile_policies:v0.0.1 \
 --credentials <GITHUB_PAT> or <USER:PAT>
 ```
 
-Users can also use default policies maintained by the community stored in the [policyhub repository](https://github.com/intelops/policyhub).
+Users can also use default policies maintained by the community stored in the [policyhub repository](https://github.com/genvaldev/policyhub).
 
 #### Validation of Dockerfiles with Rego Policies
 
@@ -264,7 +264,7 @@ The `celval` command manages the validation of Dockerfiles, Kubernetes manifests
 
 ```yaml
 policies:
-- apiVersion: intelops.dev/v1alpha1
+- apiVersion: genvaldev.dev/v1alpha1
   kind: CELPolicy
   metadata:
     name: Check image with latest tag
